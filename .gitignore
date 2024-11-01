@@ -1,5 +1,7 @@
-# Visual Studio 2015 user specific files
+# Visual Studio user specific files
 .vs/
+.vsconfig
+_ReSharper.Caches/
 
 # Compiled Object files
 *.slo
