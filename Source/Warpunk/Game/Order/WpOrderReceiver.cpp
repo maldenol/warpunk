@@ -7,16 +7,16 @@
 
 #include "Components/WidgetComponent.h"
 
-static const FName SelectionWidgetComponentName = TEXT("SelectionWidget");
+const FName FWpOrderReceiver::SelectionWidgetComponentName = TEXT("SelectionWidget");
 
-static const TSet<EWpOrderType> ImmediateOrders =
+const TSet<EWpOrderType> FWpOrderReceiver::ImmediateOrders =
 {
 	EWpOrderType::InfiniteUnitProductionOff,
 	EWpOrderType::InfiniteUnitProductionOn,
 	EWpOrderType::SelfDestruct,
 };
 
-static const TSet<EWpOrderType> ProductionProxyOrders =
+const TSet<EWpOrderType> FWpOrderReceiver::ProductionProxyOrders =
 {
 	EWpOrderType::Move,
 	EWpOrderType::Patrol,

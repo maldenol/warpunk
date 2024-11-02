@@ -37,6 +37,11 @@ public:
 
 	void Select(const bool bSelected);
 
+	static const FName SelectionWidgetComponentName;
+
+	static const TSet<EWpOrderType> ImmediateOrders;
+	static const TSet<EWpOrderType> ProductionProxyOrders;
+
 	FOnOrderReceived OnOrderReceived = {};
 
 private:

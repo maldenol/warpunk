@@ -18,6 +18,9 @@ public:
 
 	const TArray<UWpEntityComponent*>& GetIntel() const;
 
+	static const FName IntelVolumeName;
+	static const FName IntelVolumeCollisionProfileName;
+
 private:
 	UStaticMeshComponent* IntelVolume = nullptr;
 

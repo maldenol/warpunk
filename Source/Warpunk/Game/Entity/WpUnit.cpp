@@ -8,10 +8,10 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-static const FName EntityComponentName = TEXT("EntityComponent");
+const FName AWpUnit::EntityComponentName = TEXT("EntityComponent");
 
-static const FName CapsuleComponentCollisionProfileName = TEXT("WpEntitySimple");
-static const FName MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
+const FName AWpUnit::CapsuleComponentCollisionProfileName = TEXT("WpEntitySimple");
+const FName AWpUnit::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
 
 AWpUnit::AWpUnit()
 {

@@ -25,6 +25,12 @@ public:
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
 
+	static const FName SphereComponentName;
+	static const FName MeshComponentName;
+	static const FName MovementComponentName;
+	static const FName SphereComponentCollisionProfileName;
+	static const FName MeshComponentCollisionProfileName;
+
 private:
 	UFUNCTION()
 	void OnComponentHit(UPrimitiveComponent* const HitComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const FVector NormalImpulse, const FHitResult& Hit);

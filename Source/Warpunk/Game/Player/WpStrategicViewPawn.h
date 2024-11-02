@@ -30,6 +30,8 @@ public:
 
 	uint32 GetBelligerentID() const;
 
+	static const FName MovementComponentName;
+
 private:
 	void OnMoveTriggered(const FInputActionValue& ActionValue);
 

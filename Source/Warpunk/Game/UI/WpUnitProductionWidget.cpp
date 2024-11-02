@@ -7,7 +7,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/TextBlock.h"
 
-static const FName CancelUnitInputKeyName = TEXT("LeftShift");
+const FName UWpUnitProductionEntryWidget::CancelUnitInputKeyName = TEXT("LeftShift");
 
 UWpUnitProductionEntryWidget::UWpUnitProductionEntryWidget(const FObjectInitializer& ObjectInitializer) : UUserWidget(ObjectInitializer)
 {

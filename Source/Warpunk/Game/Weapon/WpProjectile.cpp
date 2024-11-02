@@ -8,12 +8,12 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
-static const FName SphereComponentName = TEXT("SphereCollision");
-static const FName MeshComponentName = TEXT("StaticMesh");
-static const FName MovementComponentName = TEXT("ProjectileMovement");
+const FName AWpProjectile::SphereComponentName = TEXT("SphereCollision");
+const FName AWpProjectile::MeshComponentName = TEXT("StaticMesh");
+const FName AWpProjectile::MovementComponentName = TEXT("ProjectileMovement");
 
-static const FName SphereComponentCollisionProfileName = TEXT("WpProjectile");
-static const FName MeshComponentCollisionProfileName = TEXT("NoCollision");
+const FName AWpProjectile::SphereComponentCollisionProfileName = TEXT("WpProjectile");
+const FName AWpProjectile::MeshComponentCollisionProfileName = TEXT("NoCollision");
 
 AWpProjectile::AWpProjectile()
 {

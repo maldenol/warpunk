@@ -39,6 +39,8 @@ public:
 	void OnRMBTriggered();
 	void OnRMBCompleted();
 
+	static const FName OverrideInputKeyName;
+
 	FOnAvailableOrdersChanged OnAvailableOrdersChanged = {};
 
 private:

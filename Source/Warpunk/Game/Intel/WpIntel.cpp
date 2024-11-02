@@ -8,9 +8,9 @@
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-static const FName IntelVolumeName = TEXT("IntelVolume");
+const FName FWpIntel::IntelVolumeName = TEXT("IntelVolume");
 
-static const FName IntelVolumeCollisionProfileName = TEXT("WpIntel");
+const FName FWpIntel::IntelVolumeCollisionProfileName = TEXT("WpIntel");
 
 void FWpIntel::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const void* const CustomData)
 {

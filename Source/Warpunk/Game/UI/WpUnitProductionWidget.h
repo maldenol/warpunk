@@ -24,6 +24,8 @@ public:
 
 	void SetUnitConfigID(const uint32 InUnitConfigID);
 
+	static const FName CancelUnitInputKeyName;
+
 private:
 	UFUNCTION()
 	void OnPressed();

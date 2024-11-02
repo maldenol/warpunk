@@ -2,7 +2,7 @@
 
 #include "Components/SceneCaptureComponent2D.h"
 
-static const FName SceneCaptureComponentName = TEXT("EntityComponent");
+const FName AWpFogOfWarManager::SceneCaptureComponentName = TEXT("EntityComponent");
 
 AWpFogOfWarManager::AWpFogOfWarManager()
 {

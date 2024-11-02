@@ -6,12 +6,12 @@
 
 #include "Components/BoxComponent.h"
 
-static const FName BoxComponentName = TEXT("BoxCollision");
-static const FName MeshComponentName = TEXT("SkeletalMesh");
-static const FName EntityComponentName = TEXT("EntityComponent");
+const FName AWpBuilding::BoxComponentName = TEXT("BoxCollision");
+const FName AWpBuilding::MeshComponentName = TEXT("SkeletalMesh");
+const FName AWpBuilding::EntityComponentName = TEXT("EntityComponent");
 
-static const FName BoxComponentCollisionProfileName = TEXT("WpEntitySimple");
-static const FName MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
+const FName AWpBuilding::BoxComponentCollisionProfileName = TEXT("WpEntitySimple");
+const FName AWpBuilding::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
 
 AWpBuilding::AWpBuilding()
 {

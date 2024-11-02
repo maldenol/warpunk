@@ -36,6 +36,8 @@ public:
 	void SetCurrentEndurance(const float InCurrentEndurance);
 	float GetCurrentEndurance() const;
 
+	static const FName EnduranceWidgetComponentName;
+
 	FOnEnduranceChanged OnEnduranceChanged = {};
 
 private:

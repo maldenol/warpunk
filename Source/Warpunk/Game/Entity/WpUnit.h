@@ -23,6 +23,10 @@ public:
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
 
+	static const FName EntityComponentName;
+	static const FName CapsuleComponentCollisionProfileName;
+	static const FName MeshComponentCollisionProfileName;
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpEntityComponent> EntityComponent = nullptr;

@@ -4,7 +4,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/FloatingPawnMovement.h"
 
-static const FName MovementComponentName = TEXT("FloatingPawnMovement");
+const FName AWpStrategicViewPawn::MovementComponentName = TEXT("FloatingPawnMovement");
 
 AWpStrategicViewPawn::AWpStrategicViewPawn()
 {

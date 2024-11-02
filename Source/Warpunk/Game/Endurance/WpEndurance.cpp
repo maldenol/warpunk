@@ -9,7 +9,7 @@
 
 #include "Components/WidgetComponent.h"
 
-static const FName EnduranceWidgetComponentName = TEXT("EnduranceWidget");
+const FName FWpEndurance::EnduranceWidgetComponentName = TEXT("EnduranceWidget");
 
 void FWpEndurance::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData)
 {
