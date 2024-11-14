@@ -7,8 +7,6 @@
 class AWpBuilding;
 class UWpEntityComponent;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnAvailableOrdersChanged, const TSet<EWpOrderType>&);
-
 class FWpOrderSender
 {
 	enum class EWpOrderSenderState : uint8
@@ -20,17 +18,19 @@ class FWpOrderSender
 	};
 
 public:
+	DECLARE_EVENT_OneParam(FWpOrderSender, FAvailableOrdersChangedEvent, const TSet<EWpOrderType>&);
+
 	void Initialize(APlayerController* InPlayerController);
 
 	void Tick();
 
 	void SelectOrderType(const EWpOrderType OrderType);
 
-	void SelectBuildingToProduce(const uint32 BuildingConfigID);
+	void SelectBuildingToProduce(const uint32 BuildingConfigId);
 
-	void AddUnitToProduce(const uint32 UnitConfigID);
-	void RemoveUnitToProduce(const uint32 UnitConfigID);
-	TMap<uint32, uint32> GetUnitToProduceConfigIDs();
+	void AddUnitToProduce(const uint32 UnitConfigId);
+	void RemoveUnitToProduce(const uint32 UnitConfigId);
+	TMap<uint32, uint32> GetUnitToProduceConfigIds();
 
 	void OnLMBStarted();
 	void OnLMBTriggered();
@@ -39,9 +39,9 @@ public:
 	void OnRMBTriggered();
 	void OnRMBCompleted();
 
-	static const FName OverrideInputKeyName;
+	FAvailableOrdersChangedEvent& OnAvailableOrdersChanged();
 
-	FOnAvailableOrdersChanged OnAvailableOrdersChanged = {};
+	static const FName OverrideInputKeyName;
 
 private:
 	void SetSelectEntitiesStartLocation();
@@ -59,7 +59,7 @@ private:
 
 	APlayerController* PlayerController = nullptr;
 
-	uint32 BelligerentID = 0;
+	uint32 BelligerentId = 0;
 
 	EWpOrderSenderState OrderSenderState = EWpOrderSenderState::DefaultOrder;
 
@@ -69,8 +69,10 @@ private:
 	EWpOrderType SelectedOrderType = EWpOrderType::Undefined;
 	FVector OrderStartLocation = FVector::ZeroVector;
 
-	uint32 BuildingToProduceConfigID = 0;
+	uint32 BuildingToProduceConfigId = 0;
 	TObjectPtr<AWpBuilding> BuildingToProduce = nullptr;
 
-	TArray<TMap<uint32, uint32>> UnitToProduceConfigIDNumbersPerProducer = {};
+	TArray<TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
+
+	FAvailableOrdersChangedEvent AvailableOrdersChangedEvent = {};
 };

@@ -9,6 +9,8 @@ AWpGameHUD::AWpGameHUD()
 
 void AWpGameHUD::BeginPlay()
 {
+	Super::BeginPlay();
+
 	ensureAlways(GameHUDWidgetClass);
 
 	GameHUDWidget = CreateWidget<UWpGameHUDWidget>(GetWorld(), GameHUDWidgetClass);

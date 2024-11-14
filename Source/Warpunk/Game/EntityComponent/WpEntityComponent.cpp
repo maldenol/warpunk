@@ -12,12 +12,6 @@ void UWpEntityComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Endurance.Initialize(this);
-	OrderReceiver.Initialize(this);
-	Intel.Initialize(this);
-	Production.Initialize(this);
-	WeaponArray.Initialize(this);
-
 	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UWpEntityComponent::OnTakeAnyDamage);
 }
 
@@ -30,16 +24,26 @@ void UWpEntityComponent::TickComponent(const float DeltaTime, const ELevelTick T
 	WeaponArray.Tick(DeltaTime);
 }
 
+void UWpEntityComponent::OnPooledObjectInitialized()
+{
+	Endurance.Initialize(this);
+	OrderReceiver.Initialize(this);
+	Intel.Initialize(this);
+	Production.Initialize(this);
+	WeaponArray.Initialize(this);
+}
+
 void UWpEntityComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData)
 {
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData* const PooledEntityData = static_cast<const FWpPooledEntityData*>(CustomData);
 
-		ensureAlways(PooledEntityData->EntityConfigID > 0);
+		ensureAlways(PooledEntityData->EntityConfigId > 0);
+		ensureAlways(PooledEntityData->BelligerentId > 0);
 
-		EntityConfigID = PooledEntityData->EntityConfigID;
-		BelligerentMember.SetBelligerentID(PooledEntityData->BelligerentID);
+		EntityConfigId = PooledEntityData->EntityConfigId;
+		BelligerentMember.SetBelligerentId(PooledEntityData->BelligerentId);
 	}
 
 	SetComponentTickEnabled(bIsAcquired);
@@ -117,9 +121,9 @@ UWpEntityComponent::operator const FWpWeaponArray&() const
 	return WeaponArray;
 }
 
-uint32 UWpEntityComponent::GetEntityConfigID() const
+uint32 UWpEntityComponent::GetEntityConfigId() const
 {
-	return EntityConfigID;
+	return EntityConfigId;
 }
 
 void UWpEntityComponent::OnIntelVolumeBeginOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex, const bool bFromSweep, const FHitResult& SweepResult)
@@ -140,7 +144,12 @@ void UWpEntityComponent::OnIntelVolumeEndOverlap(UPrimitiveComponent* const Over
 	}
 }
 
+UWpEntityComponent::FDamageReceivedEvent& UWpEntityComponent::OnDamageReceived()
+{
+	return DamageReceivedEvent;
+}
+
 void UWpEntityComponent::OnTakeAnyDamage(AActor* const DamagedActor, const float Damage, const UDamageType* const DamageType, AController* const InstigatedBy, AActor* const DamageCauser)
 {
-	OnDamageReceived.Broadcast(Damage);
+	DamageReceivedEvent.Broadcast(Damage);
 }

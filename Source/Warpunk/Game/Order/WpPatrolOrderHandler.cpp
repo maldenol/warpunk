@@ -35,19 +35,19 @@ void FWpPatrolOrderHandler::Reactivate()
 
 	if (OnMovementCompletedDelegateHandle.IsValid())
 	{
-		AIController->OnMovementCompleted.Remove(OnMovementCompletedDelegateHandle);
+		AIController->OnMovementCompleted().Remove(OnMovementCompletedDelegateHandle);
 	}
 
 	MoveToNextLocation();
 
-	OnMovementCompletedDelegateHandle = AIController->OnMovementCompleted.AddRaw(this, &FWpPatrolOrderHandler::OnMovementCompleted);
+	OnMovementCompletedDelegateHandle = AIController->OnMovementCompleted().AddRaw(this, &FWpPatrolOrderHandler::OnMovementCompleted);
 }
 
 void FWpPatrolOrderHandler::Deactivate()
 {
 	if (IsValid(AIController))
 	{
-		AIController->OnMovementCompleted.Remove(OnMovementCompletedDelegateHandle);
+		AIController->OnMovementCompleted().Remove(OnMovementCompletedDelegateHandle);
 		AIController->StopMovement();
 	}
 	OnMovementCompletedDelegateHandle.Reset();

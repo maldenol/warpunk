@@ -7,6 +7,6 @@ struct FWpEntityConfig;
 struct FWpPooledEntityData final
 {
 	const FWpEntityConfig* EntityConfig = nullptr;
-	uint32 EntityConfigID = 0;
-	uint32 BelligerentID = 0;
+	uint32 EntityConfigId = 0;
+	uint32 BelligerentId = 0;
 };

@@ -5,7 +5,7 @@
 #include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
-#include "Warpunk/Game/UI/WpEntityEnduranceWidget.h"
+#include "Warpunk/Game/UI/WpGameEntityEnduranceWidget.h"
 
 #include "Components/WidgetComponent.h"
 
@@ -32,7 +32,7 @@ void FWpEndurance::Initialize(UWpEntityComponent* const InOwnerEntityComponent)
 {
 	OwnerEntityComponent = InOwnerEntityComponent;
 
-	OwnerEntityComponent->OnDamageReceived.AddRaw(this, &FWpEndurance::ReceiveDamage);
+	OwnerEntityComponent->OnDamageReceived().AddRaw(this, &FWpEndurance::ReceiveDamage);
 
 	EnduranceWidgetComponent = NewObject<UWidgetComponent>(OwnerEntityComponent->GetOwner(), UWidgetComponent::StaticClass(), EnduranceWidgetComponentName);
 	EnduranceWidgetComponent->RegisterComponent();
@@ -49,7 +49,7 @@ void FWpEndurance::Initialize(UWpEntityComponent* const InOwnerEntityComponent)
 	ensureAlways(EnduranceWidgetClass);
 	EnduranceWidgetComponent->SetWidgetClass(EnduranceWidgetClass);
 
-	Cast<UWpEntityEnduranceWidget>(EnduranceWidgetComponent->GetWidget())->SetEndurance(this);
+	Cast<UWpGameEntityEnduranceWidget>(EnduranceWidgetComponent->GetWidget())->SetEndurance(this);
 }
 
 bool FWpEndurance::CanBeRepaired(const bool bCanProduce) const
@@ -129,10 +129,15 @@ void FWpEndurance::SetCurrentEndurance(const float InCurrentEndurance)
 {
 	CurrentEndurance = InCurrentEndurance;
 
-	OnEnduranceChanged.Broadcast(CurrentEndurance, MaxEndurance);
+	CurrentEnduranceChangedEvent.Broadcast(CurrentEndurance, MaxEndurance);
 }
 
 float FWpEndurance::GetCurrentEndurance() const
 {
 	return CurrentEndurance;
+}
+
+FWpEndurance::FCurrentEnduranceChangedEvent& FWpEndurance::OnCurrentEnduranceChanged()
+{
+	return CurrentEnduranceChangedEvent;
 }

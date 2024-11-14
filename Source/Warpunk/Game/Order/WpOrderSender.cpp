@@ -7,6 +7,7 @@
 #include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
 #include "Warpunk/Game/EntityComponent/WpEntityInterface.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/Player/WpGamePlayerState.h"
 
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -14,10 +15,15 @@ const FName FWpOrderSender::OverrideInputKeyName = TEXT("LeftShift");
 
 void FWpOrderSender::Initialize(APlayerController* InPlayerController)
 {
+	if (PlayerController)
+	{
+		return;
+	}
+
 	PlayerController = InPlayerController;
 
-	// const AWpGameGameState* const GameGameState = PlayerController->GetWorld()->GetGameState<AWpGameGameState>();
-	BelligerentID = 0; // GameGameState->GetPlayerBelligerentID(PlayerController); TODO
+	const AWpGamePlayerState* const GameState = PlayerController->GetPlayerState<AWpGamePlayerState>();
+	BelligerentId = GameState->GetBelligerentId();
 }
 
 void FWpOrderSender::Tick()
@@ -44,7 +50,7 @@ void FWpOrderSender::SelectOrderType(const EWpOrderType OrderType)
 	}
 }
 
-void FWpOrderSender::SelectBuildingToProduce(const uint32 BuildingConfigID)
+void FWpOrderSender::SelectBuildingToProduce(const uint32 BuildingConfigId)
 {
 	if (IsValid(BuildingToProduce))
 	{
@@ -52,11 +58,11 @@ void FWpOrderSender::SelectBuildingToProduce(const uint32 BuildingConfigID)
 		BuildingToProduce = nullptr;
 	}
 
-	if (BuildingConfigID > 0)
+	if (BuildingConfigId > 0)
 	{
 		OrderSenderState = EWpOrderSenderState::ProduceBuildingOrder;
 
-		BuildingToProduceConfigID = BuildingConfigID;
+		BuildingToProduceConfigId = BuildingConfigId;
 	}
 	else
 	{
@@ -64,9 +70,9 @@ void FWpOrderSender::SelectBuildingToProduce(const uint32 BuildingConfigID)
 	}
 }
 
-void FWpOrderSender::AddUnitToProduce(const uint32 UnitConfigID)
+void FWpOrderSender::AddUnitToProduce(const uint32 UnitConfigId)
 {
-	ensureAlways(UnitConfigID > 0);
+	ensureAlways(UnitConfigId > 0);
 
 	const TArray<UWpEntityComponent*> SelectedEntities = GetSelectedEntities(nullptr);
 	if (!SelectedEntities.IsEmpty())
@@ -78,13 +84,13 @@ void FWpOrderSender::AddUnitToProduce(const uint32 UnitConfigID)
 			const UWpEntityComponent* const SelectedEntityComponent = SelectedEntities[Index];
 			if (IsValid(SelectedEntityComponent))
 			{
-				if (uint32* const UnitToProduceNumber = UnitToProduceConfigIDNumbersPerProducer[Index].Find(UnitConfigID))
+				if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[Index].Find(UnitConfigId))
 				{
 					*UnitToProduceNumber = *UnitToProduceNumber + 1;
 				}
 				else
 				{
-					UnitToProduceConfigIDNumbersPerProducer[Index].Add(UnitConfigID, 1);
+					UnitToProduceConfigIdNumbersPerProducer[Index].Add(UnitConfigId, 1);
 				}
 			}
 		}
@@ -97,9 +103,9 @@ void FWpOrderSender::AddUnitToProduce(const uint32 UnitConfigID)
 	}
 }
 
-void FWpOrderSender::RemoveUnitToProduce(const uint32 UnitConfigID)
+void FWpOrderSender::RemoveUnitToProduce(const uint32 UnitConfigId)
 {
-	ensureAlways(UnitConfigID > 0);
+	ensureAlways(UnitConfigId > 0);
 
 	const TArray<UWpEntityComponent*> SelectedEntities = GetSelectedEntities(nullptr);
 	if (!SelectedEntities.IsEmpty())
@@ -111,13 +117,13 @@ void FWpOrderSender::RemoveUnitToProduce(const uint32 UnitConfigID)
 			const UWpEntityComponent* const SelectedEntityComponent = SelectedEntities[Index];
 			if (IsValid(SelectedEntityComponent))
 			{
-				if (uint32* const UnitToProduceNumber = UnitToProduceConfigIDNumbersPerProducer[Index].Find(UnitConfigID))
+				if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[Index].Find(UnitConfigId))
 				{
 					*UnitToProduceNumber = *UnitToProduceNumber - 1;
 
 					if (*UnitToProduceNumber == 0)
 					{
-						UnitToProduceConfigIDNumbersPerProducer[Index].Remove(UnitConfigID);
+						UnitToProduceConfigIdNumbersPerProducer[Index].Remove(UnitConfigId);
 					}
 				}
 			}
@@ -131,25 +137,25 @@ void FWpOrderSender::RemoveUnitToProduce(const uint32 UnitConfigID)
 	}
 }
 
-TMap<uint32, uint32> FWpOrderSender::GetUnitToProduceConfigIDs()
+TMap<uint32, uint32> FWpOrderSender::GetUnitToProduceConfigIds()
 {
 	const TArray<UWpEntityComponent*> SelectedEntities = GetSelectedEntities(nullptr);
 	PopulateUnitToProduceClassNumbersPerProducer(SelectedEntities);
 
 	TMap<uint32, uint32> UnitToProduceClassNumbersTotal = {};
-	for (const TMap<uint32, uint32>& UnitToProduceConfigIDNumbers : UnitToProduceConfigIDNumbersPerProducer)
+	for (const TMap<uint32, uint32>& UnitToProduceConfigIdNumbers : UnitToProduceConfigIdNumbersPerProducer)
 	{
-		for (const TPair<uint32, uint32>& UnitToProduceConfigIDNumber : UnitToProduceConfigIDNumbers)
+		for (const TPair<uint32, uint32>& UnitToProduceConfigIdNumber : UnitToProduceConfigIdNumbers)
 		{
-			const uint32 UnitToProduceConfigID = UnitToProduceConfigIDNumber.Key;
-			const uint32 UnitToProduceNumber = UnitToProduceConfigIDNumber.Value;
-			if (uint32* const UnitToProduceNumberTotal = UnitToProduceClassNumbersTotal.Find(UnitToProduceConfigID))
+			const uint32 UnitToProduceConfigId = UnitToProduceConfigIdNumber.Key;
+			const uint32 UnitToProduceNumber = UnitToProduceConfigIdNumber.Value;
+			if (uint32* const UnitToProduceNumberTotal = UnitToProduceClassNumbersTotal.Find(UnitToProduceConfigId))
 			{
 				*UnitToProduceNumberTotal = *UnitToProduceNumberTotal + UnitToProduceNumber;
 			}
 			else
 			{
-				UnitToProduceClassNumbersTotal.Add(UnitToProduceConfigID, UnitToProduceNumber);
+				UnitToProduceClassNumbersTotal.Add(UnitToProduceConfigId, UnitToProduceNumber);
 			}
 		}
 	}
@@ -252,6 +258,11 @@ void FWpOrderSender::OnRMBCompleted()
 	}
 }
 
+FWpOrderSender::FAvailableOrdersChangedEvent& FWpOrderSender::OnAvailableOrdersChanged()
+{
+	return AvailableOrdersChangedEvent;
+}
+
 void FWpOrderSender::SetSelectEntitiesStartLocation()
 {
 	const FHitResult Hit = LineTraceUnderCursor();
@@ -263,6 +274,18 @@ void FWpOrderSender::SetSelectEntitiesStartLocation()
 
 void FWpOrderSender::SelectEntities()
 {
+	for (const TTuple<FWpDefaultOrders, TArray<UWpEntityComponent*>>& KeyValue : SelectedEntitiesPerDefaultOrders)
+	{
+		for (UWpEntityComponent* const SelectedEntityComponent : SelectedEntitiesPerDefaultOrders[KeyValue.Key])
+		{
+			if (IsValid(SelectedEntityComponent))
+			{
+				WP_AS_ORDER_RECEIVER(SelectedEntityComponent).Select(false);
+			}
+		}
+		SelectedEntitiesPerDefaultOrders[KeyValue.Key].Empty();
+	}
+
 	if (SelectEntitiesStartLocation.IsNearlyZero())
 	{
 		return;
@@ -286,18 +309,6 @@ void FWpOrderSender::SelectEntities()
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel2));
 	UKismetSystemLibrary::BoxOverlapActors(PlayerController->GetWorld(), BoxLocation, BoxExtent, ObjectTypes, AActor::StaticClass(), {}, SelectedActors);
 
-	for (const TTuple<FWpDefaultOrders, TArray<UWpEntityComponent*>>& KeyValue : SelectedEntitiesPerDefaultOrders)
-	{
-		for (UWpEntityComponent* const SelectedEntityComponent : SelectedEntitiesPerDefaultOrders[KeyValue.Key])
-		{
-			if (IsValid(SelectedEntityComponent))
-			{
-				WP_AS_ORDER_RECEIVER(SelectedEntityComponent).Select(false);
-			}
-		}
-		SelectedEntitiesPerDefaultOrders[KeyValue.Key].Empty();
-	}
-
 	for (AActor* const SelectedActor : SelectedActors)
 	{
 		if (!IsValid(SelectedActor))
@@ -308,6 +319,12 @@ void FWpOrderSender::SelectEntities()
 		if (IWpEntityInterface* const SelectedEntity = Cast<IWpEntityInterface>(SelectedActor))
 		{
 			UWpEntityComponent* const SelectedEntityComponent = SelectedEntity->GetEntityComponent();
+
+			const FWpBelligerentMember& BelligerentMember = WP_AS_BELLIGERENT_MEMBER_CONST(SelectedEntityComponent);
+			if (!BelligerentMember.BelongsToSameBelligerent(BelligerentId))
+			{
+				continue;
+			}
 
 			const FWpOrderReceiver& OrderReceiver = *SelectedEntityComponent;
 			if (!OrderReceiver.IsActive())
@@ -347,7 +364,7 @@ void FWpOrderSender::SelectEntities()
 		}
 	}
 
-	OnAvailableOrdersChanged.Broadcast(AvailableOrderTypes);
+	AvailableOrdersChangedEvent.Broadcast(AvailableOrderTypes);
 }
 
 TArray<UWpEntityComponent*> FWpOrderSender::GetSelectedEntities(FWpDefaultOrders* const OutDefaultOrders) const
@@ -419,7 +436,7 @@ void FWpOrderSender::SendOrders(const EWpOrderType OrderType)
 	}
 
 	FWpOrder Order;
-	Order.Type = (OrderType != EWpOrderType::Undefined) ? OrderType : DefaultOrders.Get(BelligerentID, Hit.GetActor());
+	Order.Type = (OrderType != EWpOrderType::Undefined) ? OrderType : DefaultOrders.Get(BelligerentId, Hit.GetActor());
 	Order.TargetLocation = Hit.Location;
 
 	Order.Radius = FVector::Dist2D(Hit.Location, OrderStartLocation);
@@ -441,7 +458,7 @@ void FWpOrderSender::SendOrders(const EWpOrderType OrderType)
 
 	if (OrderSenderState == EWpOrderSenderState::ProduceBuildingOrder)
 	{
-		Order.BuildingToProduceConfigID = BuildingToProduceConfigID;
+		Order.BuildingToProduceConfigId = BuildingToProduceConfigId;
 	}
 
 	bool bOverride = !PlayerController->IsInputKeyDown(OverrideInputKeyName);
@@ -461,7 +478,7 @@ void FWpOrderSender::SendOrders(const EWpOrderType OrderType)
 
 		if (OrderSenderState == EWpOrderSenderState::ProduceUnitOrder)
 		{
-			Order.UnitToProduceConfigIDNumbers = UnitToProduceConfigIDNumbersPerProducer[Index];
+			Order.UnitToProduceConfigIdNumbers = UnitToProduceConfigIdNumbersPerProducer[Index];
 		}
 
 		WP_AS_ORDER_RECEIVER(SelectedEntityComponent).ReceiveOrder(Order, bOverride);
@@ -488,14 +505,15 @@ void FWpOrderSender::UpdateBuildingPlan()
 			BuildingToProduce = PlayerController->GetWorld()->SpawnActor<AWpBuilding>();
 
 			const UDataTable* const EntityConfigs = PlayerController->GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
-			const FName RowName = FName{FString::FromInt(BuildingToProduceConfigID)};
+			const FName RowName = FName{FString::FromInt(BuildingToProduceConfigId)};
 			const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
 			FWpPooledEntityData PooledEntityData;
 			PooledEntityData.EntityConfig = &EntityConfig;
-			PooledEntityData.EntityConfigID = BuildingToProduceConfigID;
-			PooledEntityData.BelligerentID = BelligerentID;
+			PooledEntityData.EntityConfigId = BuildingToProduceConfigId;
+			PooledEntityData.BelligerentId = BelligerentId;
 
+			BuildingToProduce->InitializePooledObject();
 			BuildingToProduce->AcquirePooledObject(&PooledEntityData);
 
 			BuildingToProduce->ReleasePooledObject();
@@ -508,7 +526,7 @@ void FWpOrderSender::PopulateUnitToProduceClassNumbersPerProducer(const TArray<U
 {
 	if (!SelectedEntities.IsEmpty())
 	{
-		UnitToProduceConfigIDNumbersPerProducer.SetNum(SelectedEntities.Num());
+		UnitToProduceConfigIdNumbersPerProducer.SetNum(SelectedEntities.Num());
 
 		for (int32 Index = 0; Index < SelectedEntities.Num(); ++Index)
 		{
@@ -518,7 +536,7 @@ void FWpOrderSender::PopulateUnitToProduceClassNumbersPerProducer(const TArray<U
 				continue;
 			}
 
-			UnitToProduceConfigIDNumbersPerProducer[Index] = WP_AS_ORDER_RECEIVER_CONST(SelectedEntityComponent).GetOrder().UnitToProduceConfigIDNumbers;
+			UnitToProduceConfigIdNumbersPerProducer[Index] = WP_AS_ORDER_RECEIVER_CONST(SelectedEntityComponent).GetOrder().UnitToProduceConfigIdNumbers;
 		}
 	}
 }

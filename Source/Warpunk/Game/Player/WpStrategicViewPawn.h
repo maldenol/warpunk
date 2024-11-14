@@ -21,14 +21,11 @@ class AWpStrategicViewPawn final : public APawn, public FWpOrderSender
 public:
 	AWpStrategicViewPawn();
 
-	virtual void BeginPlay() override;
 	virtual void Tick(const float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(UInputComponent* const PlayerInputComponent) override;
 	virtual void PossessedBy(AController* const NewController) override;
 	virtual void UnPossessed() override;
-
-	uint32 GetBelligerentID() const;
 
 	static const FName MovementComponentName;
 
@@ -46,6 +43,4 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UFloatingPawnMovement> MovementComponent = nullptr;
-
-	uint32 BelligerentID = 0;
 };

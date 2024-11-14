@@ -9,12 +9,9 @@ class UWpEntityComponent;
 
 class AAIController;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnRepairFinished, UWpEntityComponent*);
-DECLARE_MULTICAST_DELEGATE(FOnReclaimFinished);
-
 class FWpProduction final : public IWpPooledObjectInterface
 {
-	enum class EWpProductionState
+	enum class EWpProductionState : uint8
 	{
 		Idle,
 		InitiatingProduction,
@@ -25,6 +22,10 @@ class FWpProduction final : public IWpPooledObjectInterface
 	};
 
 public:
+	DECLARE_EVENT_OneParam(FWpProduction, FRepairFinishedEvent, UWpEntityComponent*);
+
+	DECLARE_EVENT(FWpProduction, FReclaimFinishedEvent);
+
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const void* const CustomData) override;
 
 	void Initialize(UWpEntityComponent* const InOwnerEntityComponent);
@@ -33,7 +34,7 @@ public:
 
 	void Tick(const float DeltaTime);
 
-	void StartProduce(const uint32 InEntityToProduceID, const FVector& InTargetLocation);
+	void StartProduce(const uint32 InEntityToProduceId, const FVector& InTargetLocation);
 	void StartRepair(UWpEntityComponent* const InTargetEntityComponent);
 	void StartReclaim(UWpEntityComponent* const InTargetEntityComponent);
 	void Stop();
@@ -53,8 +54,8 @@ public:
 	void SetInfiniteProduction(const bool bInInfiniteProduction);
 	bool GetInfiniteProduction() const;
 
-	FOnRepairFinished OnRepairFinished = {};
-	FOnReclaimFinished OnReclaimFinished = {};
+	FRepairFinishedEvent& OnRepairFinished();
+	FReclaimFinishedEvent& OnReclaimFinished();
 
 private:
 	void Produce();
@@ -78,7 +79,10 @@ private:
 	FVector TargetLocation = FVector::ZeroVector;
 	UWpEntityComponent* CurrentTargetEntityComponent = nullptr;
 	UWpEntityComponent* PriorityTargetEntityComponent = nullptr;
-	uint32 EntityToProduceID = 0;
+	uint32 EntityToProduceId = 0;
 	bool bInfiniteProduction = false;
 	TArray<FWpOrder> ProxyOrderQueue = {};
+
+	FRepairFinishedEvent RepairFinishedEvent = {};
+	FReclaimFinishedEvent ReclaimFinishedEvent = {};
 };

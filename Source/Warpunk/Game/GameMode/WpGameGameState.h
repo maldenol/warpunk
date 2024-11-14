@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameStateBase.h"
 
 #include "WpGameGameState.generated.h"
 
 UCLASS(MinimalAPI, Abstract, Blueprintable, NotBlueprintType)
-class AWpGameGameState final : public AGameState
+class AWpGameGameState final : public AGameStateBase
 {
 	GENERATED_BODY()
 
@@ -16,10 +16,8 @@ public:
 
 	const UDataTable* GetEntityConfigs() const;
 
-	uint32 GetPlayerBelligerentID(const APlayerController* const PlayerController) const;
-
 	UPROPERTY(EditDefaultsOnly)
-	uint32 CommanderConfigID = 0;
+	uint32 CommanderConfigId = 0;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UUserWidget> EnduranceWidgetClass = nullptr;
@@ -29,6 +27,4 @@ public:
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UDataTable> EntityConfigs = nullptr;
-
-	TMap<const APlayerController*, uint32> PlayerBelligerentIDs = {};
 };

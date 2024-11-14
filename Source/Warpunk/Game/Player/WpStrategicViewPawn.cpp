@@ -10,14 +10,9 @@ AWpStrategicViewPawn::AWpStrategicViewPawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	AutoPossessAI = EAutoPossessAI::Disabled;
+
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(MovementComponentName);
-}
-
-void AWpStrategicViewPawn::BeginPlay()
-{
-	Super::BeginPlay();
-
-	Initialize(GetController<APlayerController>());
 }
 
 void AWpStrategicViewPawn::Tick(const float DeltaTime)
@@ -49,35 +44,37 @@ void AWpStrategicViewPawn::PossessedBy(AController* const NewController)
 {
 	Super::PossessedBy(NewController);
 
-	ensureAlways(StrategicViewImc);
-
 	APlayerController* const NewPlayerController = Cast<APlayerController>(NewController);
-	const ULocalPlayer* const LocalPlayer = NewPlayerController->GetLocalPlayer();
-	UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	EnhancedInputSystem->AddMappingContext(StrategicViewImc, 0);
 
-	NewPlayerController->SetShowMouseCursor(true);
-	FInputModeGameAndUI InputMode;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
-	InputMode.SetHideCursorDuringCapture(false);
-	NewPlayerController->SetInputMode(InputMode);
+	Initialize(NewPlayerController);
+
+	if (const ULocalPlayer* const LocalPlayer = NewPlayerController->GetLocalPlayer())
+	{
+		UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+		ensureAlways(StrategicViewImc);
+		EnhancedInputSystem->AddMappingContext(StrategicViewImc, 0);
+
+		FInputModeGameAndUI InputMode = {};
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+		InputMode.SetHideCursorDuringCapture(false);
+		NewPlayerController->SetInputMode(InputMode);
+		NewPlayerController->SetShowMouseCursor(true);
+	}
 }
 
 void AWpStrategicViewPawn::UnPossessed()
 {
-	ensureAlways(StrategicViewImc);
-
 	const APlayerController* const OldPlayerController = GetController<APlayerController>();
-	const ULocalPlayer* const LocalPlayer = OldPlayerController->GetLocalPlayer();
-	UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	EnhancedInputSystem->RemoveMappingContext(StrategicViewImc);
+	if (const ULocalPlayer* const LocalPlayer = OldPlayerController->GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			ensureAlways(StrategicViewImc);
+			EnhancedInputSystem->RemoveMappingContext(StrategicViewImc);
+		}
+	}
 
 	Super::UnPossessed();
-}
-
-uint32 AWpStrategicViewPawn::GetBelligerentID() const
-{
-	return BelligerentID;
 }
 
 void AWpStrategicViewPawn::OnMoveTriggered(const FInputActionValue& ActionValue)

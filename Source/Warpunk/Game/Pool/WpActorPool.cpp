@@ -31,7 +31,11 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 	for (uint32 Index = 0; Index < Number; ++Index)
 	{
 		AActor* const Actor = GetWorld()->SpawnActor(Class, nullptr, nullptr, ActorSpawnParameters);
-		Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
+
+		IWpPooledObjectInterface* const PooledObject = Cast<IWpPooledObjectInterface>(Actor);
+		PooledObject->InitializePooledObject();
+		PooledObject->ReleasePooledObject();
+
 		FreeActors.Add(Actor);
 	}
 }

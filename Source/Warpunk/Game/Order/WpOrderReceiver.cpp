@@ -159,7 +159,7 @@ bool FWpOrderReceiver::ReceiveOrder(const FWpOrder& Order, const bool bOverride)
 
 		if (!bIsProxyOrder)
 		{
-			OnOrderReceived.Broadcast(Order);
+			OrderReceivedEvent.Broadcast(Order);
 		}
 		return true;
 	}
@@ -173,7 +173,7 @@ bool FWpOrderReceiver::ReceiveOrder(const FWpOrder& Order, const bool bOverride)
 	{
 		if (!bIsProxyOrder)
 		{
-			OnOrderReceived.Broadcast(Order);
+			OrderReceivedEvent.Broadcast(Order);
 		}
 		return false;
 	}
@@ -227,7 +227,7 @@ bool FWpOrderReceiver::ReceiveOrder(const FWpOrder& Order, const bool bOverride)
 
 	if (!bIsProxyOrder)
 	{
-		OnOrderReceived.Broadcast(Order);
+		OrderReceivedEvent.Broadcast(Order);
 	}
 	return true;
 }
@@ -284,6 +284,16 @@ void FWpOrderReceiver::Select(const bool bSelected)
 	ensureAlways(bIsActive);
 
 	SelectionWidgetComponent->SetVisibility(bSelected);
+}
+
+void FWpOrderReceiver::NotifyOrderReceived(const FWpOrder& Order)
+{
+	OrderReceivedEvent.Broadcast(Order);
+}
+
+FWpOrderReceiver::FOrderReceivedEvent& FWpOrderReceiver::OnOrderReceived()
+{
+	return OrderReceivedEvent;
 }
 
 void FWpOrderReceiver::ActivateOrder(const FWpOrder& Order)

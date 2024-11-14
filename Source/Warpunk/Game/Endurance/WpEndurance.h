@@ -8,9 +8,7 @@ class UWpEntityComponent;
 
 class UWidgetComponent;
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnEnduranceChanged, float, float);
-
-enum class EWpEntityState
+enum class EWpEntityState : uint8
 {
 	NotProduced,
 	Operational,
@@ -20,6 +18,8 @@ enum class EWpEntityState
 class FWpEndurance final : public IWpPooledObjectInterface
 {
 public:
+	DECLARE_EVENT_TwoParams(FWpEndurance, FCurrentEnduranceChangedEvent, float, float);
+
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
 
 	void Initialize(UWpEntityComponent* const InOwnerEntityComponent);
@@ -38,7 +38,7 @@ public:
 
 	static const FName EnduranceWidgetComponentName;
 
-	FOnEnduranceChanged OnEnduranceChanged = {};
+	FCurrentEnduranceChangedEvent& OnCurrentEnduranceChanged();
 
 private:
 	UWpEntityComponent* OwnerEntityComponent = nullptr;
@@ -50,4 +50,6 @@ private:
 	float CurrentEndurance = 0.0f;
 
 	UWidgetComponent* EnduranceWidgetComponent = nullptr;
+
+	FCurrentEnduranceChangedEvent CurrentEnduranceChangedEvent = {};
 };

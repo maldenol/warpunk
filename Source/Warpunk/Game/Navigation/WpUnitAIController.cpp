@@ -8,7 +8,12 @@ AWpUnitAIController::AWpUnitAIController(const FObjectInitializer& ObjectInitial
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AWpUnitAIController::OnMoveCompleted(const FAIRequestID RequestID, const EPathFollowingResult::Type Result)
+void AWpUnitAIController::OnMoveCompleted(const FAIRequestID RequestId, const EPathFollowingResult::Type Result)
 {
-	OnMovementCompleted.Broadcast();
+	MovementCompletedEvent.Broadcast();
+}
+
+AWpUnitAIController::FMovementCompletedEvent& AWpUnitAIController::OnMovementCompleted()
+{
+	return MovementCompletedEvent;
 }

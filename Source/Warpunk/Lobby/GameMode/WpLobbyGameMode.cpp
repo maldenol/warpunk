@@ -1,0 +1,93 @@
+#include "WpLobbyGameMode.h"
+
+#include "Warpunk/Lobby/GameMode/WpLobbyGameState.h"
+#include "Warpunk/Lobby/Player/WpLobbyPlayerController.h"
+#include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"
+#include "Warpunk/Lobby/UI/WpLobbyHUD.h"
+
+const float AWpLobbyGameMode::TimeUntilGameStart = 10.0f;
+
+AWpLobbyGameMode::AWpLobbyGameMode()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	bUseSeamlessTravel = true;
+}
+
+void AWpLobbyGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ensureAlways(GameStateClass->IsChildOf(AWpLobbyGameState::StaticClass()));
+	ensureAlways(PlayerControllerClass->IsChildOf(AWpLobbyPlayerController::StaticClass()));
+	ensureAlways(PlayerStateClass->IsChildOf(AWpLobbyPlayerState::StaticClass()));
+	ensureAlways(HUDClass->IsChildOf(AWpLobbyHUD::StaticClass()));
+}
+
+void AWpLobbyGameMode::OnPostLogin(AController* NewPlayer)
+{
+	Super::OnPostLogin(NewPlayer);
+
+	AWpLobbyGameState* const InnerGameState = GetGameState<AWpLobbyGameState>();
+	InnerGameState->NotifyPlayerLoggedIn(NewPlayer->PlayerState);
+
+	NotifyPlayerStateUpdated();
+}
+
+void AWpLobbyGameMode::Logout(AController* Exiting)
+{
+	AWpLobbyGameState* const InnerGameState = GetGameState<AWpLobbyGameState>();
+	InnerGameState->NotifyPlayerLoggedOut(Exiting->PlayerState);
+
+	NotifyPlayerStateUpdated();
+
+	Super::Logout(Exiting);
+}
+
+void AWpLobbyGameMode::NotifyPlayerStateUpdated()
+{
+	for (APlayerState* const PlayerState : GameState->PlayerArray)
+	{
+		AWpLobbyPlayerState* const InnerPlayerState = Cast<AWpLobbyPlayerState>(PlayerState);
+		InnerPlayerState->SetReady(false);
+	}
+}
+
+void AWpLobbyGameMode::NotifyPlayerReadinessChanged()
+{
+	bool bAllPlayersAreReady = true;
+	for (const APlayerState* const PlayerState : GameState->PlayerArray)
+	{
+		const AWpLobbyPlayerState* const InnerPlayerState = Cast<AWpLobbyPlayerState>(PlayerState);
+		if (!InnerPlayerState->IsReady())
+		{
+			bAllPlayersAreReady = false;
+			break;
+		}
+	}
+
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+	AWpLobbyGameState* const InnerGameState = GetGameState<AWpLobbyGameState>();
+	if (bAllPlayersAreReady)
+	{
+		TimerManager.ClearTimer(StartGameTimerHandle);
+
+		FTimerDelegate StartGameTimerDelegate;
+		StartGameTimerDelegate.BindUObject(this, &AWpLobbyGameMode::StartGame);
+		TimerManager.SetTimer(StartGameTimerHandle, StartGameTimerDelegate, TimeUntilGameStart, false);
+
+		InnerGameState->SetTimeUntilGameStart(TimeUntilGameStart);
+	}
+	else
+	{
+		TimerManager.ClearTimer(StartGameTimerHandle);
+
+		InnerGameState->SetTimeUntilGameStart(-1.0f);
+	}
+}
+
+void AWpLobbyGameMode::StartGame()
+{
+	static const FString Url = TEXT("FirstPersonMap");
+	GetWorld()->ServerTravel(Url);
+}

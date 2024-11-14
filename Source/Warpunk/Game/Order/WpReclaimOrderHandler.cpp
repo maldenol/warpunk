@@ -31,9 +31,9 @@ void FWpReclaimOrderHandler::Reactivate()
 
 	if (OnReclaimFinishedDelegateHandle.IsValid())
 	{
-		Production->OnReclaimFinished.Remove(OnReclaimFinishedDelegateHandle);
+		Production->OnReclaimFinished().Remove(OnReclaimFinishedDelegateHandle);
 	}
-	OnReclaimFinishedDelegateHandle = Production->OnReclaimFinished.AddRaw(this, &FWpReclaimOrderHandler::OnReclaimFinished);
+	OnReclaimFinishedDelegateHandle = Production->OnReclaimFinished().AddRaw(this, &FWpReclaimOrderHandler::OnReclaimFinished);
 }
 
 void FWpReclaimOrderHandler::Tick()
@@ -50,7 +50,7 @@ void FWpReclaimOrderHandler::Tick()
 
 void FWpReclaimOrderHandler::Deactivate()
 {
-	Production->OnRepairFinished.Remove(OnReclaimFinishedDelegateHandle);
+	Production->OnRepairFinished().Remove(OnReclaimFinishedDelegateHandle);
 	OnReclaimFinishedDelegateHandle.Reset();
 	Production->Stop();
 

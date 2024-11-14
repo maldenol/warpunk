@@ -9,7 +9,7 @@
 class UWpGameHUDWidget;
 
 UCLASS(MinimalAPI, Abstract, Blueprintable, NotBlueprintType)
-class AWpGameHUD : public AHUD
+class AWpGameHUD final : public AHUD
 {
 	GENERATED_BODY()
 
@@ -22,6 +22,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UWpGameHUDWidget> GameHUDWidgetClass = nullptr;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<UWpGameHUDWidget> GameHUDWidget = nullptr;
 };

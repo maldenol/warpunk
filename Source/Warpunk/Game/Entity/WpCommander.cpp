@@ -12,14 +12,6 @@ AWpCommander::AWpCommander()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AWpCommander::BeginPlay()
-{
-	Super::BeginPlay();
-
-	AIController = GetController<AWpUnitAIController>();
-	ensureAlways(AIController);
-}
-
 void AWpCommander::SetupPlayerInputComponent(UInputComponent* const PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -38,6 +30,12 @@ void AWpCommander::PossessedBy(AController* const NewController)
 {
 	Super::PossessedBy(NewController);
 
+	if (!AIController)
+	{
+		AIController = GetController<AWpUnitAIController>();
+		ensureAlways(AIController);
+	}
+
 	APlayerController* const NewPlayerController = Cast<APlayerController>(NewController);
 	if (!NewPlayerController)
 	{
@@ -50,8 +48,8 @@ void AWpCommander::PossessedBy(AController* const NewController)
 	UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 	EnhancedInputSystem->AddMappingContext(TacticalViewImc, 0);
 
-	NewPlayerController->SetShowMouseCursor(false);
 	NewPlayerController->SetInputMode(FInputModeGameOnly{});
+	NewPlayerController->SetShowMouseCursor(false);
 
 	NewPlayerController->StopMovement();
 

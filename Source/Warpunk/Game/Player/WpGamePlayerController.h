@@ -19,9 +19,10 @@ class AWpGamePlayerController final : public APlayerController
 public:
 	AWpGamePlayerController();
 
-	virtual void BeginPlay() override;
-
 	virtual void SetupInputComponent() override;
+
+	void SetStrategicViewPawn(AWpStrategicViewPawn* const InStrategicViewPawn);
+	void SetCommander(AWpCommander* const InCommander);
 
 private:
 	void SetView(const bool bInStrategicView);
@@ -34,8 +35,8 @@ private:
 
 	bool bStrategicView = true;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpStrategicViewPawn> StrategicViewPawn = nullptr;
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpCommander> Commander = nullptr;
 };

@@ -14,19 +14,20 @@
 
 #include "WpEntityComponent.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageReceived, float);
-
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class UWpEntityComponent final : public UActorComponent, public IWpPooledObjectInterface
 {
 	GENERATED_BODY()
 
 public:
+	DECLARE_EVENT_OneParam(UWpEntityComponent, FDamageReceivedEvent, float);
+
 	UWpEntityComponent();
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction) override;
 
+	virtual void OnPooledObjectInitialized() override;
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
 
@@ -43,14 +44,14 @@ public:
 	operator FWpWeaponArray&();
 	operator const FWpWeaponArray&() const;
 
-	uint32 GetEntityConfigID() const;
+	uint32 GetEntityConfigId() const;
 
 	UFUNCTION()
 	void OnIntelVolumeBeginOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex, const bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	void OnIntelVolumeEndOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex);
 
-	FOnDamageReceived OnDamageReceived;
+	FDamageReceivedEvent& OnDamageReceived();
 
 private:
 	UFUNCTION()
@@ -63,7 +64,9 @@ private:
 	FWpProduction Production = {};
 	FWpWeaponArray WeaponArray = {};
 
-	uint32 EntityConfigID = 0;
+	uint32 EntityConfigId = 0;
+
+	FDamageReceivedEvent DamageReceivedEvent = {};
 };
 
 #define WP_AS_BELLIGERENT_MEMBER(ec) static_cast<FWpBelligerentMember&>(*(ec))

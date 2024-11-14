@@ -39,7 +39,7 @@ void FWpProduction::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const voi
 			TargetLocation = FVector::ZeroVector;
 			CurrentTargetEntityComponent = nullptr;
 			PriorityTargetEntityComponent = nullptr;
-			EntityToProduceID = 0;
+			EntityToProduceId = 0;
 			bInfiniteProduction = false;
 		}
 
@@ -127,7 +127,7 @@ void FWpProduction::Tick(const float DeltaTime)
 	}
 }
 
-void FWpProduction::StartProduce(const uint32 InEntityToProduceID, const FVector& InTargetLocation)
+void FWpProduction::StartProduce(const uint32 InEntityToProduceId, const FVector& InTargetLocation)
 {
 	ensureAlways(bIsActive);
 
@@ -135,7 +135,7 @@ void FWpProduction::StartProduce(const uint32 InEntityToProduceID, const FVector
 
 	ProductionState = EWpProductionState::InitiatingProduction;
 	TargetLocation = InTargetLocation;
-	EntityToProduceID = InEntityToProduceID;
+	EntityToProduceId = InEntityToProduceId;
 }
 
 void FWpProduction::StartRepair(UWpEntityComponent* const InTargetEntityComponent)
@@ -273,12 +273,22 @@ bool FWpProduction::GetInfiniteProduction() const
 	return bInfiniteProduction;
 }
 
+FWpProduction::FRepairFinishedEvent& FWpProduction::OnRepairFinished()
+{
+	return RepairFinishedEvent;
+}
+
+FWpProduction::FReclaimFinishedEvent& FWpProduction::OnReclaimFinished()
+{
+	return ReclaimFinishedEvent;
+}
+
 void FWpProduction::Produce()
 {
 	ensureAlways(bIsActive);
 
 	const UDataTable* const EntityConfigs = OwnerEntityComponent->GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
-	const FName RowName = FName{FString::FromInt(EntityToProduceID)};
+	const FName RowName = FName{FString::FromInt(EntityToProduceId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
 	EWpProductionState NewProductionState = EWpProductionState::Idle;
@@ -319,8 +329,8 @@ void FWpProduction::Produce()
 
 		FWpPooledEntityData PooledEntityData;
 		PooledEntityData.EntityConfig = &EntityConfig;
-		PooledEntityData.EntityConfigID = EntityToProduceID;
-		PooledEntityData.BelligerentID = WP_AS_BELLIGERENT_MEMBER_CONST(OwnerEntityComponent).GetBelligerentID();
+		PooledEntityData.EntityConfigId = EntityToProduceId;
+		PooledEntityData.BelligerentId = WP_AS_BELLIGERENT_MEMBER_CONST(OwnerEntityComponent).GetBelligerentId();
 
 		AActor* const Actor = AWpActorPool::Acquire(ActorClass, SpawnLocation, FRotator::ZeroRotator, &PooledEntityData);
 
@@ -343,9 +353,9 @@ void FWpProduction::Produce()
 			return;
 		}
 
-		const bool bHasSameEntityConfigID = Entity->GetEntityComponent()->GetEntityConfigID() == EntityToProduceID;
+		const bool bHasSameEntityConfigId = Entity->GetEntityComponent()->GetEntityConfigId() == EntityToProduceId;
 		const bool bBelongsToSameBelligerent = WP_AS_BELLIGERENT_MEMBER_CONST(OwnerEntityComponent).BelongsToSameBelligerent(Entity->GetEntityComponent());
-		if (!bHasSameEntityConfigID || !bBelongsToSameBelligerent)
+		if (!bHasSameEntityConfigId || !bBelongsToSameBelligerent)
 		{
 			return;
 		}
@@ -357,7 +367,7 @@ void FWpProduction::Produce()
 	FWpOrder RepairOrder;
 	RepairOrder.Type = EWpOrderType::Repair;
 	RepairOrder.TargetEntityComponent = CurrentTargetEntityComponent;
-	WP_AS_ORDER_RECEIVER(OwnerEntityComponent).OnOrderReceived.Broadcast(RepairOrder);
+	WP_AS_ORDER_RECEIVER(OwnerEntityComponent).NotifyOrderReceived(RepairOrder);
 }
 
 void FWpProduction::Repair(const float DeltaTime)
@@ -384,7 +394,7 @@ void FWpProduction::Repair(const float DeltaTime)
 
 		Stop();
 
-		OnRepairFinished.Broadcast(LastTargetEntityComponent);
+		OnRepairFinished().Broadcast(LastTargetEntityComponent);
 
 		return;
 	}
@@ -414,7 +424,7 @@ void FWpProduction::Reclaim(const float DeltaTime)
 	{
 		Stop();
 
-		OnReclaimFinished.Broadcast();
+		OnReclaimFinished().Broadcast();
 
 		return;
 	}

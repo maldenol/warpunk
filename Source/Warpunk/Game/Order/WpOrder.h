@@ -32,8 +32,8 @@ struct FWpOrder final
 	FVector TargetLocation = FVector::ZeroVector;
 	float Radius = 0.0f;
 	UWpEntityComponent* TargetEntityComponent = nullptr;
-	uint32 BuildingToProduceConfigID = 0;
-	TMap<uint32, uint32> UnitToProduceConfigIDNumbers = {};
+	uint32 BuildingToProduceConfigId = 0;
+	TMap<uint32, uint32> UnitToProduceConfigIdNumbers = {};
 	bool bOverride = false;
 };
 
@@ -42,7 +42,7 @@ struct FWpDefaultOrders final
 {
 	GENERATED_BODY()
 
-	EWpOrderType Get(const uint32 BelligerentID, const AActor* const Actor) const;
+	EWpOrderType Get(const uint32 BelligerentId, const AActor* const Actor) const;
 
 	bool operator==(const FWpDefaultOrders& Other) const;
 	friend uint32 GetTypeHash(const FWpDefaultOrders& Other);

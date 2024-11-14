@@ -15,11 +15,11 @@ void FWpProduceUnitOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	if (GetOrder().UnitToProduceConfigIDNumbers.IsEmpty())
+	if (GetOrder().UnitToProduceConfigIdNumbers.IsEmpty())
 	{
 		if (OnRepairFinishedDelegateHandle.IsValid())
 		{
-			Production->OnRepairFinished.Remove(OnRepairFinishedDelegateHandle);
+			Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 			OnRepairFinishedDelegateHandle.Reset();
 		}
 
@@ -36,20 +36,20 @@ void FWpProduceUnitOrderHandler::Reactivate()
 		return;
 	}
 
-	TMap<uint32, uint32> UnitToProduceConfigIDNumbers = GetOrder().UnitToProduceConfigIDNumbers;
-	TArray<uint32> UnitToProduceConfigIDs;
-	UnitToProduceConfigIDNumbers.GetKeys(UnitToProduceConfigIDs);
+	TMap<uint32, uint32> UnitToProduceConfigIdNumbers = GetOrder().UnitToProduceConfigIdNumbers;
+	TArray<uint32> UnitToProduceConfigIds;
+	UnitToProduceConfigIdNumbers.GetKeys(UnitToProduceConfigIds);
 
 	if (Production->GetInfiniteProduction())
 	{
-		for (const uint32 UnitToProduceConfigID : UnitToProduceConfigIDs)
+		for (const uint32 UnitToProduceConfigId : UnitToProduceConfigIds)
 		{
-			if (const uint32* const ProducedUnitNumber = ProducedUnits.Find(UnitToProduceConfigID))
+			if (const uint32* const ProducedUnitNumber = ProducedUnits.Find(UnitToProduceConfigId))
 			{
-				UnitToProduceConfigIDNumbers[UnitToProduceConfigID] -= *ProducedUnitNumber;
-				if (UnitToProduceConfigIDNumbers[UnitToProduceConfigID] <= 0)
+				UnitToProduceConfigIdNumbers[UnitToProduceConfigId] -= *ProducedUnitNumber;
+				if (UnitToProduceConfigIdNumbers[UnitToProduceConfigId] <= 0)
 				{
-					UnitToProduceConfigIDNumbers.Remove(UnitToProduceConfigID);
+					UnitToProduceConfigIdNumbers.Remove(UnitToProduceConfigId);
 				}
 			}
 		}
@@ -57,17 +57,17 @@ void FWpProduceUnitOrderHandler::Reactivate()
 	}
 
 	UnitQueue.Empty();
-	while (!UnitToProduceConfigIDNumbers.IsEmpty())
+	while (!UnitToProduceConfigIdNumbers.IsEmpty())
 	{
-		UnitToProduceConfigIDNumbers.GetKeys(UnitToProduceConfigIDs);
-		for (const uint32 UnitToProduceConfigID : UnitToProduceConfigIDs)
+		UnitToProduceConfigIdNumbers.GetKeys(UnitToProduceConfigIds);
+		for (const uint32 UnitToProduceConfigId : UnitToProduceConfigIds)
 		{
-			UnitQueue.Add(UnitToProduceConfigID);
+			UnitQueue.Add(UnitToProduceConfigId);
 
-			--UnitToProduceConfigIDNumbers[UnitToProduceConfigID];
-			if (UnitToProduceConfigIDNumbers[UnitToProduceConfigID] == 0)
+			--UnitToProduceConfigIdNumbers[UnitToProduceConfigId];
+			if (UnitToProduceConfigIdNumbers[UnitToProduceConfigId] == 0)
 			{
-				UnitToProduceConfigIDNumbers.Remove(UnitToProduceConfigID);
+				UnitToProduceConfigIdNumbers.Remove(UnitToProduceConfigId);
 			}
 		}
 	}
@@ -75,12 +75,12 @@ void FWpProduceUnitOrderHandler::Reactivate()
 
 	if (UWpEntityComponent* const CurrentTargetEntityComponent = Production->GetCurrentTarget())
 	{
-		const uint32 CurrentTargetEntityConfigID = CurrentTargetEntityComponent->GetEntityConfigID();
-		if (!GetOrder().UnitToProduceConfigIDNumbers.Contains(CurrentTargetEntityConfigID))
+		const uint32 CurrentTargetEntityConfigId = CurrentTargetEntityComponent->GetEntityConfigId();
+		if (!GetOrder().UnitToProduceConfigIdNumbers.Contains(CurrentTargetEntityConfigId))
 		{
 			if (OnRepairFinishedDelegateHandle.IsValid())
 			{
-				Production->OnRepairFinished.Remove(OnRepairFinishedDelegateHandle);
+				Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 				OnRepairFinishedDelegateHandle.Reset();
 			}
 
@@ -92,8 +92,8 @@ void FWpProduceUnitOrderHandler::Reactivate()
 		}
 		else
 		{
-			UnitQueue.RemoveSingle(CurrentTargetEntityConfigID);
-			UnitQueue.Insert(CurrentTargetEntityConfigID, 0);
+			UnitQueue.RemoveSingle(CurrentTargetEntityConfigId);
+			UnitQueue.Insert(CurrentTargetEntityConfigId, 0);
 		}
 	}
 	else
@@ -103,9 +103,9 @@ void FWpProduceUnitOrderHandler::Reactivate()
 
 	if (OnRepairFinishedDelegateHandle.IsValid())
 	{
-		Production->OnRepairFinished.Remove(OnRepairFinishedDelegateHandle);
+		Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	}
-	OnRepairFinishedDelegateHandle = Production->OnRepairFinished.AddRaw(this, &FWpProduceUnitOrderHandler::OnRepairFinished);
+	OnRepairFinishedDelegateHandle = Production->OnRepairFinished().AddRaw(this, &FWpProduceUnitOrderHandler::OnRepairFinished);
 }
 
 void FWpProduceUnitOrderHandler::Deactivate()
@@ -113,7 +113,7 @@ void FWpProduceUnitOrderHandler::Deactivate()
 	UnitQueue.Empty();
 	ProducedUnits.Empty();
 
-	Production->OnRepairFinished.Remove(OnRepairFinishedDelegateHandle);
+	Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	OnRepairFinishedDelegateHandle.Reset();
 	Production->Stop();
 
@@ -129,26 +129,26 @@ void FWpProduceUnitOrderHandler::BeginProduceUnit()
 
 void FWpProduceUnitOrderHandler::OnRepairFinished(UWpEntityComponent* const EntityComponent)
 {
-	const uint32 ProducedUnitConfigID = EntityComponent->GetEntityConfigID();
+	const uint32 ProducedUnitConfigId = EntityComponent->GetEntityConfigId();
 	if (Production->GetInfiniteProduction())
 	{
-		if (uint32* const ProducedUnitNumber = ProducedUnits.Find(ProducedUnitConfigID))
+		if (uint32* const ProducedUnitNumber = ProducedUnits.Find(ProducedUnitConfigId))
 		{
 			*ProducedUnitNumber = *ProducedUnitNumber + 1;
 		}
 		else
 		{
-			ProducedUnits.Add(ProducedUnitConfigID, 1);
+			ProducedUnits.Add(ProducedUnitConfigId, 1);
 		}
 	}
 	else
 	{
 		FWpOrder NewOrder = GetOrder();
 
-		--NewOrder.UnitToProduceConfigIDNumbers[ProducedUnitConfigID];
-		if (NewOrder.UnitToProduceConfigIDNumbers[ProducedUnitConfigID] == 0)
+		--NewOrder.UnitToProduceConfigIdNumbers[ProducedUnitConfigId];
+		if (NewOrder.UnitToProduceConfigIdNumbers[ProducedUnitConfigId] == 0)
 		{
-			NewOrder.UnitToProduceConfigIDNumbers.Remove(ProducedUnitConfigID);
+			NewOrder.UnitToProduceConfigIdNumbers.Remove(ProducedUnitConfigId);
 		}
 
 		SetOrder(NewOrder);

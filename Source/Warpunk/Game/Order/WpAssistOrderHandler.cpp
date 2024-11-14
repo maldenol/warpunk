@@ -36,9 +36,9 @@ void FWpAssistOrderHandler::Reactivate()
 
 	if (OnOrderReceivedDelegateHandle.IsValid())
 	{
-		TargetOrderReceiver.OnOrderReceived.Remove(OnOrderReceivedDelegateHandle);
+		TargetOrderReceiver.OnOrderReceived().Remove(OnOrderReceivedDelegateHandle);
 	}
-	OnOrderReceivedDelegateHandle = TargetOrderReceiver.OnOrderReceived.AddRaw(this, &FWpAssistOrderHandler::OnOrderReceived);
+	OnOrderReceivedDelegateHandle = TargetOrderReceiver.OnOrderReceived().AddRaw(this, &FWpAssistOrderHandler::OnOrderReceived);
 
 	OnOrderReceived(TargetOrderReceiver.GetOrder());
 }
@@ -68,7 +68,7 @@ void FWpAssistOrderHandler::Deactivate()
 {
 	if (IsValid(GetOrder().TargetEntityComponent))
 	{
-		WP_AS_ORDER_RECEIVER(GetOrder().TargetEntityComponent).OnOrderReceived.Remove(OnOrderReceivedDelegateHandle);
+		WP_AS_ORDER_RECEIVER(GetOrder().TargetEntityComponent).OnOrderReceived().Remove(OnOrderReceivedDelegateHandle);
 	}
 	OnOrderReceivedDelegateHandle.Reset();
 	MimicOrderReceiver = nullptr;

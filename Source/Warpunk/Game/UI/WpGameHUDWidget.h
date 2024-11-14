@@ -6,12 +6,12 @@
 
 #include "WpGameHUDWidget.generated.h"
 
-class UWpBuildingProductionTableWidget;
-class UWpOrderSelectionListWidget;
-class UWpUnitProductionTableWidget;
+class UWpGameBuildingProductionTableWidget;
+class UWpGameOrderSelectionListWidget;
+class UWpGameUnitProductionTableWidget;
 
 UCLASS(MinimalAPI, Abstract, Blueprintable, NotBlueprintType)
-class UWpGameHUDWidget : public UUserWidget
+class UWpGameHUDWidget final : public UUserWidget
 {
 	GENERATED_BODY()
 
@@ -20,9 +20,9 @@ public:
 
 private:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWpOrderSelectionListWidget> OrderSelectionWidget = nullptr;
+	TObjectPtr<UWpGameOrderSelectionListWidget> GameOrderSelectionList = nullptr;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWpBuildingProductionTableWidget> BuildingProductionWidget = nullptr;
+	TObjectPtr<UWpGameBuildingProductionTableWidget> GameBuildingProductionTable = nullptr;
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWpUnitProductionTableWidget> UnitProductionWidget = nullptr;
+	TObjectPtr<UWpGameUnitProductionTableWidget> GameUnitProductionTable = nullptr;
 };

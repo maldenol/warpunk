@@ -10,11 +10,11 @@ class UWpEntityComponent;
 
 class UWidgetComponent;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnOrderReceived, const FWpOrder&);
-
 class FWpOrderReceiver final : public IWpPooledObjectInterface
 {
 public:
+	DECLARE_EVENT_OneParam(FWpOrderReceiver, FOrderReceivedEvent, const FWpOrder&);
+
 	virtual ~FWpOrderReceiver() override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const void* const CustomData) override;
@@ -37,12 +37,14 @@ public:
 
 	void Select(const bool bSelected);
 
+	void NotifyOrderReceived(const FWpOrder& Order);
+
+	FOrderReceivedEvent& OnOrderReceived();
+
 	static const FName SelectionWidgetComponentName;
 
 	static const TSet<EWpOrderType> ImmediateOrders;
 	static const TSet<EWpOrderType> ProductionProxyOrders;
-
-	FOnOrderReceived OnOrderReceived = {};
 
 private:
 	void ActivateOrder(const FWpOrder& Order);
@@ -61,4 +63,6 @@ private:
 	TQueue<FWpOrder> OrderQueue = {};
 
 	UWidgetComponent* SelectionWidgetComponent = nullptr;
+
+	FOrderReceivedEvent OrderReceivedEvent = {};
 };

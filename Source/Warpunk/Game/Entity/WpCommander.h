@@ -20,8 +20,6 @@ class AWpCommander final : public AWpUnit
 public:
 	AWpCommander();
 
-	virtual void BeginPlay() override;
-
 	virtual void SetupPlayerInputComponent(UInputComponent* const PlayerInputComponent) override;
 	virtual void PossessedBy(AController* const NewController) override;
 	virtual void UnPossessed() override;

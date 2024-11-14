@@ -17,11 +17,25 @@ class IWpPooledObjectInterface
 	GENERATED_BODY()
 
 public:
+	virtual void OnPooledObjectInitialized()
+	{
+	}
+
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) = 0;
 
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects()
 	{
 		return {};
+	}
+
+	void InitializePooledObject()
+	{
+		OnPooledObjectInitialized();
+
+		for (IWpPooledObjectInterface* const InnerPooledObject : GetInnerPooledObjects())
+		{
+			InnerPooledObject->OnPooledObjectInitialized();
+		}
 	}
 
 	void AcquirePooledObject(const void* const CustomData)

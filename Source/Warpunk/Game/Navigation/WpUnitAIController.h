@@ -6,17 +6,20 @@
 
 #include "WpUnitAIController.generated.h"
 
-DECLARE_MULTICAST_DELEGATE(FOnMovementCompleted);
-
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class AWpUnitAIController final : public AAIController
 {
 	GENERATED_BODY()
 
 public:
+	DECLARE_EVENT(AWpUnitAIController, FMovementCompletedEvent);
+
 	AWpUnitAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	virtual void OnMoveCompleted(const FAIRequestID RequestID, const EPathFollowingResult::Type Result) override;
+	virtual void OnMoveCompleted(const FAIRequestID RequestId, const EPathFollowingResult::Type Result) override;
 
-	FOnMovementCompleted OnMovementCompleted = {};
+	FMovementCompletedEvent& OnMovementCompleted();
+
+private:
+	FMovementCompletedEvent MovementCompletedEvent = {};
 };

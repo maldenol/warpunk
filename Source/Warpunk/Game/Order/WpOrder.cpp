@@ -3,7 +3,7 @@
 #include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
 #include "Warpunk/Game/EntityComponent/WpEntityInterface.h"
 
-EWpOrderType FWpDefaultOrders::Get(const uint32 BelligerentID, const AActor* const Actor) const
+EWpOrderType FWpDefaultOrders::Get(const uint32 BelligerentId, const AActor* const Actor) const
 {
 	const IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(Actor);
 	if (!Entity)
@@ -11,7 +11,7 @@ EWpOrderType FWpDefaultOrders::Get(const uint32 BelligerentID, const AActor* con
 		return Location;
 	}
 
-	if (WP_AS_BELLIGERENT_MEMBER_CONST(Entity->GetEntityComponent()).BelongsToSameTeam(BelligerentID))
+	if (WP_AS_BELLIGERENT_MEMBER_CONST(Entity->GetEntityComponent()).BelongsToSameTeam(BelligerentId))
 	{
 		return Ally;
 	}

@@ -31,9 +31,9 @@ void FWpRepairOrderHandler::Reactivate()
 
 	if (OnRepairFinishedDelegateHandle.IsValid())
 	{
-		Production->OnRepairFinished.Remove(OnRepairFinishedDelegateHandle);
+		Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	}
-	OnRepairFinishedDelegateHandle = Production->OnRepairFinished.AddRaw(this, &FWpRepairOrderHandler::OnRepairFinished);
+	OnRepairFinishedDelegateHandle = Production->OnRepairFinished().AddRaw(this, &FWpRepairOrderHandler::OnRepairFinished);
 }
 
 void FWpRepairOrderHandler::Tick()
@@ -50,7 +50,7 @@ void FWpRepairOrderHandler::Tick()
 
 void FWpRepairOrderHandler::Deactivate()
 {
-	Production->OnRepairFinished.Remove(OnRepairFinishedDelegateHandle);
+	Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	OnRepairFinishedDelegateHandle.Reset();
 	Production->Stop();
 
