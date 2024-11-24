@@ -33,7 +33,7 @@ void UWpLobbyOptionsWidget::NativeConstruct()
 void UWpLobbyOptionsWidget::OnAllowTeamsChanged(const bool bIsChecked)
 {
 	AWpLobbyGameState* const GameState = GetWorld()->GetGameState<AWpLobbyGameState>();
-	GameState->SetAllowTeams(bIsChecked);
+	GameState->SetTeamsAllowed(bIsChecked);
 }
 
 void UWpLobbyOptionsWidget::OnMaxPlayerNumberCommitted(const FText& Text, const ETextCommit::Type CommitMethod)
@@ -51,7 +51,7 @@ void UWpLobbyOptionsWidget::OnMaxSpectatorNumberCommitted(const FText& Text, con
 void UWpLobbyOptionsWidget::OnLobbySettingsUpdated()
 {
 	const AWpLobbyGameState* const GameState = GetWorld()->GetGameState<AWpLobbyGameState>();
-	AllowTeams->SetCheckedState(GameState->GetAllowTeams() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	AllowTeams->SetCheckedState(GameState->AreTeamsAllowed() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 	MaxPlayerNumber->SetText(FText::FromString(FString::FromInt(GameState->GetMaxPlayerNumber())));
 	MaxSpectatorNumber->SetText(FText::FromString(FString::FromInt(GameState->GetMaxSpectatorNumber())));
 }

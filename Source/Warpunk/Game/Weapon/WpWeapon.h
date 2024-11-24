@@ -4,7 +4,7 @@
 
 #include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
-class UWpEntityComponent;
+class IWpEntityInterface;
 
 class FWpWeapon : public IWpPooledObjectInterface
 {
@@ -13,35 +13,36 @@ public:
 	{
 	}
 
-	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
+	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
-	void Initialize(UWpEntityComponent* const InOwnerEntityComponent);
+	void Initialize(IWpEntityInterface* const InOwnerEntity);
 
 	void Tick(const float DeltaTime);
 
-	bool TryFire(const UWpEntityComponent* const TargetEntityComponent);
-	bool TryFire(const FVector& TargetLocation);
+	bool TryFire(const IWpEntityInterface* const Entity);
+	bool TryFire(const FVector& Location);
 
-	virtual bool CanReach(const FVector& TargetLocation) const;
+	bool CanReach(const IWpEntityInterface* const Entity) const;
+	virtual bool CanReach(const FVector& Location) const;
 
 	float GetRange() const;
-	UWpEntityComponent* GetCurrentTarget() const;
-	void SetPriorityTarget(UWpEntityComponent* const InPriorityTargetEntityComponent);
+	IWpEntityInterface* GetCurrentTargetEntity() const;
+	void SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity);
 
 protected:
-	virtual void Fire(const FVector& TargetLocation);
-	FRotator GetDirection(const FVector& TargetLocation) const;
+	virtual void Fire(const FVector& Location);
+	FRotator GetDirection(const FVector& Location) const;
 
 	float GetDamage() const;
 	const FVector& GetFireLocation() const;
 
-	UWpEntityComponent* GetOwnerEntityComponent();
-	const UWpEntityComponent* GetOwnerEntityComponent() const;
+	IWpEntityInterface* GetOwnerEntity();
+	const IWpEntityInterface* GetOwnerEntity() const;
 
 private:
 	void FindNewTarget();
 
-	UWpEntityComponent* OwnerEntityComponent = nullptr;
+	IWpEntityInterface* OwnerEntity = nullptr;
 
 	float Range = 0.0f;
 	float Cooldown = 0.0f;
@@ -49,6 +50,6 @@ private:
 	FVector FireLocation = FVector::ZeroVector;
 
 	float LastFireTime = 0.0f;
-	UWpEntityComponent* CurrentTargetEntityComponent = nullptr;
-	UWpEntityComponent* PriorityTargetEntityComponent = nullptr;
+	IWpEntityInterface* CurrentTargetEntity = nullptr;
+	IWpEntityInterface* PriorityTargetEntity = nullptr;
 };

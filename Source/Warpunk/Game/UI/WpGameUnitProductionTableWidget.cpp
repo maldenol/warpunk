@@ -1,5 +1,7 @@
 #include "WpGameUnitProductionTableWidget.h"
 
+#include "Warpunk/Game/Order/WpOrder.h"
+#include "Warpunk/Game/Order/WpOrderSenderComponent.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -19,7 +21,8 @@ void UWpGameUnitProductionTableEntryWidget::NativeTick(const FGeometry& MyGeomet
 
 	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
 	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	TMap<uint32, uint32> UnitToProduceConfigIds = Pawn->GetUnitToProduceConfigIds();
+	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	TMap<uint32, uint32> UnitToProduceConfigIds = OrderSenderComponent->GetUnitsToProduce();
 	if (const uint32* const UnitToProduceNumber = UnitToProduceConfigIds.Find(UnitConfigId))
 	{
 		Number->SetText(FText::FromString(FString::FromInt(*UnitToProduceNumber)));
@@ -46,13 +49,14 @@ void UWpGameUnitProductionTableEntryWidget::OnPressed()
 {
 	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
 	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
+	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
 	if (PlayerController->IsInputKeyDown(CancelUnitInputKeyName))
 	{
-		Pawn->RemoveUnitToProduce(UnitConfigId);
+		OrderSenderComponent->RemoveUnitToProduce(UnitConfigId);
 	}
 	else
 	{
-		Pawn->AddUnitToProduce(UnitConfigId);
+		OrderSenderComponent->AddUnitToProduce(UnitConfigId);
 	}
 }
 
@@ -72,7 +76,8 @@ void UWpGameUnitProductionTableWidget::NativeConstruct()
 
 	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
 	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	Pawn->OnAvailableOrdersChanged().AddUObject(this, &UWpGameUnitProductionTableWidget::OnAvailableOrdersChanged);
+	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	OrderSenderComponent->OnAvailableOrdersChanged().AddUObject(this, &UWpGameUnitProductionTableWidget::OnAvailableOrdersChanged);
 
 	for (const uint32 UnitConfigId : UnitConfigIds)
 	{

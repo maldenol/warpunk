@@ -1,40 +1,42 @@
 #include "WpProjectileWeapon.h"
 
-#include "Warpunk/Game/Data/WpEntityConfig.h"
-#include "Warpunk/Game/Data/WpPooledProjectileData.h"
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
+#include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
+#include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 #include "Warpunk/Game/Weapon/WpProjectile.h"
 
 #include "Kismet/GameplayStatics.h"
 
-void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData)
+void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	FWpWeapon::OnPooledObjectAcquiredOrReleased(bIsAcquired, CustomData);
+	FWpWeapon::OnPooledObjectAcquiredOrReleased(bIsAcquired, PooledObjectData);
 
 	if (bIsAcquired)
 	{
-		const FWpWeaponConfig* const WeaponConfig = static_cast<const FWpWeaponConfig*>(CustomData);
+		const FWpPooledWeaponData& PooledWeaponData = static_cast<const FWpPooledWeaponData&>(PooledObjectData);
+		const FWpWeaponConfig& WeaponConfig = *PooledWeaponData.WeaponConfig;
 
-		ensureAlways(WeaponConfig->ProjectileRadius >= 1.0f);
-		ensureAlways(WeaponConfig->ProjectileMesh);
+		ensureAlways(WeaponConfig.ProjectileRadius >= 1.0f);
+		ensureAlways(WeaponConfig.ProjectileMesh);
 
-		ProjectileRadius = WeaponConfig->ProjectileRadius;
-		ProjectileMesh = WeaponConfig->ProjectileMesh;
-		ProjectileSpeed = FMath::Sqrt(GetRange() * -GetOwnerEntityComponent()->GetWorld()->GetGravityZ());
+		ProjectileRadius = WeaponConfig.ProjectileRadius;
+		ProjectileMesh = WeaponConfig.ProjectileMesh;
+		ProjectileSpeed = FMath::Sqrt(GetRange() * -Cast<AActor>(GetOwnerEntity())->GetWorld()->GetGravityZ());
 	}
 }
 
-void FWpProjectileWeapon::OnProjectileHit(UWpEntityComponent* const TargetEntityComponent)
+void FWpProjectileWeapon::OnProjectileHit(IWpEntityInterface* const Entity)
 {
-	UGameplayStatics::ApplyPointDamage(TargetEntityComponent->GetOwner(), GetDamage(), FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
+	UGameplayStatics::ApplyPointDamage(Cast<AActor>(Entity), GetDamage(), FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
 }
 
 void FWpProjectileWeapon::Fire(const FVector& TargetLocation)
 {
 	FWpWeapon::Fire(TargetLocation);
 
-	const AActor* const OwnerActor = GetOwnerEntityComponent()->GetOwner();
+	const AActor* const OwnerActor = Cast<AActor>(GetOwnerEntity());
 	const FVector OwnerActorLocation = OwnerActor->GetActorLocation();
 	const FVector Location = OwnerActorLocation + OwnerActor->GetActorRotation().RotateVector(GetFireLocation());
 	const float HorizontalDistance = FVector::Dist2D(OwnerActorLocation, TargetLocation);
@@ -51,5 +53,5 @@ void FWpProjectileWeapon::Fire(const FVector& TargetLocation)
 	PooledProjectileData.Mesh = ProjectileMesh;
 	PooledProjectileData.InitialVelocity = InitialVelocity;
 
-	AWpActorPool::Acquire<AWpProjectile>(Location, FRotator::ZeroRotator, &PooledProjectileData);
+	AWpActorPool::Acquire<AWpProjectile>(Location, FRotator::ZeroRotator, PooledProjectileData);
 }

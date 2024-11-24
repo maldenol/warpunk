@@ -4,14 +4,14 @@
 
 #include "Warpunk/Game/Order/WpOrderHandler.h"
 
-class FWpProduction;
+class UWpProductionComponent;
 
 class AAIController;
 
 class FWpReclaimOrderHandler final : public FWpOrderHandler
 {
 public:
-	virtual void SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent) override;
+	virtual void Initialize(IWpEntityInterface* const InEntity) override;
 
 	virtual void Reactivate() override;
 	virtual void Tick() override;
@@ -22,7 +22,7 @@ private:
 
 	AAIController* AIController = nullptr;
 
-	FWpProduction* Production = nullptr;
+	UWpProductionComponent* ProductionComponent = nullptr;
 
 	FDelegateHandle OnReclaimFinishedDelegateHandle = {};
 };

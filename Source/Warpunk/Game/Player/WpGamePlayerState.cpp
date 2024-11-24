@@ -32,6 +32,7 @@ const FString& AWpGamePlayerState::GetName() const
 void AWpGamePlayerState::SetBelligerentId(const uint32 InBelligerentId)
 {
 	BelligerentId = InBelligerentId;
+	ensureAlways(BelligerentId > 0);
 }
 
 uint32 AWpGamePlayerState::GetBelligerentId() const
@@ -42,6 +43,7 @@ uint32 AWpGamePlayerState::GetBelligerentId() const
 void AWpGamePlayerState::SetTeamId(const uint32 InTeamId)
 {
 	TeamId = InTeamId;
+	ensureAlways(TeamId > 0);
 }
 
 uint32 AWpGamePlayerState::GetTeamId() const

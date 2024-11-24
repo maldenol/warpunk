@@ -88,6 +88,6 @@ void AWpLobbyGameMode::NotifyPlayerReadinessChanged()
 
 void AWpLobbyGameMode::StartGame()
 {
-	static const FString Url = TEXT("FirstPersonMap");
+	static const FString Url = TEXT("GameMap");
 	GetWorld()->ServerTravel(Url);
 }

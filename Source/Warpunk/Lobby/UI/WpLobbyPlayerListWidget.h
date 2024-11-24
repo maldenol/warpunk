@@ -36,7 +36,6 @@ private:
 	UFUNCTION()
 	void OnKickPressed();
 
-	UFUNCTION()
 	void OnPlayerSettingsUpdated();
 
 	UPROPERTY(meta = (BindWidget))

@@ -1,6 +1,6 @@
 #include "WpGameEntityEnduranceWidget.h"
 
-#include "Warpunk/Game/Endurance/WpEndurance.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 
 #include "Components/ProgressBar.h"
 
@@ -15,9 +15,9 @@ void UWpGameEntityEnduranceWidget::NativeConstruct()
 	ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UWpGameEntityEnduranceWidget::SetEndurance(FWpEndurance* const Endurance)
+void UWpGameEntityEnduranceWidget::SetEnduranceComponent(UWpEnduranceComponent* const EnduranceComponent)
 {
-	Endurance->OnCurrentEnduranceChanged().AddUObject(this, &UWpGameEntityEnduranceWidget::OnCurrentEnduranceChanged);
+	EnduranceComponent->OnCurrentEnduranceChanged().AddUObject(this, &UWpGameEntityEnduranceWidget::OnCurrentEnduranceChanged);
 }
 
 void UWpGameEntityEnduranceWidget::OnCurrentEnduranceChanged(const float CurrentEndurance, const float MaxEndurance)

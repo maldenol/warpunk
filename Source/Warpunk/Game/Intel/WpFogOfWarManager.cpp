@@ -2,11 +2,17 @@
 
 #include "Components/SceneCaptureComponent2D.h"
 
-const FName AWpFogOfWarManager::SceneCaptureComponentName = TEXT("EntityComponent");
+const FName AWpFogOfWarManager::RootComponentName = TEXT("RootComponent");
+const FName AWpFogOfWarManager::SceneCaptureComponentName = TEXT("SceneCaptureComponent");
 
 AWpFogOfWarManager::AWpFogOfWarManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = false;
+	bNetLoadOnClient = true;
+
+	RootComponent = CreateDefaultSubobject<USceneComponent>(RootComponentName);
 
 	SceneCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(SceneCaptureComponentName);
 	SceneCaptureComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});

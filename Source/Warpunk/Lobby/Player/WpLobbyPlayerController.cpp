@@ -5,6 +5,8 @@
 AWpLobbyPlayerController::AWpLobbyPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	bReplicates = true;
 }
 
 void AWpLobbyPlayerController::OnRep_PlayerState()

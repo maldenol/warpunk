@@ -4,7 +4,7 @@
 
 #include "Warpunk/Game/Order/WpOrder.h"
 
-class UWpEntityComponent;
+class IWpEntityInterface;
 
 class FWpOrderHandler
 {
@@ -13,7 +13,7 @@ public:
 	{
 	}
 
-	virtual void SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent);
+	virtual void Initialize(IWpEntityInterface* const InEntity);
 
 	virtual void Execute(const FWpOrder& InOrder);
 
@@ -21,7 +21,7 @@ public:
 	virtual void Tick();
 	virtual void Deactivate();
 
-	void SetOrder(const FWpOrder& InOrder);
+	virtual void SetOrder(const FWpOrder& InOrder);
 	const FWpOrder& GetOrder() const;
 
 	bool IsRunning() const;
@@ -30,11 +30,11 @@ public:
 protected:
 	void Finish();
 
-	UWpEntityComponent* GetOwnerEntityComponent();
-	const UWpEntityComponent* GetOwnerEntityComponent() const;
+	IWpEntityInterface* GetEntity();
+	const IWpEntityInterface* GetEntity() const;
 
 private:
-	UWpEntityComponent* OwnerEntityComponent = nullptr;
+	IWpEntityInterface* Entity = nullptr;
 
 	FWpOrder Order = {};
 

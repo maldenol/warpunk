@@ -1,24 +1,24 @@
 #include "WpAttackOrderHandler.h"
 
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Weapon/WpWeapon.h"
-#include "Warpunk/Game/Weapon/WpWeaponArray.h"
+#include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h"
 
-void FWpAttackOrderHandler::SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent)
+void FWpAttackOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
-	FWpOrderHandler::SetOwnerEntityComponent(InOwnerEntityComponent);
+	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = GetOwnerEntityComponent()->GetOwner<APawn>()->GetController<AAIController>();
+	AIController = Cast<APawn>(GetEntity())->GetController<AAIController>();
 	ensureAlways(AIController);
 
-	WeaponArray = &WP_AS_WEAPON_ARRAY(GetOwnerEntityComponent());
+	WeaponComponent = GetEntity()->GetWeaponComponent();
 
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
-		if (const FWpWeapon* const Weapon = WeaponArray->GetWeapon(Index))
+		if (const FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index))
 		{
 			if (!ShortestRangeWeapon || Weapon->GetRange() < ShortestRangeWeapon->GetRange())
 			{
@@ -41,9 +41,9 @@ void FWpAttackOrderHandler::Reactivate()
 
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
-		if (FWpWeapon* const Weapon = WeaponArray->GetWeapon(Index))
+		if (FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index))
 		{
-			Weapon->SetPriorityTarget(GetOrder().TargetEntityComponent);
+			Weapon->SetPriorityTargetEntity(GetOrder().GetTargetEntity());
 		}
 		else
 		{
@@ -56,17 +56,17 @@ void FWpAttackOrderHandler::Tick()
 {
 	FWpOrderHandler::Tick();
 
-	if (!IsValid(GetOrder().TargetEntityComponent))
+	if (!IsValid(GetOrder().TargetEntityActor))
 	{
 		Finish();
 		return;
 	}
 
-	const bool bEveryWeaponIsInReach = ShortestRangeWeapon->CanReach(GetOrder().TargetEntityComponent->GetOwner()->GetActorLocation());
+	const bool bEveryWeaponIsInReach = ShortestRangeWeapon->CanReach(GetOrder().TargetEntityActor->GetActorLocation());
 	const bool bIsMoving = AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle;
 	if (!bEveryWeaponIsInReach && !bIsMoving)
 	{
-		AIController->MoveToActor(GetOrder().TargetEntityComponent->GetOwner(), ShortestRangeWeapon->GetRange(), false, true, false, nullptr, false);
+		AIController->MoveToActor(GetOrder().TargetEntityActor, ShortestRangeWeapon->GetRange(), false, true, false, nullptr, false);
 	}
 }
 

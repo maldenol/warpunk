@@ -1,12 +1,11 @@
 #include "WpSelfDestructOrderHandler.h"
 
-#include "Warpunk/Game/Endurance/WpEndurance.h"
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 
 void FWpSelfDestructOrderHandler::Execute(const FWpOrder& InOrder)
 {
 	FWpOrderHandler::Execute(InOrder);
 
-	FWpEndurance& Endurance = WP_AS_ENDURANCE(GetOwnerEntityComponent());
-	Endurance.Destruct();
+	GetEntity()->GetEnduranceComponent()->Destruct();
 }

@@ -24,8 +24,6 @@ public:
 
 	void SetUnitConfigId(const uint32 InUnitConfigId);
 
-	static const FName CancelUnitInputKeyName;
-
 private:
 	UFUNCTION()
 	void OnPressed();
@@ -38,6 +36,8 @@ private:
 	TObjectPtr<UTextBlock> Number = nullptr;
 
 	uint32 UnitConfigId = 0;
+
+	static const FName CancelUnitInputKeyName;
 };
 
 UCLASS(MinimalAPI, Abstract, Blueprintable, NotBlueprintType)

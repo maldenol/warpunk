@@ -6,7 +6,7 @@
 
 #include "WpGameEntityEnduranceWidget.generated.h"
 
-class FWpEndurance;
+class UWpEnduranceComponent;
 
 class UProgressBar;
 
@@ -20,7 +20,7 @@ public:
 
 	virtual void NativeConstruct() override;
 
-	void SetEndurance(FWpEndurance* const Endurance);
+	void SetEnduranceComponent(UWpEnduranceComponent* const EnduranceComponent);
 
 private:
 	void OnCurrentEnduranceChanged(const float CurrentEndurance, const float MaxEndurance);

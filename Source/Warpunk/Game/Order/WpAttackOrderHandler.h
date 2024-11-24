@@ -5,14 +5,14 @@
 #include "Warpunk/Game/Order/WpOrderHandler.h"
 
 class FWpWeapon;
-class FWpWeaponArray;
+class UWpWeaponComponent;
 
 class AAIController;
 
 class FWpAttackOrderHandler final : public FWpOrderHandler
 {
 public:
-	virtual void SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent) override;
+	virtual void Initialize(IWpEntityInterface* const InEntity) override;
 
 	virtual void Reactivate() override;
 	virtual void Tick() override;
@@ -21,7 +21,7 @@ public:
 private:
 	AAIController* AIController = nullptr;
 
-	FWpWeaponArray* WeaponArray = nullptr;
+	UWpWeaponComponent* WeaponComponent = nullptr;
 
 	const FWpWeapon* ShortestRangeWeapon = nullptr;
 };

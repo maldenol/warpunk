@@ -28,8 +28,8 @@ public:
 
 	virtual void PostRepNotifies() override;
 
-	void SetAllowTeams(const bool bInAllowTeams);
-	bool GetAllowTeams() const;
+	void SetTeamsAllowed(const bool bInTeamsAllowed);
+	bool AreTeamsAllowed() const;
 	void SetMaxPlayerNumber(const uint32 InMaxPlayerNumber);
 	uint32 GetMaxPlayerNumber() const;
 	void SetMaxSpectatorNumber(const uint32 InMaxSpectatorNumber);
@@ -50,12 +50,11 @@ public:
 private:
 	UFUNCTION()
 	void OnRep_General();
-
 	UFUNCTION()
 	void OnRep_TimeUntilGameStart();
 
 	UPROPERTY(ReplicatedUsing=OnRep_General)
-	bool bAllowTeams = false;
+	bool bTeamsAllowed = false;
 	UPROPERTY(ReplicatedUsing=OnRep_General)
 	uint32 MaxPlayerNumber = 10;
 	UPROPERTY(ReplicatedUsing=OnRep_General)

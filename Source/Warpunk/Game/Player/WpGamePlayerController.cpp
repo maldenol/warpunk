@@ -8,6 +8,8 @@
 AWpGamePlayerController::AWpGamePlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	bReplicates = true;
 }
 
 void AWpGamePlayerController::SetupInputComponent()
@@ -17,7 +19,14 @@ void AWpGamePlayerController::SetupInputComponent()
 	ensureAlways(ToggleViewIa);
 
 	UEnhancedInputComponent* const EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
-	EnhancedInputComponent->BindAction(ToggleViewIa, ETriggerEvent::Triggered, this, &AWpGamePlayerController::ToggleView);
+	EnhancedInputComponent->BindAction(ToggleViewIa, ETriggerEvent::Triggered, this, &AWpGamePlayerController::ServerToggleView);
+}
+
+void AWpGamePlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	PlayerStateReplicatedEvent.Broadcast();
 }
 
 void AWpGamePlayerController::SetStrategicViewPawn(AWpStrategicViewPawn* const InStrategicViewPawn)
@@ -30,10 +39,20 @@ void AWpGamePlayerController::SetCommander(AWpCommander* const InCommander)
 	Commander = InCommander;
 }
 
-void AWpGamePlayerController::SetView(const bool bInStrategicView)
+AWpGamePlayerController::FPlayerStateReplicatedEvent& AWpGamePlayerController::OnPlayerStateReplicated()
 {
-	bStrategicView = bInStrategicView;
+	return PlayerStateReplicatedEvent;
+}
 
+void AWpGamePlayerController::ServerToggleView_Implementation()
+{
+	const bool bStrategicView = GetPawn() == StrategicViewPawn;
+
+	SetView(!bStrategicView);
+}
+
+void AWpGamePlayerController::SetView(const bool bStrategicView)
+{
 	ensureAlways(StrategicViewPawn);
 	ensureAlways(Commander);
 
@@ -45,9 +64,4 @@ void AWpGamePlayerController::SetView(const bool bInStrategicView)
 	{
 		Possess(Commander);
 	}
-}
-
-void AWpGamePlayerController::ToggleView()
-{
-	SetView(!bStrategicView);
 }

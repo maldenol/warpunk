@@ -4,14 +4,14 @@
 
 #include "Warpunk/Game/Order/WpOrderHandler.h"
 
-class FWpOrderReceiver;
+class UWpOrderReceiverComponent;
 
 class AAIController;
 
 class FWpAssistOrderHandler final : public FWpOrderHandler
 {
 public:
-	virtual void SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent) override;
+	virtual void Initialize(IWpEntityInterface* const InEntity) override;
 
 	virtual void Reactivate() override;
 	virtual void Tick() override;
@@ -22,11 +22,11 @@ private:
 
 	AAIController* AIController = nullptr;
 
-	const FWpOrderReceiver* OrderReceiver = nullptr;
-
+	const UWpOrderReceiverComponent* OrderReceiverComponent = nullptr;
 	bool bCanAssist = false;
-
-	TPimplPtr<FWpOrderReceiver> MimicOrderReceiver = nullptr;
+	UWpOrderReceiverComponent* MimicOrderReceiverComponent = nullptr;
 
 	FDelegateHandle OnOrderReceivedDelegateHandle = {};
+
+	static const FName MimicOrderReceiverComponentName;
 };

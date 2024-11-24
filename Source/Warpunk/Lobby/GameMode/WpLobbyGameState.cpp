@@ -25,7 +25,7 @@ void AWpLobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AWpLobbyGameState, bAllowTeams);
+	DOREPLIFETIME(AWpLobbyGameState, bTeamsAllowed);
 	DOREPLIFETIME(AWpLobbyGameState, MaxPlayerNumber);
 	DOREPLIFETIME(AWpLobbyGameState, MaxSpectatorNumber);
 
@@ -56,14 +56,14 @@ void AWpLobbyGameState::PostRepNotifies()
 	}
 }
 
-void AWpLobbyGameState::SetAllowTeams(const bool bInAllowTeams)
+void AWpLobbyGameState::SetTeamsAllowed(const bool bInTeamsAllowed)
 {
-	bAllowTeams = bInAllowTeams;
+	bTeamsAllowed = bInTeamsAllowed;
 }
 
-bool AWpLobbyGameState::GetAllowTeams() const
+bool AWpLobbyGameState::AreTeamsAllowed() const
 {
-	return bAllowTeams;
+	return bTeamsAllowed;
 }
 
 void AWpLobbyGameState::SetMaxPlayerNumber(const uint32 InMaxPlayerNumber)

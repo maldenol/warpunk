@@ -1,29 +1,32 @@
 #include "WpWeapon.h"
 
-#include "Warpunk/Game/Data/WpEntityConfig.h"
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
-#include "Warpunk/Game/Intel/WpIntel.h"
+#include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Intel/WpIntelComponent.h"
+#include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 
-void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData)
+void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	if (bIsAcquired)
 	{
-		const FWpWeaponConfig* const WeaponConfig = static_cast<const FWpWeaponConfig*>(CustomData);
+		const FWpPooledWeaponData& PooledWeaponData = static_cast<const FWpPooledWeaponData&>(PooledObjectData);
+		const FWpWeaponConfig& WeaponConfig = *PooledWeaponData.WeaponConfig;
 
-		ensureAlways(WeaponConfig->Range >= 1.0f);
-		ensureAlways(WeaponConfig->Damage >= 0.001f);
-		ensureAlways(!WeaponConfig->FireLocation.IsNearlyZero());
+		ensureAlways(WeaponConfig.Range >= 1.0f);
+		ensureAlways(WeaponConfig.Damage >= 0.001f);
+		ensureAlways(!WeaponConfig.FireLocation.IsNearlyZero());
 
-		Range = WeaponConfig->Range;
-		Cooldown = 1.0f / WeaponConfig->FireRate;
-		Damage = WeaponConfig->Damage;
-		FireLocation = WeaponConfig->FireLocation;
+		Range = WeaponConfig.Range;
+		Cooldown = 1.0f / WeaponConfig.FireRate;
+		Damage = WeaponConfig.Damage;
+		FireLocation = WeaponConfig.FireLocation;
 	}
 }
 
-void FWpWeapon::Initialize(UWpEntityComponent* const InOwnerEntityComponent)
+void FWpWeapon::Initialize(IWpEntityInterface* const InOwnerEntity)
 {
-	OwnerEntityComponent = InOwnerEntityComponent;
+	OwnerEntity = InOwnerEntity;
 }
 
 void FWpWeapon::Tick(const float DeltaTime)
@@ -31,20 +34,20 @@ void FWpWeapon::Tick(const float DeltaTime)
 	FindNewTarget();
 }
 
-bool FWpWeapon::TryFire(const UWpEntityComponent* const TargetEntityComponent)
+bool FWpWeapon::TryFire(const IWpEntityInterface* const Entity)
 {
-	const FVector TargetLocation = TargetEntityComponent->GetOwner()->GetActorLocation();
-	return TryFire(TargetLocation);
+	const FVector Location = Cast<AActor>(Entity)->GetActorLocation();
+	return TryFire(Location);
 }
 
-bool FWpWeapon::TryFire(const FVector& TargetLocation)
+bool FWpWeapon::TryFire(const FVector& Location)
 {
-	const float CurrentTime = OwnerEntityComponent->GetWorld()->GetTimeSeconds();
-	if (CurrentTime >= LastFireTime + Cooldown && CanReach(TargetLocation))
+	const float CurrentTime = Cast<AActor>(OwnerEntity)->GetWorld()->GetTimeSeconds();
+	if (CurrentTime >= LastFireTime + Cooldown && CanReach(Location))
 	{
 		LastFireTime = CurrentTime;
 
-		Fire(TargetLocation);
+		Fire(Location);
 
 		return true;
 	}
@@ -52,10 +55,21 @@ bool FWpWeapon::TryFire(const FVector& TargetLocation)
 	return false;
 }
 
-bool FWpWeapon::CanReach(const FVector& TargetLocation) const
+bool FWpWeapon::CanReach(const IWpEntityInterface* const Entity) const
 {
-	const FVector OwnerLocation = OwnerEntityComponent->GetOwner()->GetActorLocation();
-	const float Distance2 = FVector::DistSquared2D(OwnerLocation, TargetLocation);
+	if (!Entity)
+	{
+		return false;
+	}
+
+	const FVector Location = Cast<AActor>(Entity)->GetActorLocation();
+	return CanReach(Location);
+}
+
+bool FWpWeapon::CanReach(const FVector& Location) const
+{
+	const FVector OwnerLocation = Cast<AActor>(OwnerEntity)->GetActorLocation();
+	const float Distance2 = FVector::DistSquared2D(OwnerLocation, Location);
 
 	return Distance2 <= Range * Range;
 }
@@ -65,24 +79,24 @@ float FWpWeapon::GetRange() const
 	return Range;
 }
 
-UWpEntityComponent* FWpWeapon::GetCurrentTarget() const
+IWpEntityInterface* FWpWeapon::GetCurrentTargetEntity() const
 {
-	return CurrentTargetEntityComponent;
+	return CurrentTargetEntity;
 }
 
-void FWpWeapon::SetPriorityTarget(UWpEntityComponent* const InPriorityTargetEntityComponent)
+void FWpWeapon::SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity)
 {
-	PriorityTargetEntityComponent = InPriorityTargetEntityComponent;
+	PriorityTargetEntity = InPriorityTargetEntity;
 }
 
-void FWpWeapon::Fire(const FVector& TargetLocation)
+void FWpWeapon::Fire(const FVector& Location)
 {
 }
 
-FRotator FWpWeapon::GetDirection(const FVector& TargetLocation) const
+FRotator FWpWeapon::GetDirection(const FVector& Location) const
 {
-	const FVector OwnerLocation = OwnerEntityComponent->GetOwner()->GetActorLocation();
-	return FRotator::MakeFromEuler(TargetLocation - OwnerLocation);
+	const FVector OwnerLocation = Cast<AActor>(OwnerEntity)->GetActorLocation();
+	return FRotator::MakeFromEuler(Location - OwnerLocation);
 }
 
 float FWpWeapon::GetDamage() const
@@ -95,27 +109,22 @@ const FVector& FWpWeapon::GetFireLocation() const
 	return FireLocation;
 }
 
-UWpEntityComponent* FWpWeapon::GetOwnerEntityComponent()
+IWpEntityInterface* FWpWeapon::GetOwnerEntity()
 {
-	return OwnerEntityComponent;
+	return OwnerEntity;
 }
 
-const UWpEntityComponent* FWpWeapon::GetOwnerEntityComponent() const
+const IWpEntityInterface* FWpWeapon::GetOwnerEntity() const
 {
-	return OwnerEntityComponent;
+	return OwnerEntity;
 }
 
 void FWpWeapon::FindNewTarget()
 {
-	const FWpIntel& Intel = WP_AS_INTEL_CONST(OwnerEntityComponent);
-	for (UWpEntityComponent* const CandidateEntityComponent : Intel.GetIntel())
+	const UWpIntelComponent* const IntelComponent = OwnerEntity->GetIntelComponent();
+	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetIntel())
 	{
-		if (!IsValid(CandidateEntityComponent))
-		{
-			continue;
-		}
-
-		const FVector CandidateLocation = CandidateEntityComponent->GetOwner()->GetActorLocation();
+		const FVector CandidateLocation = Cast<AActor>(CandidateEntity)->GetActorLocation();
 
 		const bool bCanReachCandidate = CanReach(CandidateLocation);
 		if (!bCanReachCandidate)
@@ -123,20 +132,19 @@ void FWpWeapon::FindNewTarget()
 			continue;
 		}
 
-		FVector CurrentTargetLocation;
-		if (CurrentTargetEntityComponent)
-		{
-			CurrentTargetLocation = CurrentTargetEntityComponent->GetOwner()->GetActorLocation();
-		}
-
-		const bool bCandidateIsPriorityTarget = CandidateEntityComponent == PriorityTargetEntityComponent;
-		const bool bCanReachCurrentTarget = CurrentTargetEntityComponent && CanReach(CurrentTargetLocation);
-		const bool bCandidateBelongsToSameTeam = WP_AS_BELLIGERENT_MEMBER_CONST(OwnerEntityComponent).BelongsToSameTeam(CandidateEntityComponent);
+		const bool bCandidateIsPriorityTarget = CandidateEntity == PriorityTargetEntity;
+		const bool bCanReachCurrentTarget = CanReach(CurrentTargetEntity);
+		const bool bCandidateBelongsToSameTeam = OwnerEntity->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
 		if (bCandidateIsPriorityTarget || (!bCanReachCurrentTarget && !bCandidateBelongsToSameTeam))
 		{
-			CurrentTargetEntityComponent = CandidateEntityComponent;
-			TryFire(CurrentTargetEntityComponent);
-			break;
+			CurrentTargetEntity = CandidateEntity;
+			TryFire(CurrentTargetEntity);
+			return;
 		}
+	}
+
+	if (CurrentTargetEntity)
+	{
+		TryFire(CurrentTargetEntity);
 	}
 }

@@ -23,17 +23,20 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	static const FName SphereComponentName;
-	static const FName MeshComponentName;
-	static const FName MovementComponentName;
-	static const FName SphereComponentCollisionProfileName;
-	static const FName MeshComponentCollisionProfileName;
+	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
 private:
 	UFUNCTION()
 	void OnComponentHit(UPrimitiveComponent* const HitComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const FVector NormalImpulse, const FHitResult& Hit);
+
+	UFUNCTION()
+	void OnRep_SphereComponentRadius();
+	UFUNCTION()
+	void OnRep_MeshComponentStaticMesh();
+	UFUNCTION()
+	void OnRep_MeshComponentScale();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> SphereComponent = nullptr;
@@ -43,4 +46,17 @@ private:
 	TObjectPtr<UProjectileMovementComponent> MovementComponent = nullptr;
 
 	FWpProjectileWeapon* Weapon = nullptr;
+
+	UPROPERTY(ReplicatedUsing=OnRep_SphereComponentRadius)
+	float SphereComponentRadius = 0.0f;
+	UPROPERTY(ReplicatedUsing=OnRep_MeshComponentStaticMesh)
+	TObjectPtr<UStaticMesh> MeshComponentStaticMesh = nullptr;
+	UPROPERTY(ReplicatedUsing = OnRep_MeshComponentScale)
+	FVector MeshComponentScale = FVector::OneVector;
+
+	static const FName SphereComponentName;
+	static const FName MeshComponentName;
+	static const FName MovementComponentName;
+	static const FName SphereComponentCollisionProfileName;
+	static const FName MeshComponentCollisionProfileName;
 };

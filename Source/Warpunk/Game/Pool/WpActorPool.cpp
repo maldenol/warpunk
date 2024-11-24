@@ -33,14 +33,13 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 		AActor* const Actor = GetWorld()->SpawnActor(Class, nullptr, nullptr, ActorSpawnParameters);
 
 		IWpPooledObjectInterface* const PooledObject = Cast<IWpPooledObjectInterface>(Actor);
-		PooledObject->InitializePooledObject();
 		PooledObject->ReleasePooledObject();
 
 		FreeActors.Add(Actor);
 	}
 }
 
-AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation, const void* const CustomData)
+AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
 {
 	if (FreeActors.IsEmpty())
 	{
@@ -51,7 +50,7 @@ AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation,
 	FreeActors.Remove(Actor);
 
 	Actor->SetActorLocationAndRotation(Location, Rotation);
-	Cast<IWpPooledObjectInterface>(Actor)->AcquirePooledObject(CustomData);
+	Cast<IWpPooledObjectInterface>(Actor)->AcquirePooledObject(PooledObjectData);
 
 	GEngine->AddOnScreenDebugMessage(0, 5.0f, FColor::Green, Actor->GetActorNameOrLabel());
 
@@ -78,9 +77,9 @@ AWpActorPool* AWpActorPool::Instance(const TSubclassOf<AActor>& Class)
 	return *Instances.Find(Class);
 }
 
-AActor* AWpActorPool::Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const void* const CustomData)
+AActor* AWpActorPool::Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
 {
-	return Instance(Class)->Acquire(Location, Rotation, CustomData);
+	return Instance(Class)->Acquire(Location, Rotation, PooledObjectData);
 }
 
 void AWpActorPool::Release(const TSubclassOf<AActor>& Class, AActor* const Actor)

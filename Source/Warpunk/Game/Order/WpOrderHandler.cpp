@@ -1,8 +1,8 @@
 #include "WpOrderHandler.h"
 
-void FWpOrderHandler::SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent)
+void FWpOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
-	OwnerEntityComponent = InOwnerEntityComponent;
+	Entity = InEntity;
 }
 
 void FWpOrderHandler::Execute(const FWpOrder& InOrder)
@@ -50,12 +50,12 @@ void FWpOrderHandler::Finish()
 	bHasFinished = true;
 }
 
-UWpEntityComponent* FWpOrderHandler::GetOwnerEntityComponent()
+IWpEntityInterface* FWpOrderHandler::GetEntity()
 {
-	return OwnerEntityComponent;
+	return Entity;
 }
 
-const UWpEntityComponent* FWpOrderHandler::GetOwnerEntityComponent() const
+const IWpEntityInterface* FWpOrderHandler::GetEntity() const
 {
-	return OwnerEntityComponent;
+	return Entity;
 }

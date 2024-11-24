@@ -4,7 +4,7 @@
 
 #include "WpOrder.generated.h"
 
-class UWpEntityComponent;
+class IWpEntityInterface;
 
 UENUM(NotBlueprintable, NotBlueprintType)
 enum class EWpOrderType : uint8
@@ -26,15 +26,44 @@ enum class EWpOrderType : uint8
 	SelfDestruct UMETA(Hidden),
 };
 
+USTRUCT(NotBlueprintable, NotBlueprintType)
+struct FWpConfigIdNumber final
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	uint32 ConfigId = 0;
+	UPROPERTY()
+	uint32 Number = 0;
+
+	bool operator==(const FWpConfigIdNumber& Other) const;
+	bool operator==(const uint32 OtherConfigId) const;
+
+	static TArray<FWpConfigIdNumber> FromMap(const TMap<uint32, uint32>& Map);
+	static TMap<uint32, uint32> ToMap(const TArray<FWpConfigIdNumber>& Array);
+};
+
+USTRUCT(NotBlueprintable, NotBlueprintType)
 struct FWpOrder final
 {
+	GENERATED_BODY()
+
+	UPROPERTY()
 	EWpOrderType Type = EWpOrderType::Undefined;
+	UPROPERTY()
 	FVector TargetLocation = FVector::ZeroVector;
+	UPROPERTY()
 	float Radius = 0.0f;
-	UWpEntityComponent* TargetEntityComponent = nullptr;
+	UPROPERTY()
+	AActor* TargetEntityActor = nullptr;
+	UPROPERTY()
 	uint32 BuildingToProduceConfigId = 0;
-	TMap<uint32, uint32> UnitToProduceConfigIdNumbers = {};
+	UPROPERTY()
+	TArray<FWpConfigIdNumber> UnitToProduceConfigIdNumbers = {};
+	UPROPERTY()
 	bool bOverride = false;
+
+	IWpEntityInterface* GetTargetEntity() const;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)

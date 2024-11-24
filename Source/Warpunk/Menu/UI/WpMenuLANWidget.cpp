@@ -38,6 +38,10 @@ void UWpMenuLANWidget::OnHostPressed()
 {
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 
-	static const FString Url = TEXT("LobbyMap?listen");
-	GetWorld()->ServerTravel(Url);
+	FWorldContext& WorldContext = *GEngine->GetWorldContextFromWorld(GetWorld());
+	FURL Url;
+	Url.Map = TEXT("LobbyMap");
+	Url.AddOption(TEXT("listen"));
+	FString Error;
+	GEngine->Browse(WorldContext, Url, Error);
 }

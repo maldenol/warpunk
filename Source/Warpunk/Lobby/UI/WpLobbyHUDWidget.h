@@ -28,11 +28,8 @@ private:
 	UFUNCTION()
 	void OnBackPressed();
 
-	UFUNCTION()
 	void OnPlayerStateReplicated();
-	UFUNCTION()
 	void OnPlayerSettingsUpdated();
-	UFUNCTION()
 	void OnTimeUntilGameStartUpdated(const float TimeUntilGameStart);
 
 	void SetElementsVisibility(const bool bIsReady);

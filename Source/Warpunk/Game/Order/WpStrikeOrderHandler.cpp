@@ -1,21 +1,21 @@
 #include "WpStrikeOrderHandler.h"
 
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Weapon/WpWeapon.h"
-#include "Warpunk/Game/Weapon/WpWeaponArray.h"
+#include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 void FWpStrikeOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	WeaponArray = &WP_AS_WEAPON_ARRAY(GetOwnerEntityComponent());
+	WeaponComponent = GetEntity()->GetWeaponComponent();
 
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
-		WaitingWeapons[Index] = WeaponArray->GetWeapon(Index) != nullptr;
+		WaitingWeapons[Index] = WeaponComponent->GetWeapon(Index) != nullptr;
 	}
 
-	const bool bHasAtLeastOneWeapon = WeaponArray->GetWeapon(0) != nullptr;
+	const bool bHasAtLeastOneWeapon = WeaponComponent->GetWeapon(0) != nullptr;
 	ensureAlways(bHasAtLeastOneWeapon);
 }
 
@@ -34,11 +34,11 @@ void FWpStrikeOrderHandler::Tick()
 
 		bNoWaitingWeapons = false;
 
-		FWpWeapon* const Weapon = WeaponArray->GetWeapon(Index);
+		FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index);
 
-		if (IsValid(GetOrder().TargetEntityComponent))
+		if (IsValid(GetOrder().TargetEntityActor))
 		{
-			if (Weapon->TryFire(GetOrder().TargetEntityComponent))
+			if (Weapon->TryFire(GetOrder().GetTargetEntity()))
 			{
 				WaitingWeapons[Index] = false;
 			}

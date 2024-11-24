@@ -1,11 +1,11 @@
 #include "WpGameGameMode.h"
 
-#include "Warpunk/Game/Data/WpEntityConfig.h"
-#include "Warpunk/Game/Data/WpPooledEntityData.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpBuilding.h"
 #include "Warpunk/Game/Entity/WpCommander.h"
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Entity/WpUnit.h"
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
@@ -50,9 +50,11 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 
 	PlayerController->SetStrategicViewPawn(StrategicViewPawn);
 
-	const uint32 ConfigId = GetWorld()->GetGameState<AWpGameGameState>()->CommanderConfigId;
+	AWpGameGameState* const InnerGameState = GetWorld()->GetGameState<AWpGameGameState>();
+
+	const uint32 ConfigId = InnerGameState->CommanderConfigId;
 	ensureAlways(ConfigId > 0);
-	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const UDataTable* const EntityConfigs = InnerGameState->GetEntityConfigs();
 	const FName RowName = FName{FString::FromInt(ConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
@@ -69,11 +71,13 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 	PooledEntityData.EntityConfigId = ConfigId;
 	PooledEntityData.BelligerentId = BelligerentId;
 
-	Commander->InitializePooledObject();
-	Commander->AcquirePooledObject(&PooledEntityData);
+	Commander->AcquirePooledObject(PooledEntityData);
 
-	FWpEndurance& CommanderEndurance = WP_AS_ENDURANCE(Commander->GetEntityComponent());
-	CommanderEndurance.ReceiveRepair(CommanderEndurance.GetMatterCost());
+	UWpEnduranceComponent* const CommanderEnduranceComponent = Commander->GetEnduranceComponent();
+	CommanderEnduranceComponent->ReceiveRepair(CommanderEnduranceComponent->GetMatterCost());
 
 	PlayerController->SetCommander(Commander);
+
+	const int32 TeamId = PlayerState->GetTeamId();
+	InnerGameState->AddToTeam(BelligerentId, TeamId);
 }

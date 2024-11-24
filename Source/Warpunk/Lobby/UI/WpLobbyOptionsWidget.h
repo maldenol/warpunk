@@ -27,7 +27,6 @@ private:
 	UFUNCTION()
 	void OnMaxSpectatorNumberCommitted(const FText& Text, const ETextCommit::Type CommitMethod);
 
-	UFUNCTION()
 	void OnLobbySettingsUpdated();
 
 	UPROPERTY(meta = (BindWidget))

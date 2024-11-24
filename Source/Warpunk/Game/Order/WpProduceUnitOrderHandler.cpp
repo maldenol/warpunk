@@ -1,46 +1,46 @@
 #include "WpProduceUnitOrderHandler.h"
 
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
-#include "Warpunk/Game/Production/WpProduction.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
+#include "Warpunk/Game/Production/WpProductionComponent.h"
 
-void FWpProduceUnitOrderHandler::SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent)
+void FWpProduceUnitOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
-	FWpOrderHandler::SetOwnerEntityComponent(InOwnerEntityComponent);
+	FWpOrderHandler::Initialize(InEntity);
 
-	Production = &WP_AS_PRODUCTION(GetOwnerEntityComponent());
-	ensureAlways(Production->IsActive());
+	ProductionComponent = GetEntity()->GetProductionComponent();
 }
 
 void FWpProduceUnitOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
+	if (OnRepairFinishedDelegateHandle.IsValid())
+	{
+		ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
+	}
+
 	if (GetOrder().UnitToProduceConfigIdNumbers.IsEmpty())
 	{
-		if (OnRepairFinishedDelegateHandle.IsValid())
+		IWpEntityInterface* const CurrentTargetEntity = ProductionComponent->GetCurrentTargetEntity();
+
+		ProductionComponent->Stop();
+
+		if (CurrentTargetEntity)
 		{
-			Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
-			OnRepairFinishedDelegateHandle.Reset();
-		}
-
-		UWpEntityComponent* const CurrentTargetEntityComponent = Production->GetCurrentTarget();
-
-		Production->Stop();
-
-		if (CurrentTargetEntityComponent)
-		{
-			WP_AS_ENDURANCE(CurrentTargetEntityComponent).Destruct();
+			CurrentTargetEntity->GetEnduranceComponent()->Destruct();
 		}
 
 		Finish();
 		return;
 	}
 
-	TMap<uint32, uint32> UnitToProduceConfigIdNumbers = GetOrder().UnitToProduceConfigIdNumbers;
+	TMap<uint32, uint32> UnitToProduceConfigIdNumbers = FWpConfigIdNumber::ToMap(GetOrder().UnitToProduceConfigIdNumbers);
 	TArray<uint32> UnitToProduceConfigIds;
 	UnitToProduceConfigIdNumbers.GetKeys(UnitToProduceConfigIds);
 
-	if (Production->GetInfiniteProduction())
+	if (ProductionComponent->IsInfiniteProductionEnabled())
 	{
 		for (const uint32 UnitToProduceConfigId : UnitToProduceConfigIds)
 		{
@@ -73,20 +73,14 @@ void FWpProduceUnitOrderHandler::Reactivate()
 	}
 	UnitQueueIndex = 0;
 
-	if (UWpEntityComponent* const CurrentTargetEntityComponent = Production->GetCurrentTarget())
+	if (IWpEntityInterface* const CurrentTargetEntity = ProductionComponent->GetCurrentTargetEntity())
 	{
-		const uint32 CurrentTargetEntityConfigId = CurrentTargetEntityComponent->GetEntityConfigId();
+		const uint32 CurrentTargetEntityConfigId = CurrentTargetEntity->GetConfigId();
 		if (!GetOrder().UnitToProduceConfigIdNumbers.Contains(CurrentTargetEntityConfigId))
 		{
-			if (OnRepairFinishedDelegateHandle.IsValid())
-			{
-				Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
-				OnRepairFinishedDelegateHandle.Reset();
-			}
+			ProductionComponent->Stop();
 
-			Production->Stop();
-
-			WP_AS_ENDURANCE(CurrentTargetEntityComponent).Destruct();
+			CurrentTargetEntity->GetEnduranceComponent()->Destruct();
 
 			BeginProduceUnit();
 		}
@@ -101,11 +95,9 @@ void FWpProduceUnitOrderHandler::Reactivate()
 		BeginProduceUnit();
 	}
 
-	if (OnRepairFinishedDelegateHandle.IsValid())
-	{
-		Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
-	}
-	OnRepairFinishedDelegateHandle = Production->OnRepairFinished().AddRaw(this, &FWpProduceUnitOrderHandler::OnRepairFinished);
+	bWasInfiniteProductionEnabled = ProductionComponent->IsInfiniteProductionEnabled();
+
+	OnRepairFinishedDelegateHandle = ProductionComponent->OnRepairFinished().AddRaw(this, &FWpProduceUnitOrderHandler::OnRepairFinished);
 }
 
 void FWpProduceUnitOrderHandler::Deactivate()
@@ -113,24 +105,31 @@ void FWpProduceUnitOrderHandler::Deactivate()
 	UnitQueue.Empty();
 	ProducedUnits.Empty();
 
-	Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
+	ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	OnRepairFinishedDelegateHandle.Reset();
-	Production->Stop();
+	ProductionComponent->Stop();
 
 	FWpOrderHandler::Deactivate();
+}
+
+void FWpProduceUnitOrderHandler::SetOrder(const FWpOrder& InOrder)
+{
+	FWpOrderHandler::SetOrder(InOrder);
+
+	GetEntity()->GetOrderReceiverComponent()->SetUnitToProduceConfigIdNumbers(GetOrder().UnitToProduceConfigIdNumbers);
 }
 
 void FWpProduceUnitOrderHandler::BeginProduceUnit()
 {
 	static constexpr float OffsetZ = 100.0f;
-	const FVector UnitLocation = GetOwnerEntityComponent()->GetOwner()->GetActorLocation() + FVector::UpVector * OffsetZ;
-	Production->StartProduce(UnitQueue[UnitQueueIndex], UnitLocation);
+	const FVector UnitLocation = Cast<AActor>(GetEntity())->GetActorLocation() + FVector::UpVector * OffsetZ;
+	ProductionComponent->StartProduce(UnitQueue[UnitQueueIndex], UnitLocation);
 }
 
-void FWpProduceUnitOrderHandler::OnRepairFinished(UWpEntityComponent* const EntityComponent)
+void FWpProduceUnitOrderHandler::OnRepairFinished(IWpEntityInterface* const InEntity)
 {
-	const uint32 ProducedUnitConfigId = EntityComponent->GetEntityConfigId();
-	if (Production->GetInfiniteProduction())
+	const uint32 ProducedUnitConfigId = InEntity->GetConfigId();
+	if (ProductionComponent->IsInfiniteProductionEnabled())
 	{
 		if (uint32* const ProducedUnitNumber = ProducedUnits.Find(ProducedUnitConfigId))
 		{
@@ -145,13 +144,29 @@ void FWpProduceUnitOrderHandler::OnRepairFinished(UWpEntityComponent* const Enti
 	{
 		FWpOrder NewOrder = GetOrder();
 
-		--NewOrder.UnitToProduceConfigIdNumbers[ProducedUnitConfigId];
-		if (NewOrder.UnitToProduceConfigIdNumbers[ProducedUnitConfigId] == 0)
+		FWpConfigIdNumber* const UnitToProduceConfigIdNumber = NewOrder.UnitToProduceConfigIdNumbers.FindByPredicate(
+			[ProducedUnitConfigId](const FWpConfigIdNumber& ConfigIdNumber)
+			{
+				return ConfigIdNumber.ConfigId == ProducedUnitConfigId;
+			});
+		uint32& UnitToProduceNumber = UnitToProduceConfigIdNumber->Number;
+
+		--UnitToProduceNumber;
+		if (UnitToProduceNumber == 0)
 		{
-			NewOrder.UnitToProduceConfigIdNumbers.Remove(ProducedUnitConfigId);
+			NewOrder.UnitToProduceConfigIdNumbers.RemoveSingle(*UnitToProduceConfigIdNumber);
 		}
 
 		SetOrder(NewOrder);
+
+		GetEntity()->GetOrderReceiverComponent()->SetUnitToProduceConfigIdNumbers(GetOrder().UnitToProduceConfigIdNumbers);
+	}
+
+	if (bWasInfiniteProductionEnabled && !ProductionComponent->IsInfiniteProductionEnabled())
+	{
+		ProducedUnits.Empty();
+		Reactivate();
+		return;
 	}
 
 	++UnitQueueIndex;
@@ -159,7 +174,7 @@ void FWpProduceUnitOrderHandler::OnRepairFinished(UWpEntityComponent* const Enti
 	{
 		BeginProduceUnit();
 	}
-	else if (Production->GetInfiniteProduction())
+	else if (ProductionComponent->IsInfiniteProductionEnabled())
 	{
 		ProducedUnits.Empty();
 		Reactivate();

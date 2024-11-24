@@ -6,6 +6,8 @@
 
 #include "WpActorPool.generated.h"
 
+struct FWpPooledObjectData;
+
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class AWpActorPool final : public AInfo
 {
@@ -18,7 +20,7 @@ public:
 
 	void Reserve(const TSubclassOf<AActor>& InClass, const uint32 Number);
 
-	AActor* Acquire(const FVector& Location, const FRotator& Rotation, const void* const CustomData);
+	AActor* Acquire(const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData);
 	void Release(AActor* const Actor);
 
 private:
@@ -29,13 +31,13 @@ private:
 public:
 	static AWpActorPool* Instance(const TSubclassOf<AActor>& Class);
 
-	static AActor* Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const void* const CustomData);
+	static AActor* Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData);
 	static void Release(const TSubclassOf<AActor>& Class, AActor* const Actor);
 
 	template <class T>
-	static T* Acquire(const FVector& Location, const FRotator& Rotation, const void* const CustomData)
+	static T* Acquire(const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
 	{
-		return Cast<T>(Acquire(T::StaticClass(), Location, Rotation, CustomData));
+		return Cast<T>(Acquire(T::StaticClass(), Location, Rotation, PooledObjectData));
 	}
 
 	template <class T>

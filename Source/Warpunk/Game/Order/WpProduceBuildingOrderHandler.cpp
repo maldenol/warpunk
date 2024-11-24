@@ -1,44 +1,44 @@
 #include "WpProduceBuildingOrderHandler.h"
 
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
-#include "Warpunk/Game/Production/WpProduction.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Production/WpProductionComponent.h"
 
 #include "AIController.h"
 
-void FWpProduceBuildingOrderHandler::SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent)
+void FWpProduceBuildingOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
-	FWpOrderHandler::SetOwnerEntityComponent(InOwnerEntityComponent);
+	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = GetOwnerEntityComponent()->GetOwner<APawn>()->GetController<AAIController>();
+	AIController = Cast<APawn>(GetEntity())->GetController<AAIController>();
 	ensureAlways(AIController);
 
-	Production = &WP_AS_PRODUCTION(GetOwnerEntityComponent());
-	ensureAlways(Production->IsActive());
+	ProductionComponent = GetEntity()->GetProductionComponent();
 }
 
 void FWpProduceBuildingOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	Production->StartProduce(GetOrder().BuildingToProduceConfigId, GetOrder().TargetLocation);
-
 	if (OnRepairFinishedDelegateHandle.IsValid())
 	{
-		Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
+		ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	}
-	OnRepairFinishedDelegateHandle = Production->OnRepairFinished().AddRaw(this, &FWpProduceBuildingOrderHandler::OnRepairFinished);
 
-	if (!Production->CanReach(GetOrder().TargetLocation))
+	ProductionComponent->StartProduce(GetOrder().BuildingToProduceConfigId, GetOrder().TargetLocation);
+
+	OnRepairFinishedDelegateHandle = ProductionComponent->OnRepairFinished().AddRaw(this, &FWpProduceBuildingOrderHandler::OnRepairFinished);
+
+	if (!ProductionComponent->CanReach(GetOrder().TargetLocation))
 	{
-		AIController->MoveToLocation(GetOrder().TargetLocation, Production->GetRange(), false, true, false, false);
+		AIController->MoveToLocation(GetOrder().TargetLocation, ProductionComponent->GetRange(), false, true, false, false);
 	}
 }
 
 void FWpProduceBuildingOrderHandler::Deactivate()
 {
-	Production->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
+	ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	OnRepairFinishedDelegateHandle.Reset();
-	Production->Stop();
+	ProductionComponent->Stop();
 
 	if (IsValid(AIController))
 	{
@@ -48,7 +48,7 @@ void FWpProduceBuildingOrderHandler::Deactivate()
 	FWpOrderHandler::Deactivate();
 }
 
-void FWpProduceBuildingOrderHandler::OnRepairFinished(UWpEntityComponent* const EntityComponent)
+void FWpProduceBuildingOrderHandler::OnRepairFinished(IWpEntityInterface* const InEntity)
 {
 	Finish();
 }

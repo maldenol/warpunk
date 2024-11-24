@@ -1,12 +1,13 @@
 #include "WpProjectile.h"
 
-#include "Warpunk/Game/Data/WpPooledProjectileData.h"
-#include "Warpunk/Game/EntityComponent/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
+#include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
 #include "Warpunk/Game/Weapon/WpProjectileWeapon.h"
 
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
 const FName AWpProjectile::SphereComponentName = TEXT("SphereCollision");
 const FName AWpProjectile::MeshComponentName = TEXT("StaticMesh");
@@ -18,6 +19,9 @@ const FName AWpProjectile::MeshComponentCollisionProfileName = TEXT("NoCollision
 AWpProjectile::AWpProjectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
+	Super::SetReplicateMovement(true);
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(SphereComponentName);
 	SphereComponent->SetCollisionProfileName(SphereComponentCollisionProfileName);
@@ -38,32 +42,48 @@ void AWpProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SphereComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
+	if (HasAuthority())
+	{
+		SphereComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
+	}
 }
 
-void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData)
+void AWpProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWpProjectile, SphereComponentRadius);
+	DOREPLIFETIME(AWpProjectile, MeshComponentStaticMesh);
+	DOREPLIFETIME(AWpProjectile, MeshComponentScale);
+}
+
+void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	if (bIsAcquired)
 	{
-		const FWpPooledProjectileData* const PooledProjectileData = static_cast<const FWpPooledProjectileData*>(CustomData);
+		const FWpPooledProjectileData& PooledProjectileData = static_cast<const FWpPooledProjectileData&>(PooledObjectData);
 
-		ensureAlways(PooledProjectileData->Radius >= 1.0f);
-		ensureAlways(PooledProjectileData->Weapon);
-		ensureAlways(PooledProjectileData->Mesh);
-		ensureAlways(!PooledProjectileData->InitialVelocity.IsNearlyZero());
+		ensureAlways(PooledProjectileData.Radius >= 1.0f);
+		ensureAlways(PooledProjectileData.Weapon);
+		ensureAlways(PooledProjectileData.Mesh);
+		ensureAlways(!PooledProjectileData.InitialVelocity.IsNearlyZero());
 
-		const float Radius = PooledProjectileData->Radius;
+		const float Radius = PooledProjectileData.Radius;
 
-		Weapon = PooledProjectileData->Weapon;
+		Weapon = PooledProjectileData.Weapon;
 		SphereComponent->SetSphereRadius(Radius);
-		MeshComponent->SetStaticMesh(PooledProjectileData->Mesh);
-		MovementComponent->Velocity = PooledProjectileData->InitialVelocity;
+		MeshComponent->SetStaticMesh(PooledProjectileData.Mesh);
+		MovementComponent->Velocity = PooledProjectileData.InitialVelocity;
 
 		const FVector MeshExtent = MeshComponent->GetStaticMesh()->GetBounds().BoxExtent;
 		const float ScaleX = Radius / MeshExtent.X;
 		const float ScaleY = Radius / MeshExtent.Y;
 		const float ScaleZ = Radius / MeshExtent.Z;
 		MeshComponent->SetRelativeScale3D(FVector{ScaleX, ScaleY, ScaleZ});
+
+		SphereComponentRadius = SphereComponent->GetUnscaledSphereRadius();
+		MeshComponentStaticMesh = MeshComponent->GetStaticMesh();
+		MeshComponentScale = MeshComponent->GetRelativeScale3D();
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -76,8 +96,23 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 {
 	if (IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(OtherActor))
 	{
-		Weapon->OnProjectileHit(Entity->GetEntityComponent());
+		Weapon->OnProjectileHit(Entity);
 	}
 
 	AWpActorPool::Release<AWpProjectile>(this);
+}
+
+void AWpProjectile::OnRep_SphereComponentRadius()
+{
+	SphereComponent->SetSphereRadius(SphereComponentRadius);
+}
+
+void AWpProjectile::OnRep_MeshComponentStaticMesh()
+{
+	MeshComponent->SetStaticMesh(MeshComponentStaticMesh);
+}
+
+void AWpProjectile::OnRep_MeshComponentScale()
+{
+	MeshComponent->SetRelativeScale3D(MeshComponentScale);
 }

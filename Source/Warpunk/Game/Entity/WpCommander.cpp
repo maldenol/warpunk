@@ -1,6 +1,5 @@
 #include "WpCommander.h"
 
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
 
 #include "EnhancedInputComponent.h"
@@ -9,7 +8,47 @@
 
 AWpCommander::AWpCommander()
 {
-	PrimaryActorTick.bCanEverTick = false;
+}
+
+void AWpCommander::PossessedBy(AController* const NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (!AIController)
+	{
+		AIController = GetController<AWpUnitAIController>();
+		ensureAlways(AIController);
+	}
+
+	const bool bPossessingPlayer = Cast<APlayerController>(NewController) != nullptr;
+	if (bPossessingPlayer)
+	{
+		UCharacterMovementComponent* const MovementComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
+		MovementComp->bOrientRotationToMovement = false;
+		bUseControllerRotationYaw = true;
+
+		ClientPossessed();
+	}
+}
+
+void AWpCommander::UnPossessed()
+{
+	const bool bUnPossessingPlayer = GetController<APlayerController>() != nullptr;
+	if (bUnPossessingPlayer)
+	{
+		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
+		MovementComponent->bOrientRotationToMovement = true;
+		bUseControllerRotationYaw = false;
+
+		ClientUnPossessed();
+	}
+
+	Super::UnPossessed();
+
+	if (bUnPossessingPlayer && AIController)
+	{
+		AIController->Possess(this);
+	}
 }
 
 void AWpCommander::SetupPlayerInputComponent(UInputComponent* const PlayerInputComponent)
@@ -23,62 +62,39 @@ void AWpCommander::SetupPlayerInputComponent(UInputComponent* const PlayerInputC
 	UEnhancedInputComponent* const EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
 	EnhancedInputComponent->BindAction(MoveIa, ETriggerEvent::Triggered, this, &AWpCommander::OnMoveTriggered);
 	EnhancedInputComponent->BindAction(LookIa, ETriggerEvent::Triggered, this, &AWpCommander::OnLookTriggered);
-	EnhancedInputComponent->BindAction(FireIa, ETriggerEvent::Triggered, this, &AWpCommander::OnFireTriggered);
+	EnhancedInputComponent->BindAction(FireIa, ETriggerEvent::Triggered, this, &AWpCommander::ServerOnFireTriggered);
 }
 
-void AWpCommander::PossessedBy(AController* const NewController)
+void AWpCommander::ClientPossessed_Implementation()
 {
-	Super::PossessedBy(NewController);
-
-	if (!AIController)
+	const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	if (UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 	{
-		AIController = GetController<AWpUnitAIController>();
-		ensureAlways(AIController);
+		ensureAlways(TacticalViewImc);
+		EnhancedInputSystem->AddMappingContext(TacticalViewImc, 0);
 	}
 
-	APlayerController* const NewPlayerController = Cast<APlayerController>(NewController);
-	if (!NewPlayerController)
-	{
-		return;
-	}
-
-	ensureAlways(TacticalViewImc);
-
-	const ULocalPlayer* const LocalPlayer = NewPlayerController->GetLocalPlayer();
-	UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	EnhancedInputSystem->AddMappingContext(TacticalViewImc, 0);
-
-	NewPlayerController->SetInputMode(FInputModeGameOnly{});
-	NewPlayerController->SetShowMouseCursor(false);
-
-	NewPlayerController->StopMovement();
+	APlayerController* const LocalPlayerController = LocalPlayer->GetPlayerController(GetWorld());
+	LocalPlayerController->SetInputMode(FInputModeGameOnly{});
+	LocalPlayerController->SetShowMouseCursor(false);
 
 	UCharacterMovementComponent* const MovementComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
 	MovementComp->bOrientRotationToMovement = false;
 	bUseControllerRotationYaw = true;
 }
 
-void AWpCommander::UnPossessed()
+void AWpCommander::ClientUnPossessed_Implementation()
 {
-	const APlayerController* const OldPlayerController = GetController<APlayerController>();
-	if (!OldPlayerController)
+	const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	if (UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 	{
-		return;
+		ensureAlways(TacticalViewImc);
+		EnhancedInputSystem->RemoveMappingContext(TacticalViewImc);
 	}
-
-	ensureAlways(TacticalViewImc);
-
-	const ULocalPlayer* const LocalPlayer = OldPlayerController->GetLocalPlayer();
-	UEnhancedInputLocalPlayerSubsystem* const EnhancedInputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	EnhancedInputSystem->RemoveMappingContext(TacticalViewImc);
 
 	UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
 	MovementComponent->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
-
-	Super::UnPossessed();
-
-	AIController->Possess(this);
 }
 
 void AWpCommander::OnMoveTriggered(const FInputActionValue& ActionValue)
@@ -93,6 +109,6 @@ void AWpCommander::OnLookTriggered(const FInputActionValue& ActionValue)
 	AddControllerPitchInput(ActionValue[1]);
 }
 
-void AWpCommander::OnFireTriggered(const FInputActionValue& ActionValue)
+void AWpCommander::ServerOnFireTriggered_Implementation(const FInputActionValue& ActionValue)
 {
 }

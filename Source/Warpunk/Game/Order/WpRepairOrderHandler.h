@@ -4,25 +4,25 @@
 
 #include "Warpunk/Game/Order/WpOrderHandler.h"
 
-class FWpProduction;
+class UWpProductionComponent;
 
 class AAIController;
 
 class FWpRepairOrderHandler final : public FWpOrderHandler
 {
 public:
-	virtual void SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent) override;
+	virtual void Initialize(IWpEntityInterface* const InEntity) override;
 
 	virtual void Reactivate() override;
 	virtual void Tick() override;
 	virtual void Deactivate() override;
 
 private:
-	void OnRepairFinished(UWpEntityComponent* const EntityComponent);
+	void OnRepairFinished(IWpEntityInterface* const InEntity);
 
 	AAIController* AIController = nullptr;
 
-	FWpProduction* Production = nullptr;
+	UWpProductionComponent* ProductionComponent = nullptr;
 
 	FDelegateHandle OnRepairFinishedDelegateHandle = {};
 };

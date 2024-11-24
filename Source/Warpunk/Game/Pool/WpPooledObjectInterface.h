@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 
+#include "Warpunk/Game/Pool/WpPooledObjectData.h"
+
 #include "UObject/Interface.h"
 
 #include "WpPooledObjectInterface.generated.h"
@@ -17,34 +19,20 @@ class IWpPooledObjectInterface
 	GENERATED_BODY()
 
 public:
-	virtual void OnPooledObjectInitialized()
-	{
-	}
-
-	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) = 0;
+	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) = 0;
 
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects()
 	{
 		return {};
 	}
 
-	void InitializePooledObject()
+	void AcquirePooledObject(const FWpPooledObjectData& PooledObjectData)
 	{
-		OnPooledObjectInitialized();
+		OnPooledObjectAcquiredOrReleased(true, PooledObjectData);
 
 		for (IWpPooledObjectInterface* const InnerPooledObject : GetInnerPooledObjects())
 		{
-			InnerPooledObject->OnPooledObjectInitialized();
-		}
-	}
-
-	void AcquirePooledObject(const void* const CustomData)
-	{
-		OnPooledObjectAcquiredOrReleased(true, CustomData);
-
-		for (IWpPooledObjectInterface* const InnerPooledObject : GetInnerPooledObjects())
-		{
-			InnerPooledObject->AcquirePooledObject(CustomData);
+			InnerPooledObject->AcquirePooledObject(PooledObjectData);
 		}
 	}
 
@@ -55,6 +43,6 @@ public:
 			InnerPooledObject->ReleasePooledObject();
 		}
 
-		OnPooledObjectAcquiredOrReleased(false, nullptr);
+		OnPooledObjectAcquiredOrReleased(false, {});
 	}
 };

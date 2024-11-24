@@ -17,26 +17,34 @@ class AWpGamePlayerController final : public APlayerController
 	GENERATED_BODY()
 
 public:
+	DECLARE_EVENT(AWpGamePlayerController, FPlayerStateReplicatedEvent);
+
 	AWpGamePlayerController();
 
 	virtual void SetupInputComponent() override;
 
+	virtual void OnRep_PlayerState() override;
+
 	void SetStrategicViewPawn(AWpStrategicViewPawn* const InStrategicViewPawn);
 	void SetCommander(AWpCommander* const InCommander);
 
+	FPlayerStateReplicatedEvent& OnPlayerStateReplicated();
+
 private:
-	void SetView(const bool bInStrategicView);
-	void ToggleView();
+	UFUNCTION(Server, Reliable)
+	void ServerToggleView();
+
+	void SetView(const bool bStrategicView);
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UInputAction> ToggleViewIa = nullptr;
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AWpCommander> CommanderClass = nullptr;
 
-	bool bStrategicView = true;
-
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpStrategicViewPawn> StrategicViewPawn = nullptr;
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpCommander> Commander = nullptr;
+
+	FPlayerStateReplicatedEvent PlayerStateReplicatedEvent = {};
 };

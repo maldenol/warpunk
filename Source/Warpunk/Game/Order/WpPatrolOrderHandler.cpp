@@ -1,20 +1,20 @@
 #include "WpPatrolOrderHandler.h"
 
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
-#include "Warpunk/Game/Production/WpProduction.h"
+#include "Warpunk/Game/Production/WpProductionComponent.h"
 
 #include "NavigationSystem.h"
 #include "AI/NavigationSystemBase.h"
 
-void FWpPatrolOrderHandler::SetOwnerEntityComponent(UWpEntityComponent* const InOwnerEntityComponent)
+void FWpPatrolOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
-	FWpOrderHandler::SetOwnerEntityComponent(InOwnerEntityComponent);
+	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = GetOwnerEntityComponent()->GetOwner<APawn>()->GetController<AWpUnitAIController>();
+	AIController = Cast<APawn>(GetEntity())->GetController<AWpUnitAIController>();
 	ensureAlways(AIController);
 
-	Production = &WP_AS_PRODUCTION(GetOwnerEntityComponent());
+	ProductionComponent = GetEntity()->GetProductionComponent();
 }
 
 void FWpPatrolOrderHandler::Reactivate()
@@ -27,10 +27,10 @@ void FWpPatrolOrderHandler::Reactivate()
 		return;
 	}
 
-	if (Production->IsActive() && !Production->ShouldSupport())
+	if (ProductionComponent->IsActive() && !ProductionComponent->ShouldSupport())
 	{
 		bWasSupporting = false;
-		Production->SetShouldSupport(true);
+		ProductionComponent->SetShouldSupport(true);
 	}
 
 	if (OnMovementCompletedDelegateHandle.IsValid())
@@ -52,9 +52,9 @@ void FWpPatrolOrderHandler::Deactivate()
 	}
 	OnMovementCompletedDelegateHandle.Reset();
 
-	if (Production->IsActive() && !bWasSupporting)
+	if (ProductionComponent->IsActive() && !bWasSupporting)
 	{
-		Production->SetShouldSupport(false);
+		ProductionComponent->SetShouldSupport(false);
 	}
 
 	bWasSupporting = true;
@@ -65,7 +65,7 @@ void FWpPatrolOrderHandler::Deactivate()
 void FWpPatrolOrderHandler::MoveToNextLocation()
 {
 	FNavLocation RandomLocation;
-	UNavigationSystemV1* const NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetOwnerEntityComponent()->GetWorld());
+	UNavigationSystemV1* const NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(Cast<AActor>(GetEntity())->GetWorld());
 	if (GetOrder().Radius > 0.001f)
 	{
 		NavigationSystem->GetRandomReachablePointInRadius(GetOrder().TargetLocation, GetOrder().Radius, RandomLocation);

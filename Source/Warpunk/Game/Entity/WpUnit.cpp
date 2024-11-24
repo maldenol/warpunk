@@ -1,14 +1,25 @@
 #include "WpUnit.h"
 
-#include "Warpunk/Game/Data/WpEntityConfig.h"
-#include "Warpunk/Game/Data/WpPooledEntityData.h"
-#include "Warpunk/Game/EntityComponent/WpEntityComponent.h"
+#include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpPooledEntityData.h"
+#include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
+#include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
+#include "Warpunk/Game/Production/WpProductionComponent.h"
+#include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
-const FName AWpUnit::EntityComponentName = TEXT("EntityComponent");
+const FName AWpUnit::BelligerentComponentName = TEXT("BelligerentComponent");
+const FName AWpUnit::EnduranceComponentName = TEXT("EnduranceComponent");
+const FName AWpUnit::IntelComponentName = TEXT("IntelComponent");
+const FName AWpUnit::OrderReceiverComponentName = TEXT("OrderReceiverComponent");
+const FName AWpUnit::ProductionComponentName = TEXT("ProductionComponent");
+const FName AWpUnit::WeaponComponentName = TEXT("WeaponComponent");
 
 const FName AWpUnit::CapsuleComponentCollisionProfileName = TEXT("WpEntitySimple");
 const FName AWpUnit::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
@@ -17,8 +28,11 @@ AWpUnit::AWpUnit()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	AIControllerClass = AWpUnitAIController::StaticClass();
+	bReplicates = true;
+	Super::SetReplicateMovement(true);
+
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIControllerClass = AWpUnitAIController::StaticClass();
 
 	UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
 	CapsuleComp->SetCollisionProfileName(CapsuleComponentCollisionProfileName);
@@ -34,25 +48,102 @@ AWpUnit::AWpUnit()
 	MovementComp->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
 
-	EntityComponent = CreateDefaultSubobject<UWpEntityComponent>(EntityComponentName);
+	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
+	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
+	IntelComponent = CreateDefaultSubobject<UWpIntelComponent>(IntelComponentName);
+	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	OrderReceiverComponent = CreateDefaultSubobject<UWpOrderReceiverComponent>(OrderReceiverComponentName);
+	ProductionComponent = CreateDefaultSubobject<UWpProductionComponent>(ProductionComponentName);
+	WeaponComponent = CreateDefaultSubobject<UWpWeaponComponent>(WeaponComponentName);
 }
 
-UWpEntityComponent* AWpUnit::GetEntityComponent()
+void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	return EntityComponent;
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWpUnit, MeshComponentTransform);
+	DOREPLIFETIME(AWpUnit, MeshComponentSkeletalMesh);
+	DOREPLIFETIME(AWpUnit, MeshComponentMaterial);
+	DOREPLIFETIME(AWpUnit, MeshComponentAnimInstanceClass);
+	DOREPLIFETIME(AWpUnit, CapsuleComponentSize);
+	DOREPLIFETIME(AWpUnit, MovementComponentMaxWalkSpeed);
 }
 
-const UWpEntityComponent* AWpUnit::GetEntityComponent() const
+UWpBelligerentComponent* AWpUnit::GetBelligerentComponent()
 {
-	return EntityComponent;
+	return BelligerentComponent;
 }
 
-void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData)
+const UWpBelligerentComponent* AWpUnit::GetBelligerentComponent() const
+{
+	return BelligerentComponent;
+}
+
+UWpEnduranceComponent* AWpUnit::GetEnduranceComponent()
+{
+	return EnduranceComponent;
+}
+
+const UWpEnduranceComponent* AWpUnit::GetEnduranceComponent() const
+{
+	return EnduranceComponent;
+}
+
+UWpIntelComponent* AWpUnit::GetIntelComponent()
+{
+	return IntelComponent;
+}
+
+const UWpIntelComponent* AWpUnit::GetIntelComponent() const
+{
+	return IntelComponent;
+}
+
+UWpOrderReceiverComponent* AWpUnit::GetOrderReceiverComponent()
+{
+	return OrderReceiverComponent;
+}
+
+const UWpOrderReceiverComponent* AWpUnit::GetOrderReceiverComponent() const
+{
+	return OrderReceiverComponent;
+}
+
+UWpProductionComponent* AWpUnit::GetProductionComponent()
+{
+	return ProductionComponent;
+}
+
+const UWpProductionComponent* AWpUnit::GetProductionComponent() const
+{
+	return ProductionComponent;
+}
+
+UWpWeaponComponent* AWpUnit::GetWeaponComponent()
+{
+	return WeaponComponent;
+}
+
+const UWpWeaponComponent* AWpUnit::GetWeaponComponent() const
+{
+	return WeaponComponent;
+}
+
+uint32 AWpUnit::GetConfigId() const
+{
+	return ConfigId;
+}
+
+void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	if (bIsAcquired)
 	{
-		const FWpPooledEntityData* const PooledEntityData = static_cast<const FWpPooledEntityData*>(CustomData);
-		const FWpEntityConfig& EntityConfig = *PooledEntityData->EntityConfig;
+		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
+		const FWpEntityConfig& EntityConfig = *PooledEntityData.EntityConfig;
+
+		ensureAlways(PooledEntityData.EntityConfigId > 0);
+
+		ConfigId = PooledEntityData.EntityConfigId;
 
 		ensureAlways(EntityConfig.EntityMeshConfig.Mesh);
 		ensureAlways(EntityConfig.EntityMeshConfig.Material);
@@ -75,6 +166,14 @@ void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const voi
 
 		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
 		MovementComponent->MaxWalkSpeed = EntityConfig.UnitMovementConfig.Speed;
+
+		MeshComponentTransform = MeshComponent->GetRelativeTransform();
+		MeshComponentSkeletalMesh = MeshComponent->GetSkeletalMeshAsset();
+		MeshComponentMaterial = MeshComponent->GetMaterial(0);
+		MeshComponentAnimInstanceClass = MeshComponent->GetAnimClass();
+		CapsuleComponentSize.X = CapsuleComp->GetUnscaledCapsuleRadius();
+		CapsuleComponentSize.Y = CapsuleComp->GetUnscaledCapsuleHalfHeight();
+		MovementComponentMaxWalkSpeed = MovementComponent->MaxWalkSpeed;
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -94,6 +193,41 @@ TArray<IWpPooledObjectInterface*> AWpUnit::GetInnerPooledObjects()
 {
 	return
 	{
-		Cast<IWpPooledObjectInterface>(EntityComponent),
+		Cast<IWpPooledObjectInterface>(BelligerentComponent),
+		Cast<IWpPooledObjectInterface>(EnduranceComponent),
+		Cast<IWpPooledObjectInterface>(IntelComponent),
+		Cast<IWpPooledObjectInterface>(OrderReceiverComponent),
+		Cast<IWpPooledObjectInterface>(ProductionComponent),
+		Cast<IWpPooledObjectInterface>(WeaponComponent),
 	};
+}
+
+void AWpUnit::OnRep_MeshComponentTransform()
+{
+	GetMesh()->SetRelativeTransform(MeshComponentTransform);
+}
+
+void AWpUnit::OnRep_MeshComponentSkeletalMesh()
+{
+	GetMesh()->SetSkeletalMesh(MeshComponentSkeletalMesh);
+}
+
+void AWpUnit::OnRep_MeshComponentMaterial()
+{
+	GetMesh()->SetMaterial(0, MeshComponentMaterial);
+}
+
+void AWpUnit::OnRep_MeshComponentAnimInstanceClass()
+{
+	GetMesh()->SetAnimInstanceClass(MeshComponentAnimInstanceClass);
+}
+
+void AWpUnit::OnRep_CapsuleComponentSize()
+{
+	GetCapsuleComponent()->SetCapsuleSize(CapsuleComponentSize.X, CapsuleComponentSize.Y);
+}
+
+void AWpUnit::OnRep_MovementComponentMaxWalkSpeed()
+{
+	Cast<UCharacterMovementComponent>(GetMovementComponent())->MaxWalkSpeed = MovementComponentMaxWalkSpeed;
 }

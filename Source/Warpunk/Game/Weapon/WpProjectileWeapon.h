@@ -4,14 +4,14 @@
 
 #include "Warpunk/Game/Weapon/WpWeapon.h"
 
-class UWpEntityComponent;
+class IWpEntityInterface;
 
 class FWpProjectileWeapon final : public FWpWeapon
 {
 public:
-	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const void* const CustomData) override;
+	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
-	void OnProjectileHit(UWpEntityComponent* const TargetEntityComponent);
+	void OnProjectileHit(IWpEntityInterface* const Entity);
 
 private:
 	virtual void Fire(const FVector& TargetLocation) override;

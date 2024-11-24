@@ -19,8 +19,6 @@ public:
 	UStaticMesh* GetIntelMesh() const;
 	UMaterialInterface* GetIntelMaterial() const;
 
-	static const FName SceneCaptureComponentName;
-
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UTextureRenderTarget2D> TextureRenderTarget = nullptr;
@@ -33,4 +31,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneCaptureComponent2D> SceneCaptureComponent = nullptr;
+
+	static const FName RootComponentName;
+	static const FName SceneCaptureComponentName;
 };

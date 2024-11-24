@@ -17,7 +17,7 @@ void AWpLobbyHUD::BeginPlay()
 	LobbyHUDWidget->AddToViewport();
 
 	APlayerController* const PlayerController = GetOwningPlayerController();
-	FInputModeUIOnly InputMode = {};
+	FInputModeUIOnly InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->SetShowMouseCursor(true);
