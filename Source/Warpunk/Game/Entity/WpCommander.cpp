@@ -1,10 +1,10 @@
 #include "WpCommander.h"
 
+#include "Warpunk/Game/Movement/WpUnitMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "GameFramework/CharacterMovementComponent.h"
 
 AWpCommander::AWpCommander()
 {
@@ -20,12 +20,11 @@ void AWpCommander::PossessedBy(AController* const NewController)
 		ensureAlways(AIController);
 	}
 
-	const bool bPossessingPlayer = Cast<APlayerController>(NewController) != nullptr;
-	if (bPossessingPlayer)
+	const bool bPossessedByPlayer = Cast<APlayerController>(NewController) != nullptr;
+	if (bPossessedByPlayer)
 	{
-		UCharacterMovementComponent* const MovementComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
-		MovementComp->bOrientRotationToMovement = false;
-		bUseControllerRotationYaw = true;
+		UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
+		MovementComponent->SetIsFirstPersonControlled(true);
 
 		ClientPossessed();
 	}
@@ -33,19 +32,18 @@ void AWpCommander::PossessedBy(AController* const NewController)
 
 void AWpCommander::UnPossessed()
 {
-	const bool bUnPossessingPlayer = GetController<APlayerController>() != nullptr;
-	if (bUnPossessingPlayer)
+	const bool bUnPossessedByPlayer = GetController<APlayerController>() != nullptr;
+	if (bUnPossessedByPlayer)
 	{
-		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
-		MovementComponent->bOrientRotationToMovement = true;
-		bUseControllerRotationYaw = false;
+		UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
+		MovementComponent->SetIsFirstPersonControlled(false);
 
 		ClientUnPossessed();
 	}
 
 	Super::UnPossessed();
 
-	if (bUnPossessingPlayer && AIController)
+	if (bUnPossessedByPlayer && AIController)
 	{
 		AIController->Possess(this);
 	}
@@ -78,9 +76,8 @@ void AWpCommander::ClientPossessed_Implementation()
 	LocalPlayerController->SetInputMode(FInputModeGameOnly{});
 	LocalPlayerController->SetShowMouseCursor(false);
 
-	UCharacterMovementComponent* const MovementComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
-	MovementComp->bOrientRotationToMovement = false;
-	bUseControllerRotationYaw = true;
+	UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
+	MovementComponent->SetIsFirstPersonControlled(true);
 }
 
 void AWpCommander::ClientUnPossessed_Implementation()
@@ -92,9 +89,8 @@ void AWpCommander::ClientUnPossessed_Implementation()
 		EnhancedInputSystem->RemoveMappingContext(TacticalViewImc);
 	}
 
-	UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
-	MovementComponent->bOrientRotationToMovement = true;
-	bUseControllerRotationYaw = false;
+	UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
+	MovementComponent->SetIsFirstPersonControlled(false);
 }
 
 void AWpCommander::OnMoveTriggered(const FInputActionValue& ActionValue)

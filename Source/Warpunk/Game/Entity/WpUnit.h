@@ -22,7 +22,7 @@ class AWpUnit : public ACharacter, public IWpEntityInterface, public IWpPooledOb
 	GENERATED_BODY()
 
 public:
-	AWpUnit();
+	AWpUnit(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -60,8 +60,6 @@ private:
 	void OnRep_MeshComponentAnimInstanceClass();
 	UFUNCTION()
 	void OnRep_CapsuleComponentSize();
-	UFUNCTION()
-	void OnRep_MovementComponentMaxWalkSpeed();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpBelligerentComponent> BelligerentComponent = nullptr;
@@ -89,8 +87,6 @@ private:
 	TSubclassOf<UAnimInstance> MeshComponentAnimInstanceClass = nullptr;
 	UPROPERTY(ReplicatedUsing=OnRep_CapsuleComponentSize)
 	FVector2D CapsuleComponentSize = FVector2D::ZeroVector;
-	UPROPERTY(ReplicatedUsing=OnRep_MovementComponentMaxWalkSpeed)
-	float MovementComponentMaxWalkSpeed = 0.0f;
 
 	static const FName BelligerentComponentName;
 	static const FName EnduranceComponentName;

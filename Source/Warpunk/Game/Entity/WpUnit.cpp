@@ -5,13 +5,13 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
+#include "Warpunk/Game/Movement/WpUnitMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 
 const FName AWpUnit::BelligerentComponentName = TEXT("BelligerentComponent");
@@ -24,7 +24,8 @@ const FName AWpUnit::WeaponComponentName = TEXT("WeaponComponent");
 const FName AWpUnit::CapsuleComponentCollisionProfileName = TEXT("WpEntitySimple");
 const FName AWpUnit::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
 
-AWpUnit::AWpUnit()
+AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UWpUnitMovementComponent>(CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = false;
 
@@ -44,10 +45,6 @@ AWpUnit::AWpUnit()
 	MeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
 	MeshComponent->SetGenerateOverlapEvents(false);
 
-	UCharacterMovementComponent* const MovementComp = Cast<UCharacterMovementComponent>(ACharacter::GetMovementComponent());
-	MovementComp->bOrientRotationToMovement = true;
-	bUseControllerRotationYaw = false;
-
 	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
 	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
 	IntelComponent = CreateDefaultSubobject<UWpIntelComponent>(IntelComponentName);
@@ -66,7 +63,6 @@ void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	DOREPLIFETIME(AWpUnit, MeshComponentMaterial);
 	DOREPLIFETIME(AWpUnit, MeshComponentAnimInstanceClass);
 	DOREPLIFETIME(AWpUnit, CapsuleComponentSize);
-	DOREPLIFETIME(AWpUnit, MovementComponentMaxWalkSpeed);
 }
 
 UWpBelligerentComponent* AWpUnit::GetBelligerentComponent()
@@ -164,8 +160,7 @@ void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWp
 		UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
 		CapsuleComp->SetCapsuleSize(Radius, HalfHeight);
 
-		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
-		MovementComponent->MaxWalkSpeed = EntityConfig.UnitMovementConfig.Speed;
+		CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation());
 
 		MeshComponentTransform = MeshComponent->GetRelativeTransform();
 		MeshComponentSkeletalMesh = MeshComponent->GetSkeletalMeshAsset();
@@ -173,14 +168,10 @@ void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWp
 		MeshComponentAnimInstanceClass = MeshComponent->GetAnimClass();
 		CapsuleComponentSize.X = CapsuleComp->GetUnscaledCapsuleRadius();
 		CapsuleComponentSize.Y = CapsuleComp->GetUnscaledCapsuleHalfHeight();
-		MovementComponentMaxWalkSpeed = MovementComponent->MaxWalkSpeed;
 	}
 
 	SetActorEnableCollision(bIsAcquired);
 	SetActorHiddenInGame(!bIsAcquired);
-
-	UCharacterMovementComponent* const MovementComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
-	MovementComp->SetActive(bIsAcquired);
 
 	if (AAIController* const AIController = GetController<AAIController>())
 	{
@@ -199,12 +190,15 @@ TArray<IWpPooledObjectInterface*> AWpUnit::GetInnerPooledObjects()
 		Cast<IWpPooledObjectInterface>(OrderReceiverComponent),
 		Cast<IWpPooledObjectInterface>(ProductionComponent),
 		Cast<IWpPooledObjectInterface>(WeaponComponent),
+		Cast<IWpPooledObjectInterface>(GetMovementComponent()),
 	};
 }
 
 void AWpUnit::OnRep_MeshComponentTransform()
 {
 	GetMesh()->SetRelativeTransform(MeshComponentTransform);
+
+	CacheInitialMeshOffset(GetMesh()->GetRelativeLocation(), GetMesh()->GetRelativeRotation());
 }
 
 void AWpUnit::OnRep_MeshComponentSkeletalMesh()
@@ -225,9 +219,4 @@ void AWpUnit::OnRep_MeshComponentAnimInstanceClass()
 void AWpUnit::OnRep_CapsuleComponentSize()
 {
 	GetCapsuleComponent()->SetCapsuleSize(CapsuleComponentSize.X, CapsuleComponentSize.Y);
-}
-
-void AWpUnit::OnRep_MovementComponentMaxWalkSpeed()
-{
-	Cast<UCharacterMovementComponent>(GetMovementComponent())->MaxWalkSpeed = MovementComponentMaxWalkSpeed;
 }

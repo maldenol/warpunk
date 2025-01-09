@@ -1,0 +1,72 @@
+#include "WpUnitMovementComponent.h"
+
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpPooledEntityData.h"
+
+#include "Net/UnrealNetwork.h"
+
+UWpUnitMovementComponent::UWpUnitMovementComponent()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+
+	SetIsReplicatedByDefault(true);
+
+	FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
+	NavAgentProperties.bCanCrouch = false;
+	NavAgentProperties.bCanFly = false;
+	NavAgentProperties.bCanJump = false;
+	NavAgentProperties.bCanSwim = false;
+	NavAgentProperties.bCanWalk = true;
+}
+
+void UWpUnitMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UWpUnitMovementComponent, Speed);
+}
+
+void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
+{
+	if (bIsAcquired)
+	{
+		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
+		const FWpUnitMovementConfig& UnitMovementConfig = PooledEntityData.EntityConfig->UnitMovementConfig;
+
+		ensureAlways(UnitMovementConfig.Speed >= 1.0f);
+
+		SetSpeed(UnitMovementConfig.Speed);
+
+		SetIsFirstPersonControlled(false);
+	}
+
+	SetActive(bIsAcquired);
+}
+
+void UWpUnitMovementComponent::SetIsFirstPersonControlled(const bool bIsFirstPersonControlled)
+{
+	bOrientRotationToMovement = !bIsFirstPersonControlled;
+
+	APawn* const OwnerPawn = GetOwner<APawn>();
+
+	OwnerPawn->bUseControllerRotationYaw = bIsFirstPersonControlled;
+
+	if (bIsFirstPersonControlled)
+	{
+		if (AController* const OwnerController = (OwnerPawn->GetLocalRole() == ROLE_SimulatedProxy) ? GetWorld()->GetFirstPlayerController() : OwnerPawn->GetController())
+		{
+			OwnerController->SetControlRotation(OwnerPawn->GetActorRotation());
+		}
+	}
+}
+
+void UWpUnitMovementComponent::SetSpeed(const float InSpeed)
+{
+	Speed = InSpeed;
+	OnRep_Speed();
+}
+
+void UWpUnitMovementComponent::OnRep_Speed()
+{
+	MaxWalkSpeed = Speed;
+}
