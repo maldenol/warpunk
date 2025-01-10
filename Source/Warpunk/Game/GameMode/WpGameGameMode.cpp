@@ -64,12 +64,12 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 	ensureAlways(Commander);
 
 	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
-	const uint32 BelligerentId = PlayerState->GetBelligerentId();
 
 	FWpPooledEntityData PooledEntityData;
 	PooledEntityData.EntityConfig = &EntityConfig;
 	PooledEntityData.EntityConfigId = ConfigId;
-	PooledEntityData.BelligerentId = BelligerentId;
+	PooledEntityData.BelligerentId = PlayerState->GetBelligerentId();
+	PooledEntityData.TeamId = PlayerState->GetTeamId();
 
 	Commander->AcquirePooledObject(PooledEntityData);
 
@@ -77,7 +77,4 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 	CommanderEnduranceComponent->ReceiveRepair(CommanderEnduranceComponent->GetMatterCost());
 
 	PlayerController->SetCommander(Commander);
-
-	const int32 TeamId = PlayerState->GetTeamId();
-	InnerGameState->AddToTeam(BelligerentId, TeamId);
 }

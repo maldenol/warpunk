@@ -5,7 +5,6 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
@@ -189,33 +188,13 @@ void UWpIntelComponent::UpdateMeshVisibilityBasedOnTeam()
 		AWpGamePlayerController* const LocalPlayerController = Cast<AWpGamePlayerController>(LocalPlayer->GetPlayerController(GetWorld()));
 		if (const AWpGamePlayerState* const LocalPlayerState = LocalPlayerController->GetPlayerState<AWpGamePlayerState>())
 		{
-			const uint32 LocalPlayerBelligerentId = LocalPlayerState->GetBelligerentId();
-
-			const uint32 OwnerBelligerentId = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->GetBelligerentId();
-
-			AWpGameGameState* const GameState = GetWorld()->GetGameState<AWpGameGameState>();
-			const bool bBelongsToLocalPlayerTeam = GameState->BelongToSameTeam(LocalPlayerBelligerentId, OwnerBelligerentId);
-
-			if (bBelongsToLocalPlayerTeam)
-			{
-				if (OnBelligerentTeamsReplicatedDelegateHandle.IsValid())
-				{
-					GameState->OnBelligerentTeamsReplicated().Remove(OnBelligerentTeamsReplicatedDelegateHandle);
-					OnBelligerentTeamsReplicatedDelegateHandle.Reset();
-				}
-			}
-			else
-			{
-				if (!OnBelligerentTeamsReplicatedDelegateHandle.IsValid())
-				{
-					OnBelligerentTeamsReplicatedDelegateHandle = GameState->OnBelligerentTeamsReplicated().AddUObject(this, &UWpIntelComponent::OnBelligerentTeamsReplicated);
-				}
-			}
-
+			const uint32 EntityTeamId = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->GetTeamId();
+			const uint32 LocalPlayerTeamId = LocalPlayerState->GetTeamId();
+			const bool bBelongsToLocalPlayerTeam = (EntityTeamId == LocalPlayerTeamId);
 			bIsVisibleIntelVolumeOnClient &= bBelongsToLocalPlayerTeam;
 
 			const UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
-			const bool bEntityIsOperational = EnduranceComponent->GetEntityState() == EWpEntityState::Operational;
+			const bool bEntityIsOperational = (EnduranceComponent->GetEntityState() == EWpEntityState::Operational);
 			bIsVisibleIntelVolumeOnClient &= bEntityIsOperational;
 		}
 		else
@@ -242,26 +221,5 @@ void UWpIntelComponent::OnPlayerStateReplicated()
 	if (bIsMeshVisible)
 	{
 		UpdateMeshVisibilityBasedOnTeam();
-	}
-}
-
-void UWpIntelComponent::OnBelligerentTeamsReplicated()
-{
-	if (bIsMeshVisible)
-	{
-		const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-		AWpGamePlayerController* const LocalPlayerController = Cast<AWpGamePlayerController>(LocalPlayer->GetPlayerController(GetWorld()));
-		const AWpGamePlayerState* const LocalPlayerState = LocalPlayerController->GetPlayerState<AWpGamePlayerState>();
-		const uint32 LocalPlayerBelligerentId = LocalPlayerState->GetBelligerentId();
-
-		const uint32 OwnerBelligerentId = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->GetBelligerentId();
-
-		const AWpGameGameState* const GameState = GetWorld()->GetGameState<AWpGameGameState>();
-		const bool bBelongsToLocalPlayerTeam = GameState->BelongToSameTeam(LocalPlayerBelligerentId, OwnerBelligerentId);
-
-		if (bBelongsToLocalPlayerTeam)
-		{
-			UpdateMeshVisibilityBasedOnTeam();
-		}
 	}
 }

@@ -77,6 +77,7 @@ private:
 
 	APlayerController* GetPlayerController() const;
 	uint32 GetBelligerentId() const;
+	uint32 GetTeamId() const;
 
 	EWpOrderSenderState OrderSenderState = EWpOrderSenderState::DefaultOrder;
 

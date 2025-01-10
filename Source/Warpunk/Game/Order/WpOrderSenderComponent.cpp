@@ -516,6 +516,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			PooledEntityData.EntityConfig = &EntityConfig;
 			PooledEntityData.EntityConfigId = BuildingToProduceConfigId;
 			PooledEntityData.BelligerentId = GetBelligerentId();
+			PooledEntityData.TeamId = GetTeamId();
 
 			BuildingToProduce->AcquirePooledObject(PooledEntityData);
 
@@ -555,4 +556,9 @@ APlayerController* UWpOrderSenderComponent::GetPlayerController() const
 uint32 UWpOrderSenderComponent::GetBelligerentId() const
 {
 	return GetPlayerController()->GetPlayerState<AWpGamePlayerState>()->GetBelligerentId();
+}
+
+uint32 UWpOrderSenderComponent::GetTeamId() const
+{
+	return GetPlayerController()->GetPlayerState<AWpGamePlayerState>()->GetTeamId();
 }

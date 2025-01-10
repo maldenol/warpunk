@@ -22,14 +22,15 @@ public:
 
 	bool BelongsToSameBelligerent(const uint32 OtherBelligerentId) const;
 	bool BelongsToSameBelligerent(const UWpBelligerentComponent* const Other) const;
-	bool BelongsToSameTeam(const uint32 OtherBelligerentId) const;
+	bool BelongsToSameTeam(const uint32 OtherTeamId) const;
 	bool BelongsToSameTeam(const UWpBelligerentComponent* const Other) const;
 
-	void SetBelligerentId(const uint32 OtherBelligerentId);
-	void SetBelligerentId(const UWpBelligerentComponent* const Other);
 	uint32 GetBelligerentId() const;
+	uint32 GetTeamId() const;
 
 private:
 	UPROPERTY(VisibleInstanceOnly, Replicated)
 	uint32 BelligerentId = 0;
+	UPROPERTY(VisibleInstanceOnly, Replicated)
+	uint32 TeamId = 0;
 };

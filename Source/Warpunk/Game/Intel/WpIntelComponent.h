@@ -49,7 +49,6 @@ private:
 	void UpdateMeshVisibilityBasedOnTeam();
 
 	void OnPlayerStateReplicated();
-	void OnBelligerentTeamsReplicated();
 
 	TArray<IWpEntityInterface*> Intel = {};
 
@@ -59,7 +58,6 @@ private:
 	FTransform MeshTransform = FTransform::Identity;
 
 	FDelegateHandle OnPlayerStateReplicatedDelegateHandle = {};
-	FDelegateHandle OnBelligerentTeamsReplicatedDelegateHandle = {};
 
 	static const FName MeshCollisionProfileName;
 };

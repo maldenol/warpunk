@@ -11,4 +11,5 @@ struct FWpPooledEntityData final : FWpPooledObjectData
 	const FWpEntityConfig* EntityConfig = nullptr;
 	uint32 EntityConfigId = 0;
 	uint32 BelligerentId = 0;
+	uint32 TeamId = 0;
 };

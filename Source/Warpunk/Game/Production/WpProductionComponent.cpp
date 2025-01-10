@@ -333,10 +333,13 @@ void UWpProductionComponent::Produce()
 	{
 		const TSubclassOf<AActor> ActorClass = (NewProductionState == EWpProductionState::ProducingBuilding) ? AWpBuilding::StaticClass() : AWpUnit::StaticClass();
 
+		const UWpBelligerentComponent* const BelligerentComponent = GetOwner<IWpEntityInterface>()->GetBelligerentComponent();
+
 		FWpPooledEntityData PooledEntityData;
 		PooledEntityData.EntityConfig = &EntityConfig;
 		PooledEntityData.EntityConfigId = EntityToProduceConfigId;
-		PooledEntityData.BelligerentId = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->GetBelligerentId();
+		PooledEntityData.BelligerentId = BelligerentComponent->GetBelligerentId();
+		PooledEntityData.TeamId = BelligerentComponent->GetTeamId();
 
 		AActor* const Actor = AWpActorPool::Acquire(ActorClass, SpawnLocation, FRotator::ZeroRotator, PooledEntityData);
 

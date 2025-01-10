@@ -1,7 +1,6 @@
 #include "WpBelligerentComponent.h"
 
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
 
 #include "Net/UnrealNetwork.h"
 
@@ -17,6 +16,7 @@ void UWpBelligerentComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UWpBelligerentComponent, BelligerentId);
+	DOREPLIFETIME(UWpBelligerentComponent, TeamId);
 }
 
 void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -26,8 +26,10 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
 
 		ensureAlways(PooledEntityData.BelligerentId > 0);
+		ensureAlways(PooledEntityData.TeamId > 0);
 
 		BelligerentId = PooledEntityData.BelligerentId;
+		TeamId = PooledEntityData.TeamId;
 	}
 }
 
@@ -42,30 +44,23 @@ bool UWpBelligerentComponent::BelongsToSameBelligerent(const UWpBelligerentCompo
 	return BelongsToSameBelligerent(OtherBelligerentId);
 }
 
-bool UWpBelligerentComponent::BelongsToSameTeam(const uint32 OtherBelligerentId) const
+bool UWpBelligerentComponent::BelongsToSameTeam(const uint32 OtherTeamId) const
 {
-	const AWpGameGameState* const GameState = GetWorld()->GetGameState<AWpGameGameState>();
-	return GameState->BelongToSameTeam(BelligerentId, OtherBelligerentId);
+	return TeamId == OtherTeamId;
 }
 
 bool UWpBelligerentComponent::BelongsToSameTeam(const UWpBelligerentComponent* const Other) const
 {
-	const uint32 OtherBelligerentId = Other->BelligerentId;
-	return BelongsToSameTeam(OtherBelligerentId);
-}
-
-void UWpBelligerentComponent::SetBelligerentId(const uint32 OtherBelligerentId)
-{
-	BelligerentId = OtherBelligerentId;
-}
-
-void UWpBelligerentComponent::SetBelligerentId(const UWpBelligerentComponent* const Other)
-{
-	const uint32 OtherBelligerentId = Other->BelligerentId;
-	SetBelligerentId(OtherBelligerentId);
+	const uint32 OtherTeamId = Other->TeamId;
+	return BelongsToSameTeam(OtherTeamId);
 }
 
 uint32 UWpBelligerentComponent::GetBelligerentId() const
 {
 	return BelligerentId;
+}
+
+uint32 UWpBelligerentComponent::GetTeamId() const
+{
+	return TeamId;
 }
