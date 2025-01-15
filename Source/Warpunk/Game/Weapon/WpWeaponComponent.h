@@ -22,6 +22,7 @@ class UWpWeaponComponent final : public UActorComponent, public IWpPooledObjectI
 public:
 	UWpWeaponComponent();
 
+	virtual void BeginPlay() override;
 	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction) override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;

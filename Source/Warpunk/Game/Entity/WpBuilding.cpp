@@ -6,10 +6,13 @@
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
+#include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 #include "Components/BoxComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
 const FName AWpBuilding::BoxComponentName = TEXT("BoxCollision");
@@ -30,6 +33,8 @@ AWpBuilding::AWpBuilding()
 
 	bReplicates = true;
 	Super::SetReplicateMovement(true);
+	bAlwaysRelevant = true;
+	SetNetDormancy(DORM_DormantPartial);
 
 	BoxComponent = CreateDefaultSubobject<UBoxComponent>(BoxComponentName);
 	BoxComponent->SetCollisionProfileName(BoxComponentCollisionProfileName);
@@ -61,6 +66,14 @@ void AWpBuilding::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 	DOREPLIFETIME(AWpBuilding, MeshComponentMaterial);
 	DOREPLIFETIME(AWpBuilding, MeshComponentAnimInstanceClass);
 	DOREPLIFETIME(AWpBuilding, BoxComponentExtent);
+}
+
+bool AWpBuilding::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
+{
+	const APlayerController* const ViewerPlayerController = Cast<APlayerController>(Viewer);
+	const AWpGamePlayerState* const ViewerPlayerState = ViewerPlayerController->GetPlayerState<AWpGamePlayerState>();
+	const uint32 ViewerTeamId = ViewerPlayerState->GetTeamId();
+	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
 }
 
 UWpBelligerentComponent* AWpBuilding::GetBelligerentComponent()
@@ -176,6 +189,25 @@ TArray<IWpPooledObjectInterface*> AWpBuilding::GetInnerPooledObjects()
 		Cast<IWpPooledObjectInterface>(ProductionComponent),
 		Cast<IWpPooledObjectInterface>(WeaponComponent),
 	};
+}
+
+void AWpBuilding::OnPooledActorVisibilityChanged(const bool bIsVisible)
+{
+	const bool bIsHidden = !bIsVisible;
+
+	if (MeshComponent->bHiddenInGame != bIsHidden)
+	{
+		MeshComponent->SetHiddenInGame(bIsHidden);
+		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsHidden ? ECR_Ignore : ECR_Block);
+	}
+
+	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
+	{
+		if (WidgetComponent->bHiddenInGame != bIsHidden)
+		{
+			WidgetComponent->SetHiddenInGame(bIsHidden);
+		}
+	}
 }
 
 void AWpBuilding::OnRep_MeshComponentTransform()

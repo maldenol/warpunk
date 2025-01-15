@@ -1,6 +1,7 @@
 #include "WpBelligerentComponent.h"
 
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 
 #include "Net/UnrealNetwork.h"
 
@@ -30,6 +31,11 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 
 		BelligerentId = PooledEntityData.BelligerentId;
 		TeamId = PooledEntityData.TeamId;
+
+		if (GetWorld()->GetNetMode() != NM_Client)
+		{
+			AWpPooledActorVisibilityManager::InitializeActorVisibilityAll(TeamId, GetOwner());
+		}
 	}
 }
 

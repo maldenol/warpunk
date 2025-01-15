@@ -14,6 +14,16 @@ UWpWeaponComponent::UWpWeaponComponent()
 	SetIsReplicatedByDefault(false);
 }
 
+void UWpWeaponComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!GetOwner()->HasAuthority())
+	{
+		SetComponentTickEnabled(false);
+	}
+}
+
 void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -89,6 +99,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 	}
 
 	SetActive(bIsAcquired);
+	SetComponentTickEnabled(bIsAcquired);
 }
 
 FWpWeapon* UWpWeaponComponent::GetWeapon(const uint32 Index)

@@ -1,10 +1,13 @@
 #include "WpActorPool.h"
 
-#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
+#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 
 AWpActorPool::AWpActorPool()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = false;
 }
 
 void AWpActorPool::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -16,6 +19,8 @@ void AWpActorPool::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Number)
 {
+	ensureAlways(HasAuthority());
+
 	ensureAlways(InClass);
 	ensureAlways(Number > 0);
 
@@ -32,8 +37,7 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 	{
 		AActor* const Actor = GetWorld()->SpawnActor(Class, nullptr, nullptr, ActorSpawnParameters);
 
-		IWpPooledObjectInterface* const PooledObject = Cast<IWpPooledObjectInterface>(Actor);
-		PooledObject->ReleasePooledObject();
+		Cast<IWpPooledActorInterface>(Actor)->ReleasePooledObject();
 
 		FreeActors.Add(Actor);
 	}
@@ -41,6 +45,8 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 
 AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(HasAuthority());
+
 	if (FreeActors.IsEmpty())
 	{
 		return nullptr;
@@ -50,7 +56,8 @@ AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation,
 	FreeActors.Remove(Actor);
 
 	Actor->SetActorLocationAndRotation(Location, Rotation);
-	Cast<IWpPooledObjectInterface>(Actor)->AcquirePooledObject(PooledObjectData);
+
+	Cast<IWpPooledActorInterface>(Actor)->AcquirePooledObject(PooledObjectData);
 
 	GEngine->AddOnScreenDebugMessage(0, 5.0f, FColor::Green, Actor->GetActorNameOrLabel());
 
@@ -59,9 +66,13 @@ AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation,
 
 void AWpActorPool::Release(AActor* const Actor)
 {
+	ensureAlways(HasAuthority());
+
 	ensureAlways(Actor);
 
-	Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
+	Cast<IWpPooledActorInterface>(Actor)->ReleasePooledObject();
+
+	AWpPooledActorVisibilityManager::ClearActorVisibilityAll(Actor);
 
 	Actor->SetActorLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
 

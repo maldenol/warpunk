@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
+#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
 
 #include "GameFramework/Actor.h"
 
@@ -19,7 +19,7 @@ class UWpWeaponComponent;
 class UBoxComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
-class AWpBuilding final : public AActor, public IWpEntityInterface, public IWpPooledObjectInterface
+class AWpBuilding final : public AActor, public IWpEntityInterface, public IWpPooledActorInterface
 {
 	GENERATED_BODY()
 
@@ -27,6 +27,7 @@ public:
 	AWpBuilding();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth) override;
 
 	virtual UWpBelligerentComponent* GetBelligerentComponent() override;
 	virtual const UWpBelligerentComponent* GetBelligerentComponent() const override;
@@ -50,6 +51,8 @@ public:
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
+
+	virtual void OnPooledActorVisibilityChanged(const bool bIsVisible) override;
 
 private:
 	UFUNCTION()

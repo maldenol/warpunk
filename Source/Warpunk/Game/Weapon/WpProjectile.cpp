@@ -1,7 +1,9 @@
 #include "WpProjectile.h"
 
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
 #include "Warpunk/Game/Weapon/WpProjectileWeapon.h"
 
@@ -22,11 +24,13 @@ AWpProjectile::AWpProjectile()
 
 	bReplicates = true;
 	Super::SetReplicateMovement(true);
+	bAlwaysRelevant = true;
+	SetNetDormancy(DORM_DormantPartial);
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(SphereComponentName);
 	SphereComponent->SetCollisionProfileName(SphereComponentCollisionProfileName);
 	SphereComponent->SetNotifyRigidBodyCollision(true);
-	SphereComponent->SetGenerateOverlapEvents(false);
+	SphereComponent->SetGenerateOverlapEvents(true);
 	RootComponent = SphereComponent;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
@@ -55,6 +59,14 @@ void AWpProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME(AWpProjectile, SphereComponentRadius);
 	DOREPLIFETIME(AWpProjectile, MeshComponentStaticMesh);
 	DOREPLIFETIME(AWpProjectile, MeshComponentScale);
+}
+
+bool AWpProjectile::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
+{
+	const APlayerController* const ViewerPlayerController = Cast<APlayerController>(Viewer);
+	const AWpGamePlayerState* const ViewerPlayerState = ViewerPlayerController->GetPlayerState<AWpGamePlayerState>();
+	const uint32 ViewerTeamId = ViewerPlayerState->GetTeamId();
+	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
 }
 
 void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -90,6 +102,17 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 	SetActorHiddenInGame(!bIsAcquired);
 
 	MovementComponent->SetActive(bIsAcquired);
+	MovementComponent->SetComponentTickEnabled(bIsAcquired);
+}
+
+void AWpProjectile::OnPooledActorVisibilityChanged(const bool bIsVisible)
+{
+	const bool bIsHidden = !bIsVisible;
+
+	if (MeshComponent->bHiddenInGame != bIsHidden)
+	{
+		MeshComponent->SetHiddenInGame(bIsHidden);
+	}
 }
 
 void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const FVector NormalImpulse, const FHitResult& Hit)

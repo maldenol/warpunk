@@ -48,6 +48,8 @@ public:
 	void SetCurrentEndurance(const float InCurrentEndurance);
 	float GetCurrentEndurance() const;
 
+	UWidgetComponent* GetEnduranceWidgetComponent();
+
 	FEntityStateChangedEvent& OnEntityStateChanged();
 	FCurrentEnduranceChangedEvent& OnCurrentEnduranceChanged();
 

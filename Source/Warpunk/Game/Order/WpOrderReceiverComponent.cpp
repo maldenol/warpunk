@@ -39,6 +39,11 @@ void UWpOrderReceiverComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!GetOwner()->HasAuthority())
+	{
+		SetComponentTickEnabled(false);
+	}
+
 	CreateSelectionWidgetComponentIfNull();
 }
 
@@ -121,6 +126,7 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 	SelectionWidgetComponent->SetVisibility(false);
 
 	SetActive(bIsAcquired);
+	SetComponentTickEnabled(bIsAcquired);
 }
 
 bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool bOverride)

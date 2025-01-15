@@ -16,5 +16,6 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* const NewPlayer) override;
+	virtual AActor* ChoosePlayerStart_Implementation(AController* const Player) override;
 };

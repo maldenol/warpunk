@@ -11,8 +11,12 @@
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/UI/WpGameHUD.h"
 #include "Warpunk/Game/Weapon/WpProjectile.h"
+
+#include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
 
 AWpGameGameMode::AWpGameGameMode()
 {
@@ -39,7 +43,7 @@ void AWpGameGameMode::BeginPlay()
 	ProjectilePool->Reserve(AWpProjectile::StaticClass(), 10);
 }
 
-void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* const NewPlayer)
 {
 	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
 
@@ -65,6 +69,18 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 
 	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
 
+	const uint32 TeamId = PlayerState->GetTeamId();
+	if (!AWpPooledActorVisibilityManager::Instance(TeamId))
+	{
+		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = GetWorld()->SpawnActor<AWpPooledActorVisibilityManager>();
+		PooledActorVisibilityManager->SetTeamId(TeamId);
+
+		if (AWpPooledActorVisibilityManager::GetAuthorityTeamId() == 0)
+		{
+			AWpPooledActorVisibilityManager::SetAuthorityTeamId(TeamId);
+		}
+	}
+
 	FWpPooledEntityData PooledEntityData;
 	PooledEntityData.EntityConfig = &EntityConfig;
 	PooledEntityData.EntityConfigId = ConfigId;
@@ -77,4 +93,22 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 	CommanderEnduranceComponent->ReceiveRepair(CommanderEnduranceComponent->GetMatterCost());
 
 	PlayerController->SetCommander(Commander);
+}
+
+AActor* AWpGameGameMode::ChoosePlayerStart_Implementation(AController* const Player)
+{
+	for (TActorIterator<APlayerStart> Iter{GetWorld()}; Iter; ++Iter)
+	{
+		APlayerStart* const PlayerStart = *Iter;
+
+		const AWpGamePlayerState* const PlayerState = Player->GetPlayerState<AWpGamePlayerState>();
+		const uint32 BelligerentId = PlayerState->GetBelligerentId();
+
+		if (PlayerStart->PlayerStartTag == FString::FromInt(BelligerentId))
+		{
+			return PlayerStart;
+		}
+	}
+
+	return nullptr;
 }

@@ -10,6 +10,7 @@
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -267,6 +268,21 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 
 		const FWpOrder& Order = NetOrder.Order;
 
+		if (Order.TargetEntityActor)
+		{
+			const bool bTargetEntityIsPooledActor = Order.TargetEntityActor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass());
+			if (!bTargetEntityIsPooledActor)
+			{
+				continue;
+			}
+
+			const bool bTargetEntityIsVisibleToPlayer = AWpPooledActorVisibilityManager::IsVisibleForTeam(GetTeamId(), Order.TargetEntityActor);
+			if (!bTargetEntityIsVisibleToPlayer)
+			{
+				continue;
+			}
+		}
+
 		if (Order.Type == EWpOrderType::Undefined)
 		{
 			continue;
@@ -519,7 +535,6 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			PooledEntityData.TeamId = GetTeamId();
 
 			BuildingToProduce->AcquirePooledObject(PooledEntityData);
-
 			BuildingToProduce->ReleasePooledObject();
 			BuildingToProduce->SetActorHiddenInGame(false);
 		}

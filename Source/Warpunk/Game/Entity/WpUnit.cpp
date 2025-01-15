@@ -8,10 +8,13 @@
 #include "Warpunk/Game/Movement/WpUnitMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
+#include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
 const FName AWpUnit::BelligerentComponentName = TEXT("BelligerentComponent");
@@ -31,6 +34,8 @@ AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
 
 	bReplicates = true;
 	Super::SetReplicateMovement(true);
+	bAlwaysRelevant = true;
+	SetNetDormancy(DORM_DormantPartial);
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AWpUnitAIController::StaticClass();
@@ -63,6 +68,14 @@ void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	DOREPLIFETIME(AWpUnit, MeshComponentMaterial);
 	DOREPLIFETIME(AWpUnit, MeshComponentAnimInstanceClass);
 	DOREPLIFETIME(AWpUnit, CapsuleComponentSize);
+}
+
+bool AWpUnit::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
+{
+	const APlayerController* const ViewerPlayerController = Cast<APlayerController>(Viewer);
+	const AWpGamePlayerState* const ViewerPlayerState = ViewerPlayerController->GetPlayerState<AWpGamePlayerState>();
+	const uint32 ViewerTeamId = ViewerPlayerState->GetTeamId();
+	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
 }
 
 UWpBelligerentComponent* AWpUnit::GetBelligerentComponent()
@@ -192,6 +205,26 @@ TArray<IWpPooledObjectInterface*> AWpUnit::GetInnerPooledObjects()
 		Cast<IWpPooledObjectInterface>(WeaponComponent),
 		Cast<IWpPooledObjectInterface>(GetMovementComponent()),
 	};
+}
+
+void AWpUnit::OnPooledActorVisibilityChanged(const bool bIsVisible)
+{
+	const bool bIsHidden = !bIsVisible;
+
+	UMeshComponent* const MeshComponent = GetMesh();
+	if (MeshComponent->bHiddenInGame != bIsHidden)
+	{
+		MeshComponent->SetHiddenInGame(bIsHidden);
+		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsHidden ? ECR_Ignore : ECR_Block);
+	}
+
+	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
+	{
+		if (WidgetComponent->bHiddenInGame != bIsHidden)
+		{
+			WidgetComponent->SetHiddenInGame(bIsHidden);
+		}
+	}
 }
 
 void AWpUnit::OnRep_MeshComponentTransform()

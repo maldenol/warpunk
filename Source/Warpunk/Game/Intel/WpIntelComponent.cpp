@@ -8,6 +8,8 @@
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -116,9 +118,15 @@ void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComp
 		return;
 	}
 
-	if (IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(OtherActor))
+	if (OtherActor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
 	{
-		AddIntel(Entity);
+		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
+		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, true);
+	}
+
+	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
+	{
+		AddIntel(OtherEntity);
 	}
 }
 
@@ -129,9 +137,15 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 		return;
 	}
 
-	if (IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(OtherActor))
+	if (OtherActor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
 	{
-		RemoveIntel(Entity);
+		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
+		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, false);
+	}
+
+	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
+	{
+		RemoveIntel(OtherEntity);
 	}
 }
 

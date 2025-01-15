@@ -41,6 +41,7 @@ void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAc
 	}
 
 	SetActive(bIsAcquired);
+	SetComponentTickEnabled(bIsAcquired);
 }
 
 void UWpUnitMovementComponent::SetIsFirstPersonControlled(const bool bIsFirstPersonControlled)

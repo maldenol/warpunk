@@ -154,6 +154,11 @@ float UWpEnduranceComponent::GetCurrentEndurance() const
 	return CurrentEndurance;
 }
 
+UWidgetComponent* UWpEnduranceComponent::GetEnduranceWidgetComponent()
+{
+	return EnduranceWidgetComponent;
+}
+
 UWpEnduranceComponent::FEntityStateChangedEvent& UWpEnduranceComponent::OnEntityStateChanged()
 {
 	return EntityStateChangedEvent;

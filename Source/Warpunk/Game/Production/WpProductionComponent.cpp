@@ -29,6 +29,11 @@ void UWpProductionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!GetOwner()->HasAuthority())
+	{
+		SetComponentTickEnabled(false);
+	}
+
 	if (const APawn* const Pawn = GetOwner<APawn>())
 	{
 		AIController = Pawn->GetController<AAIController>();
@@ -131,6 +136,7 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 	}
 
 	SetActive(bIsAcquired);
+	SetComponentTickEnabled(bIsAcquired);
 }
 
 void UWpProductionComponent::StartProduce(const uint32 EntityConfigId, const FVector& Location)
