@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityInfo.h"
+
 #include "GameFramework/Info.h"
 
 #include "WpPooledActorVisibilityManager.generated.h"
@@ -29,25 +31,20 @@ public:
 	void ClearActorVisibility(AActor* const Actor);
 	bool IsVisibleForTeam(const AActor* const Actor) const;
 
+	void OnPooledActorVisibilityChanged(const uint64 Guid, const bool bIsVisible);
+
 private:
 	void NetUpdateActorVisibility(AActor* const Actor, const bool bIsVisible);
 
 	uint64 GetActorGuid(AActor* const Actor) const;
 	AActor* GetActorByGuid(const uint64 Guid) const;
 
-	UFUNCTION()
-	void OnRep_HiddenActorGuids();
-	UFUNCTION()
-	void OnRep_VisibleActorGuids();
-
 	uint32 TeamId = 0;
 
 	TMap<AActor*, uint32> ObserverNumberPerActor = {};
 
-	UPROPERTY(ReplicatedUsing=OnRep_HiddenActorGuids)
-	TArray<uint64> HiddenActorGuids = {};
-	UPROPERTY(ReplicatedUsing=OnRep_VisibleActorGuids)
-	TArray<uint64> VisibleActorGuids = {};
+	UPROPERTY(Replicated)
+	FWpPooledActorVisibilityInfoArray PooledActorVisibilityInfos = {};
 
 	TSet<uint64> ShouldBeHiddenActorGuids = {};
 	TSet<uint64> AlreadyHiddenActorGuids = {};

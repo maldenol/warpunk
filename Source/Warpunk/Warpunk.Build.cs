@@ -6,7 +6,7 @@ public class Warpunk : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "EnhancedInput", "InputCore", "NavigationSystem", "OnlineSubsystemUtils", "SlateCore", "UMG" });
+		PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "EnhancedInput", "InputCore", "NavigationSystem", "NetCore", "OnlineSubsystemUtils", "SlateCore", "UMG" });
 
 		if (Target.bBuildEditor)
 		{

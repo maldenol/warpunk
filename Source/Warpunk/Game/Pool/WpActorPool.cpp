@@ -72,9 +72,9 @@ void AWpActorPool::Release(AActor* const Actor)
 
 	Cast<IWpPooledActorInterface>(Actor)->ReleasePooledObject();
 
-	AWpPooledActorVisibilityManager::ClearActorVisibilityAll(Actor);
-
 	Actor->SetActorLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
+
+	AWpPooledActorVisibilityManager::ClearActorVisibilityAll(Actor);
 
 	FreeActors.Add(Actor);
 

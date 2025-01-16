@@ -14,6 +14,8 @@ AWpPooledActorVisibilityManager::AWpPooledActorVisibilityManager()
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+
+	PooledActorVisibilityInfos.PooledActorVisibilityManager = this;
 }
 
 void AWpPooledActorVisibilityManager::BeginPlay()
@@ -99,8 +101,7 @@ void AWpPooledActorVisibilityManager::GetLifetimeReplicatedProps(TArray<FLifetim
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AWpPooledActorVisibilityManager, HiddenActorGuids);
-	DOREPLIFETIME(AWpPooledActorVisibilityManager, VisibleActorGuids);
+	DOREPLIFETIME(AWpPooledActorVisibilityManager, PooledActorVisibilityInfos);
 }
 
 bool AWpPooledActorVisibilityManager::IsNetRelevantFor(const AActor* const RealViewer, const AActor* const ViewTarget, const FVector& SrcLocation) const
@@ -138,8 +139,13 @@ void AWpPooledActorVisibilityManager::InitializeActorVisibility(AActor* const Ac
 {
 	ensureAlways(HasAuthority());
 
-	if (!bIsVisible && !ObserverNumberPerActor.Contains(Actor))
+	if (!bIsVisible)
 	{
+		if (ObserverNumberPerActor.Contains(Actor))
+		{
+			return;
+		}
+
 		ObserverNumberPerActor.Emplace(Actor, 1);
 	}
 
@@ -202,27 +208,43 @@ bool AWpPooledActorVisibilityManager::IsVisibleForTeam(const AActor* const Actor
 	return false;
 }
 
+void AWpPooledActorVisibilityManager::OnPooledActorVisibilityChanged(const uint64 Guid, const bool bIsVisible)
+{
+	if (HasAuthority() && TeamId != AuthorityTeamId)
+	{
+		return;
+	}
+
+	if (bIsVisible)
+	{
+		if (!AlreadyVisibleActorGuids.Contains(Guid))
+		{
+			ShouldBeVisibleActorGuids.Add(Guid);
+
+			ShouldBeHiddenActorGuids.Remove(Guid);
+			AlreadyHiddenActorGuids.Remove(Guid);
+		}
+	}
+	else
+	{
+		if (!AlreadyHiddenActorGuids.Contains(Guid))
+		{
+			ShouldBeHiddenActorGuids.Add(Guid);
+
+			ShouldBeVisibleActorGuids.Remove(Guid);
+			AlreadyVisibleActorGuids.Remove(Guid);
+		}
+	}
+}
+
 void AWpPooledActorVisibilityManager::NetUpdateActorVisibility(AActor* const Actor, const bool bIsVisible)
 {
 	const uint64 Guid = GetActorGuid(Actor);
+	PooledActorVisibilityInfos.SetVisibilityInfo(Guid, bIsVisible);
 
 	if (bIsVisible)
 	{
 		Actor->FlushNetDormancy();
-
-		VisibleActorGuids.AddUnique(Guid);
-		OnRep_VisibleActorGuids();
-
-		HiddenActorGuids.RemoveSingle(Guid);
-		OnRep_HiddenActorGuids();
-	}
-	else
-	{
-		HiddenActorGuids.AddUnique(Guid);
-		OnRep_HiddenActorGuids();
-
-		VisibleActorGuids.RemoveSingle(Guid);
-		OnRep_VisibleActorGuids();
 	}
 }
 
@@ -238,38 +260,6 @@ AActor* AWpPooledActorVisibilityManager::GetActorByGuid(const uint64 Guid) const
 	NetworkGUID.ObjectId = Guid;
 	UObject* const Object = GetWorld()->GetNetDriver()->GuidCache->GetObjectFromNetGUID(NetworkGUID, true);
 	return Cast<AActor>(Object);
-}
-
-void AWpPooledActorVisibilityManager::OnRep_HiddenActorGuids()
-{
-	for (const uint64 Guid : HiddenActorGuids)
-	{
-		if (AlreadyHiddenActorGuids.Contains(Guid))
-		{
-			continue;
-		}
-
-		ShouldBeHiddenActorGuids.Add(Guid);
-
-		ShouldBeVisibleActorGuids.Remove(Guid);
-		AlreadyVisibleActorGuids.Remove(Guid);
-	}
-}
-
-void AWpPooledActorVisibilityManager::OnRep_VisibleActorGuids()
-{
-	for (const uint64 Guid : VisibleActorGuids)
-	{
-		if (AlreadyVisibleActorGuids.Contains(Guid))
-		{
-			continue;
-		}
-
-		ShouldBeVisibleActorGuids.Add(Guid);
-
-		ShouldBeHiddenActorGuids.Remove(Guid);
-		AlreadyHiddenActorGuids.Remove(Guid);
-	}
 }
 
 AWpPooledActorVisibilityManager* AWpPooledActorVisibilityManager::Instance(const uint32 TeamId)
