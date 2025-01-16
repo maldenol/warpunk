@@ -41,12 +41,14 @@ void UWpIntelComponent::BeginPlay()
 		OnComponentBeginOverlap.AddDynamic(this, &UWpIntelComponent::OnBeginOverlap);
 		OnComponentEndOverlap.AddDynamic(this, &UWpIntelComponent::OnEndOverlap);
 	}
+	else
+	{
+		InitializeMesh();
+	}
 
 	UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
 	EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpIntelComponent::OnEntityStateChanged);
 	OnEntityStateChanged(EnduranceComponent->GetEntityState());
-
-	InitializeMesh();
 }
 
 void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -90,25 +92,9 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 	SetActive(bIsAcquired);
 }
 
-void UWpIntelComponent::AddIntel(IWpEntityInterface* const Entity)
+const TArray<IWpEntityInterface*>& UWpIntelComponent::GetVisibleEntities() const
 {
-	Intel.Add(Entity);
-}
-
-void UWpIntelComponent::RemoveIntel(IWpEntityInterface* const Entity)
-{
-	Intel.RemoveSingle(Entity);
-}
-
-const TArray<IWpEntityInterface*>& UWpIntelComponent::GetIntel() const
-{
-	if (!IsActive())
-	{
-		const bool bNoIntel = Intel.IsEmpty();
-		ensureAlways(bNoIntel);
-	}
-
-	return Intel;
+	return VisibleEntities;
 }
 
 void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex, const bool bFromSweep, const FHitResult& SweepResult)
@@ -126,7 +112,7 @@ void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComp
 
 	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
 	{
-		AddIntel(OtherEntity);
+		VisibleEntities.Add(OtherEntity);
 	}
 }
 
@@ -145,7 +131,7 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 
 	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
 	{
-		RemoveIntel(OtherEntity);
+		VisibleEntities.RemoveSingle(OtherEntity);
 	}
 }
 
@@ -174,7 +160,7 @@ void UWpIntelComponent::InitializeMesh()
 
 void UWpIntelComponent::OnEntityStateChanged(const EWpEntityState EntityState)
 {
-	const bool bHasAuthorityAndIsOperational = GetOwner()->HasAuthority() && EntityState == EWpEntityState::Operational;
+	const bool bHasAuthorityAndIsOperational = GetOwner()->HasAuthority() && (EntityState == EWpEntityState::Operational);
 	SetGenerateOverlapEvents(bHasAuthorityAndIsOperational);
 	if (bHasAuthorityAndIsOperational)
 	{

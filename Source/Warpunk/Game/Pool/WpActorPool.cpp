@@ -85,7 +85,12 @@ AWpActorPool* AWpActorPool::Instance(const TSubclassOf<AActor>& Class)
 {
 	ensureAlways(Class);
 
-	return *Instances.Find(Class);
+	if (AWpActorPool** const Ptr = Instances.Find(Class))
+	{
+		return *Ptr;
+	}
+
+	return nullptr;
 }
 
 AActor* AWpActorPool::Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)

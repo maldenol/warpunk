@@ -6,16 +6,18 @@
 #include "Warpunk/Game/Weapon/WpWeapon.h"
 #include "Warpunk/Game/Weapon/WpWeaponWrapper.h"
 
-#include "Components/ActorComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "WpWeaponComponent.generated.h"
 
 #define WP_ENTITY_MAX_WEAPON 4
 
+enum class EWpEntityState : uint8;
 struct FWpWeaponConfig;
+class IWpEntityInterface;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
-class UWpWeaponComponent final : public UActorComponent, public IWpPooledObjectInterface
+class UWpWeaponComponent final : public UStaticMeshComponent, public IWpPooledObjectInterface
 {
 	GENERATED_BODY()
 
@@ -30,8 +32,23 @@ public:
 	FWpWeapon* GetWeapon(const uint32 Index);
 	const FWpWeapon* GetWeapon(const uint32 Index) const;
 
+	const TArray<IWpEntityInterface*>& GetEntitiesInReach() const;
+
 private:
+	UFUNCTION()
+	void OnBeginOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex, const bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnEndOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex);
+
+	void InitializeMesh();
+
+	void OnEntityStateChanged(const EWpEntityState EntityState);
+
 	TStaticArray<FWpWeaponWrapper, WP_ENTITY_MAX_WEAPON> Weapons = {};
 
 	bool bManualControlOnly = false;
+
+	TArray<IWpEntityInterface*> EntitiesInReach = {};
+
+	static const FName MeshCollisionProfileName;
 };

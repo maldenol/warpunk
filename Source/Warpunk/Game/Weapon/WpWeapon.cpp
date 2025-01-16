@@ -3,8 +3,9 @@
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/Intel/WpIntelComponent.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
+#include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
@@ -31,7 +32,12 @@ void FWpWeapon::Initialize(IWpEntityInterface* const InOwnerEntity)
 
 void FWpWeapon::Tick(const float DeltaTime)
 {
-	FindNewTarget();
+	UpdateCurrentTargetEntity();
+
+	if (CurrentTargetEntity)
+	{
+		TryFire(CurrentTargetEntity);
+	}
 }
 
 bool FWpWeapon::TryFire(const IWpEntityInterface* const Entity)
@@ -119,12 +125,49 @@ const IWpEntityInterface* FWpWeapon::GetOwnerEntity() const
 	return OwnerEntity;
 }
 
-void FWpWeapon::FindNewTarget()
+void FWpWeapon::UpdateCurrentTargetEntity()
 {
-	const UWpIntelComponent* const IntelComponent = OwnerEntity->GetIntelComponent();
-	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetIntel())
+	const uint32 EntityTeamId = OwnerEntity->GetBelligerentComponent()->GetTeamId();
+
+	const UWpWeaponComponent* const WeaponComponent = OwnerEntity->GetWeaponComponent();
+	const TArray<IWpEntityInterface*>& EntitiesInReach = WeaponComponent->GetEntitiesInReach();
+
+	if (CurrentTargetEntity)
 	{
-		const FVector CandidateLocation = Cast<AActor>(CandidateEntity)->GetActorLocation();
+		const AActor* const CurrentTargetActor = Cast<AActor>(CurrentTargetEntity);
+
+		const bool bIsCurrentTargetVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CurrentTargetActor);
+		if (!bIsCurrentTargetVisible)
+		{
+			CurrentTargetEntity = nullptr;
+		}
+		else
+		{
+			const bool bCanReachCurrentTarget = EntitiesInReach.Contains(CurrentTargetEntity);
+			if (!bCanReachCurrentTarget)
+			{
+				CurrentTargetEntity = nullptr;
+			}
+		}
+	}
+
+	const bool bCurrentTargetIsPriorityTarget = CurrentTargetEntity && (CurrentTargetEntity == PriorityTargetEntity);
+	if (bCurrentTargetIsPriorityTarget)
+	{
+		return;
+	}
+
+	for (IWpEntityInterface* const CandidateEntity : EntitiesInReach)
+	{
+		const AActor* const CandidateActor = Cast<AActor>(CandidateEntity);
+
+		const bool bIsCandidateVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CandidateActor);
+		if (!bIsCandidateVisible)
+		{
+			continue;
+		}
+
+		const FVector CandidateLocation = CandidateActor->GetActorLocation();
 
 		const bool bCanReachCandidate = CanReach(CandidateLocation);
 		if (!bCanReachCandidate)
@@ -138,13 +181,7 @@ void FWpWeapon::FindNewTarget()
 		if (bCandidateIsPriorityTarget || (!bCanReachCurrentTarget && !bCandidateBelongsToSameTeam))
 		{
 			CurrentTargetEntity = CandidateEntity;
-			TryFire(CurrentTargetEntity);
-			return;
+			break;
 		}
-	}
-
-	if (CurrentTargetEntity)
-	{
-		TryFire(CurrentTargetEntity);
 	}
 }

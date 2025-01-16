@@ -453,7 +453,7 @@ void UWpProductionComponent::FindNewTarget()
 	ensureAlways(IsActive());
 
 	const UWpIntelComponent* const IntelComponent = GetOwner<IWpEntityInterface>()->GetIntelComponent();
-	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetIntel())
+	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetVisibleEntities())
 	{
 		const bool bCanReachAndRepairCandidate = CanReachAndRepair(CandidateEntity);
 		const bool bCandidateIsCurrentTarget = CurrentTargetEntity == CandidateEntity;

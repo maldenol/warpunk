@@ -40,7 +40,7 @@ protected:
 	const IWpEntityInterface* GetOwnerEntity() const;
 
 private:
-	void FindNewTarget();
+	void UpdateCurrentTargetEntity();
 
 	IWpEntityInterface* OwnerEntity = nullptr;
 

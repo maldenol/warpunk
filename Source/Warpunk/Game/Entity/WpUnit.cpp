@@ -53,10 +53,12 @@ AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
 	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
 	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
 	IntelComponent = CreateDefaultSubobject<UWpIntelComponent>(IntelComponentName);
-	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 	OrderReceiverComponent = CreateDefaultSubobject<UWpOrderReceiverComponent>(OrderReceiverComponentName);
 	ProductionComponent = CreateDefaultSubobject<UWpProductionComponent>(ProductionComponentName);
 	WeaponComponent = CreateDefaultSubobject<UWpWeaponComponent>(WeaponComponentName);
+
+	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 }
 
 void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
