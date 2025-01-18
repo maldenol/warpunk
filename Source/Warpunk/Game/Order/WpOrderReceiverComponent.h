@@ -42,8 +42,8 @@ public:
 
 	void NotifyOrderReceived(const FWpOrder& Order);
 
-	const TArray<FWpConfigIdNumber>& GetUnitToProduceConfigIdNumbers() const;
 	void SetUnitToProduceConfigIdNumbers(const TArray<FWpConfigIdNumber>& InUnitToProduceConfigIdNumbers);
+	const TArray<FWpConfigIdNumber>& GetUnitToProduceConfigIdNumbers() const;
 
 	FOrderReceivedEvent& OnOrderReceived();
 

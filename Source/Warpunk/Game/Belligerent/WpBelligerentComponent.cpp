@@ -22,6 +22,8 @@ void UWpBelligerentComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
@@ -34,7 +36,17 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 
 		if (GetWorld()->GetNetMode() != NM_Client)
 		{
-			AWpPooledActorVisibilityManager::InitializeActorVisibilityAll(TeamId, GetOwner());
+			AWpPooledActorVisibilityManager::InitializeActorVisibility(TeamId, GetOwner());
+		}
+	}
+	else
+	{
+		if (GetWorld()->GetNetMode() != NM_Client)
+		{
+			if (AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = AWpPooledActorVisibilityManager::Instance(TeamId))
+			{
+				PooledActorVisibilityManager->UpdateActorVisibility(GetOwner(), false);
+			}
 		}
 	}
 }

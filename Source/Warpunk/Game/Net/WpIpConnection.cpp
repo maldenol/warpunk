@@ -7,7 +7,7 @@
 
 void UWpIpConnection::FlushDormancy(AActor* const Actor)
 {
-	if (PlayerController->GetClass()->IsChildOf(AWpGamePlayerController::StaticClass()))
+	if (PlayerController->GetClass()->IsChildOf<AWpGamePlayerController>())
 	{
 		if (Actor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
 		{

@@ -32,6 +32,7 @@ void UWpProductionComponent::BeginPlay()
 	if (!GetOwner()->HasAuthority())
 	{
 		SetComponentTickEnabled(false);
+		PrimaryComponentTick.bCanEverTick = false;
 	}
 
 	if (const APawn* const Pawn = GetOwner<APawn>())
@@ -43,6 +44,9 @@ void UWpProductionComponent::BeginPlay()
 void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
 	{
@@ -97,6 +101,8 @@ void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTi
 
 void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
@@ -142,6 +148,7 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 void UWpProductionComponent::StartProduce(const uint32 EntityConfigId, const FVector& Location)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	Stop();
 
@@ -153,6 +160,7 @@ void UWpProductionComponent::StartProduce(const uint32 EntityConfigId, const FVe
 void UWpProductionComponent::StartRepair(IWpEntityInterface* const Entity)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	Stop();
 
@@ -163,6 +171,7 @@ void UWpProductionComponent::StartRepair(IWpEntityInterface* const Entity)
 void UWpProductionComponent::StartReclaim(IWpEntityInterface* const Entity)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	Stop();
 
@@ -173,6 +182,7 @@ void UWpProductionComponent::StartReclaim(IWpEntityInterface* const Entity)
 void UWpProductionComponent::Stop()
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	ProductionState = EWpProductionState::Idle;
 	if (CurrentTargetEntity == PriorityTargetEntity)
@@ -185,6 +195,7 @@ void UWpProductionComponent::Stop()
 bool UWpProductionComponent::CanReach(const FVector& Location) const
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	const FVector OwnerLocation = GetOwner()->GetActorLocation();
 	const float Distance2 = FVector::DistSquared2D(OwnerLocation, Location);
@@ -194,8 +205,6 @@ bool UWpProductionComponent::CanReach(const FVector& Location) const
 
 bool UWpProductionComponent::CanReach(const IWpEntityInterface* const Entity) const
 {
-	ensureAlways(IsActive());
-
 	if (!Entity)
 	{
 		return false;
@@ -214,14 +223,13 @@ bool UWpProductionComponent::CanRepair(const IWpEntityInterface* const Entity) c
 
 bool UWpProductionComponent::CanReachAndRepair(const IWpEntityInterface* const Entity) const
 {
-	ensureAlways(IsActive());
-
 	return CanReach(Entity) && CanRepair(Entity);
 }
 
 void UWpProductionComponent::ReceiveProxyOrder(const FWpOrder& Order, const bool bOverride)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (bOverride)
 	{
@@ -234,6 +242,7 @@ void UWpProductionComponent::ReceiveProxyOrder(const FWpOrder& Order, const bool
 float UWpProductionComponent::GetRange() const
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	return Range;
 }
@@ -241,6 +250,7 @@ float UWpProductionComponent::GetRange() const
 void UWpProductionComponent::SetShouldSupport(const bool bInShouldSupport)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	bShouldSupport = bInShouldSupport;
 }
@@ -248,6 +258,7 @@ void UWpProductionComponent::SetShouldSupport(const bool bInShouldSupport)
 bool UWpProductionComponent::ShouldSupport() const
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	return bShouldSupport;
 }
@@ -255,6 +266,7 @@ bool UWpProductionComponent::ShouldSupport() const
 IWpEntityInterface* UWpProductionComponent::GetCurrentTargetEntity() const
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	return CurrentTargetEntity;
 }
@@ -262,6 +274,7 @@ IWpEntityInterface* UWpProductionComponent::GetCurrentTargetEntity() const
 void UWpProductionComponent::SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	PriorityTargetEntity = InPriorityTargetEntity;
 
@@ -274,6 +287,7 @@ void UWpProductionComponent::SetPriorityTargetEntity(IWpEntityInterface* const I
 void UWpProductionComponent::EnableInfiniteProduction(const bool bInInfiniteProductionEnabled)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	bInfiniteProductionEnabled = bInInfiniteProductionEnabled;
 }
@@ -281,23 +295,31 @@ void UWpProductionComponent::EnableInfiniteProduction(const bool bInInfiniteProd
 bool UWpProductionComponent::IsInfiniteProductionEnabled() const
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	return bInfiniteProductionEnabled;
 }
 
 UWpProductionComponent::FRepairFinishedEvent& UWpProductionComponent::OnRepairFinished()
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return RepairFinishedEvent;
 }
 
 UWpProductionComponent::FReclaimFinishedEvent& UWpProductionComponent::OnReclaimFinished()
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return ReclaimFinishedEvent;
 }
 
 void UWpProductionComponent::Produce()
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
 	const FName RowName = FName{FString::FromInt(EntityToProduceConfigId)};
@@ -389,6 +411,7 @@ void UWpProductionComponent::Produce()
 void UWpProductionComponent::Repair(const float DeltaTime)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (!CurrentTargetEntity)
 	{
@@ -429,6 +452,7 @@ void UWpProductionComponent::Repair(const float DeltaTime)
 void UWpProductionComponent::Reclaim(const float DeltaTime)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (!CurrentTargetEntity)
 	{
@@ -451,6 +475,7 @@ void UWpProductionComponent::Reclaim(const float DeltaTime)
 void UWpProductionComponent::FindNewTarget()
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	const UWpIntelComponent* const IntelComponent = GetOwner<IWpEntityInterface>()->GetIntelComponent();
 	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetVisibleEntities())

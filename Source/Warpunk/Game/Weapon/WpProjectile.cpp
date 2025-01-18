@@ -71,6 +71,8 @@ bool AWpProjectile::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDi
 
 void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(HasAuthority());
+
 	if (bIsAcquired)
 	{
 		const FWpPooledProjectileData& PooledProjectileData = static_cast<const FWpPooledProjectileData&>(PooledObjectData);
@@ -117,6 +119,8 @@ void AWpProjectile::OnPooledActorVisibilityChanged(const bool bIsVisible)
 
 void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const FVector NormalImpulse, const FHitResult& Hit)
 {
+	ensureAlways(HasAuthority());
+
 	if (IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(OtherActor))
 	{
 		Weapon->OnProjectileHit(Entity);

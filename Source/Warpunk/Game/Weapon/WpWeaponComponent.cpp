@@ -29,6 +29,12 @@ void UWpWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!GetOwner()->HasAuthority())
+	{
+		SetComponentTickEnabled(false);
+		PrimaryComponentTick.bCanEverTick = false;
+	}
+
 	if (GetOwner()->HasAuthority())
 	{
 		OnComponentBeginOverlap.AddDynamic(this, &UWpWeaponComponent::OnBeginOverlap);
@@ -38,15 +44,13 @@ void UWpWeaponComponent::BeginPlay()
 		EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpWeaponComponent::OnEntityStateChanged);
 		OnEntityStateChanged(EnduranceComponent->GetEntityState());
 	}
-	else
-	{
-		SetComponentTickEnabled(false);
-	}
 }
 
 void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
 	{
@@ -73,6 +77,8 @@ void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick T
 
 void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	float LongestRange = 0.0f;
 
 	if (bIsAcquired)
@@ -105,7 +111,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 			}
 		}
 
-		bManualControlOnly = GetOwner()->GetClass()->IsChildOf(AWpCommander::StaticClass());
+		bManualControlOnly = GetOwner()->GetClass()->IsChildOf<AWpCommander>();
 
 		bIsAcquired = !WeaponConfigs.IsEmpty();
 	}
@@ -147,21 +153,32 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 
 FWpWeapon* UWpWeaponComponent::GetWeapon(const uint32 Index)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return Weapons[Index].Get();
 }
 
 const FWpWeapon* UWpWeaponComponent::GetWeapon(const uint32 Index) const
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return Weapons[Index].Get();
 }
 
 const TArray<IWpEntityInterface*>& UWpWeaponComponent::GetEntitiesInReach() const
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return EntitiesInReach;
 }
 
 void UWpWeaponComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex, const bool bFromSweep, const FHitResult& SweepResult)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	if (OtherActor == GetOwner())
 	{
 		return;
@@ -169,12 +186,16 @@ void UWpWeaponComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedCom
 
 	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
 	{
+		ensureAlways(!EntitiesInReach.Contains(OtherEntity));
+
 		EntitiesInReach.Add(OtherEntity);
 	}
 }
 
 void UWpWeaponComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	if (OtherActor == GetOwner())
 	{
 		return;
@@ -182,12 +203,16 @@ void UWpWeaponComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompo
 
 	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
 	{
+		ensureAlways(EntitiesInReach.Contains(OtherEntity));
+
 		EntitiesInReach.RemoveSingle(OtherEntity);
 	}
 }
 
 void UWpWeaponComponent::InitializeMesh()
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	const AWpFogOfWarManager* const FogOfWarManager = Cast<AWpFogOfWarManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AWpFogOfWarManager::StaticClass()));
 	UStaticMesh* const IntelMesh = FogOfWarManager->GetIntelMesh();
 
@@ -198,6 +223,8 @@ void UWpWeaponComponent::InitializeMesh()
 
 void UWpWeaponComponent::OnEntityStateChanged(const EWpEntityState EntityState)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	const bool bIsOperational = (EntityState == EWpEntityState::Operational);
 	SetGenerateOverlapEvents(bIsOperational);
 	if (bIsOperational)

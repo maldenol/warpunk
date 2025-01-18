@@ -74,8 +74,6 @@ void AWpActorPool::Release(AActor* const Actor)
 
 	Actor->SetActorLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
 
-	AWpPooledActorVisibilityManager::ClearActorVisibilityAll(Actor);
-
 	FreeActors.Add(Actor);
 
 	GEngine->AddOnScreenDebugMessage(0, 5.0f, FColor::Red, Actor->GetActorNameOrLabel());

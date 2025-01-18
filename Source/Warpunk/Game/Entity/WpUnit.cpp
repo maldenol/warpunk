@@ -147,6 +147,8 @@ uint32 AWpUnit::GetConfigId() const
 
 void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(HasAuthority());
+
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);

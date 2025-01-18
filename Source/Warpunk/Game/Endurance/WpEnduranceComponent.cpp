@@ -56,6 +56,8 @@ void UWpEnduranceComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
@@ -69,10 +71,14 @@ void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcqui
 		SetEntityState(EWpEntityState::NotProduced);
 		CurrentEndurance = 0.0f;
 	}
+
+	SetActive(bIsAcquired);
 }
 
 bool UWpEnduranceComponent::CanBeRepaired(const bool bCanProduce) const
 {
+	ensureAlways(IsActive());
+
 	const bool bEnduranceIsNotFull = CurrentEndurance < MaxEndurance;
 	const bool bIsOperational = EntityState == EWpEntityState::Operational;
 	const bool bIsNotButCanBeProduced = (EntityState == EWpEntityState::NotProduced) && bCanProduce;
@@ -81,6 +87,9 @@ bool UWpEnduranceComponent::CanBeRepaired(const bool bCanProduce) const
 
 void UWpEnduranceComponent::ReceiveRepair(const float DeltaMatter)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	const float DeltaEndurance = DeltaMatter * MaxEndurance / MatterCost;
 	float NewEndurance = CurrentEndurance + DeltaEndurance;
 
@@ -99,10 +108,15 @@ void UWpEnduranceComponent::ReceiveRepair(const float DeltaMatter)
 
 void UWpEnduranceComponent::ReceiveReclaim(const float DeltaMatter)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 }
 
 void UWpEnduranceComponent::ReceiveDamage(const float DeltaEndurance)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	const float NewEndurance = CurrentEndurance - DeltaEndurance;
 	if (NewEndurance <= 0.0f)
 	{
@@ -117,6 +131,9 @@ void UWpEnduranceComponent::ReceiveDamage(const float DeltaEndurance)
 
 void UWpEnduranceComponent::Destruct()
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	AActor* const OwnerActor = GetOwner();
 	if (AWpActorPool* const ActorPool = AWpActorPool::Instance(OwnerActor->GetClass()))
 	{
@@ -130,11 +147,16 @@ void UWpEnduranceComponent::Destruct()
 
 float UWpEnduranceComponent::GetMaxEndurance() const
 {
+	ensureAlways(IsActive());
+
 	return MaxEndurance;
 }
 
 float UWpEnduranceComponent::GetMatterCost() const
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return MatterCost;
 }
 
@@ -145,12 +167,17 @@ EWpEntityState UWpEnduranceComponent::GetEntityState() const
 
 void UWpEnduranceComponent::SetCurrentEndurance(const float InCurrentEndurance)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	CurrentEndurance = InCurrentEndurance;
 	OnRep_CurrentEndurance();
 }
 
 float UWpEnduranceComponent::GetCurrentEndurance() const
 {
+	ensureAlways(IsActive());
+
 	return CurrentEndurance;
 }
 
@@ -171,6 +198,9 @@ UWpEnduranceComponent::FCurrentEnduranceChangedEvent& UWpEnduranceComponent::OnC
 
 void UWpEnduranceComponent::OnTakeAnyDamage(AActor* const DamagedActor, const float Damage, const UDamageType* const DamageType, AController* const InstigatedBy, AActor* const DamageCauser)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	ReceiveDamage(Damage);
 }
 
@@ -186,6 +216,8 @@ void UWpEnduranceComponent::OnRep_CurrentEndurance()
 
 void UWpEnduranceComponent::SetEntityState(const EWpEntityState InEntityState)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	EntityState = InEntityState;
 	OnRep_EntityState();
 }

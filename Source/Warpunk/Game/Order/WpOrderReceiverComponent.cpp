@@ -42,6 +42,7 @@ void UWpOrderReceiverComponent::BeginPlay()
 	if (!GetOwner()->HasAuthority())
 	{
 		SetComponentTickEnabled(false);
+		PrimaryComponentTick.bCanEverTick = false;
 	}
 
 	CreateSelectionWidgetComponentIfNull();
@@ -50,6 +51,9 @@ void UWpOrderReceiverComponent::BeginPlay()
 void UWpOrderReceiverComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
 	{
@@ -94,6 +98,8 @@ void UWpOrderReceiverComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 
 void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	CreateSelectionWidgetComponentIfNull();
 
 	if (bIsAcquired)
@@ -132,6 +138,7 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool bOverride)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Wreck)
 	{
@@ -227,6 +234,7 @@ bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool b
 FWpOrder UWpOrderReceiverComponent::GetOrder() const
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (const FWpOrderHandler* const OrderHandler = CurrentOrderHandler.Get())
 	{
@@ -239,6 +247,7 @@ FWpOrder UWpOrderReceiverComponent::GetOrder() const
 void UWpOrderReceiverComponent::SetDefaultOrders(const FWpDefaultOrders& InDefaultOrders)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	DefaultOrders = InDefaultOrders;
 }
@@ -253,6 +262,7 @@ const FWpDefaultOrders& UWpOrderReceiverComponent::GetDefaultOrders() const
 void UWpOrderReceiverComponent::SetSupportedOrders(const TArray<EWpOrderType>& InSupportedOrders)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	SupportedOrders = InSupportedOrders;
 }
@@ -267,6 +277,7 @@ TArray<EWpOrderType> UWpOrderReceiverComponent::GetSupportedOrders() const
 void UWpOrderReceiverComponent::SetShouldProxyOrders(const bool bInShouldProxyOrders)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	bShouldProxyOrders = bInShouldProxyOrders;
 }
@@ -280,27 +291,39 @@ void UWpOrderReceiverComponent::Select(const bool bSelected)
 
 void UWpOrderReceiverComponent::NotifyOrderReceived(const FWpOrder& Order)
 {
-	OrderReceivedEvent.Broadcast(Order);
-}
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
-const TArray<FWpConfigIdNumber>& UWpOrderReceiverComponent::GetUnitToProduceConfigIdNumbers() const
-{
-	return UnitToProduceConfigIdNumbers;
+	OrderReceivedEvent.Broadcast(Order);
 }
 
 void UWpOrderReceiverComponent::SetUnitToProduceConfigIdNumbers(const TArray<FWpConfigIdNumber>& InUnitToProduceConfigIdNumbers)
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	UnitToProduceConfigIdNumbers = InUnitToProduceConfigIdNumbers;
+}
+
+const TArray<FWpConfigIdNumber>& UWpOrderReceiverComponent::GetUnitToProduceConfigIdNumbers() const
+{
+	ensureAlways(IsActive());
+
+	return UnitToProduceConfigIdNumbers;
 }
 
 UWpOrderReceiverComponent::FOrderReceivedEvent& UWpOrderReceiverComponent::OnOrderReceived()
 {
+	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
+
 	return OrderReceivedEvent;
 }
 
 void UWpOrderReceiverComponent::ActivateOrder(const FWpOrder& Order)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	FWpOrderHandler* const OrderHandler = CurrentOrderHandler.Set(Order.Type);
 	OrderHandler->Initialize(GetOwner<IWpEntityInterface>());
@@ -314,6 +337,7 @@ void UWpOrderReceiverComponent::ActivateOrder(const FWpOrder& Order)
 void UWpOrderReceiverComponent::ReactivateOrder(FWpOrderHandler* const OrderHandler, const FWpOrder& Order)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	OrderHandler->SetOrder(Order);
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Operational)
@@ -325,6 +349,7 @@ void UWpOrderReceiverComponent::ReactivateOrder(FWpOrderHandler* const OrderHand
 void UWpOrderReceiverComponent::DeactivateOrder(FWpOrderHandler* const OrderHandler)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	if (OrderHandler->IsRunning())
 	{
@@ -336,6 +361,7 @@ void UWpOrderReceiverComponent::DeactivateOrder(FWpOrderHandler* const OrderHand
 void UWpOrderReceiverComponent::ExecuteOrder(const EWpOrderType OrderType, const FWpOrder& Order)
 {
 	ensureAlways(IsActive());
+	ensureAlways(GetOwner()->HasAuthority());
 
 	FWpOrderHandlerWrapper ImmediateOrderHandler;
 	FWpOrderHandler* const OrderHandler = ImmediateOrderHandler.Set(OrderType);

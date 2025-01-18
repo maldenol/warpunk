@@ -28,7 +28,6 @@ public:
 
 	void InitializeActorVisibility(AActor* const Actor, const bool bIsVisible);
 	void UpdateActorVisibility(AActor* const Actor, const bool bGainedSight);
-	void ClearActorVisibility(AActor* const Actor);
 	bool IsVisibleForTeam(const AActor* const Actor) const;
 
 	void OnPooledActorVisibilityChanged(const uint64 Guid, const bool bIsVisible);
@@ -54,9 +53,8 @@ private:
 public:
 	static AWpPooledActorVisibilityManager* Instance(const uint32 TeamId);
 
-	static void InitializeActorVisibilityAll(const uint32 TeamId, AActor* const Actor);
+	static void InitializeActorVisibility(const uint32 TeamId, AActor* const Actor);
 	static void UpdateActorVisibility(const uint32 TeamId, AActor* const Actor, const bool bGainedSight);
-	static void ClearActorVisibilityAll(AActor* const Actor);
 	static bool IsVisibleForTeam(const uint32 TeamId, const AActor* const Actor);
 
 	static void SetAuthorityTeamId(const uint32 InAuthorityTeamId);

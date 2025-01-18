@@ -27,11 +27,11 @@ void AWpGameGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ensureAlways(GameStateClass->IsChildOf(AWpGameGameState::StaticClass()));
-	ensureAlways(PlayerControllerClass->IsChildOf(AWpGamePlayerController::StaticClass()));
-	ensureAlways(PlayerStateClass->IsChildOf(AWpGamePlayerState::StaticClass()));
-	ensureAlways(HUDClass->IsChildOf(AWpGameHUD::StaticClass()));
-	ensureAlways(DefaultPawnClass->IsChildOf(AWpStrategicViewPawn::StaticClass()));
+	ensureAlways(GameStateClass->IsChildOf<AWpGameGameState>());
+	ensureAlways(PlayerControllerClass->IsChildOf<AWpGamePlayerController>());
+	ensureAlways(PlayerStateClass->IsChildOf<AWpGamePlayerState>());
+	ensureAlways(HUDClass->IsChildOf<AWpGameHUD>());
+	ensureAlways(DefaultPawnClass->IsChildOf<AWpStrategicViewPawn>());
 
 	AWpActorPool* const UnitPool = GetWorld()->SpawnActor<AWpActorPool>();
 	UnitPool->Reserve(AWpUnit::StaticClass(), 50);

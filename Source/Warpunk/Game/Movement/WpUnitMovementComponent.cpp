@@ -28,6 +28,8 @@ void UWpUnitMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 
 void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
@@ -63,6 +65,8 @@ void UWpUnitMovementComponent::SetIsFirstPersonControlled(const bool bIsFirstPer
 
 void UWpUnitMovementComponent::SetSpeed(const float InSpeed)
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	Speed = InSpeed;
 	OnRep_Speed();
 }

@@ -18,10 +18,10 @@ void AWpLobbyGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ensureAlways(GameStateClass->IsChildOf(AWpLobbyGameState::StaticClass()));
-	ensureAlways(PlayerControllerClass->IsChildOf(AWpLobbyPlayerController::StaticClass()));
-	ensureAlways(PlayerStateClass->IsChildOf(AWpLobbyPlayerState::StaticClass()));
-	ensureAlways(HUDClass->IsChildOf(AWpLobbyHUD::StaticClass()));
+	ensureAlways(GameStateClass->IsChildOf<AWpLobbyGameState>());
+	ensureAlways(PlayerControllerClass->IsChildOf<AWpLobbyPlayerController>());
+	ensureAlways(PlayerStateClass->IsChildOf<AWpLobbyPlayerState>());
+	ensureAlways(HUDClass->IsChildOf<AWpLobbyHUD>());
 }
 
 void AWpLobbyGameMode::OnPostLogin(AController* NewPlayer)

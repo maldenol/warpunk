@@ -11,5 +11,5 @@ void AWpMenuGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ensureAlways(HUDClass->IsChildOf(AWpMenuHUD::StaticClass()));
+	ensureAlways(HUDClass->IsChildOf<AWpMenuHUD>());
 }

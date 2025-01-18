@@ -139,6 +139,11 @@ void AWpPooledActorVisibilityManager::InitializeActorVisibility(AActor* const Ac
 {
 	ensureAlways(HasAuthority());
 
+	if (!Actor->GetIsReplicated())
+	{
+		return;
+	}
+
 	if (!bIsVisible)
 	{
 		if (ObserverNumberPerActor.Contains(Actor))
@@ -155,6 +160,11 @@ void AWpPooledActorVisibilityManager::InitializeActorVisibility(AActor* const Ac
 void AWpPooledActorVisibilityManager::UpdateActorVisibility(AActor* const Actor, const bool bGainedSight)
 {
 	ensureAlways(HasAuthority());
+
+	if (!Actor->GetIsReplicated())
+	{
+		return;
+	}
 
 	bool bBecameVisible, bBecameHidden;
 
@@ -186,19 +196,14 @@ void AWpPooledActorVisibilityManager::UpdateActorVisibility(AActor* const Actor,
 	}
 }
 
-void AWpPooledActorVisibilityManager::ClearActorVisibility(AActor* const Actor)
-{
-	ensureAlways(HasAuthority());
-
-	if (uint32* const ObserverNumber = ObserverNumberPerActor.Find(Actor))
-	{
-		*ObserverNumber = 0;
-	}
-}
-
 bool AWpPooledActorVisibilityManager::IsVisibleForTeam(const AActor* const Actor) const
 {
 	ensureAlways(HasAuthority());
+
+	if (!Actor->GetIsReplicated())
+	{
+		return true;
+	}
 
 	if (const uint32* const ObserverNumber = ObserverNumberPerActor.Find(Actor))
 	{
@@ -272,7 +277,7 @@ AWpPooledActorVisibilityManager* AWpPooledActorVisibilityManager::Instance(const
 	return nullptr;
 }
 
-void AWpPooledActorVisibilityManager::InitializeActorVisibilityAll(const uint32 TeamId, AActor* const Actor)
+void AWpPooledActorVisibilityManager::InitializeActorVisibility(const uint32 TeamId, AActor* const Actor)
 {
 	for (const TTuple<uint32, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
 	{
@@ -285,15 +290,6 @@ void AWpPooledActorVisibilityManager::InitializeActorVisibilityAll(const uint32 
 void AWpPooledActorVisibilityManager::UpdateActorVisibility(const uint32 TeamId, AActor* const Actor, const bool bGainedSight)
 {
 	Instance(TeamId)->UpdateActorVisibility(Actor, bGainedSight);
-}
-
-void AWpPooledActorVisibilityManager::ClearActorVisibilityAll(AActor* const Actor)
-{
-	for (const TTuple<uint32, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
-	{
-		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = TeamPooledActorVisibilityManager.Value;
-		PooledActorVisibilityManager->ClearActorVisibility(Actor);
-	}
 }
 
 bool AWpPooledActorVisibilityManager::IsVisibleForTeam(const uint32 TeamId, const AActor* const Actor)
