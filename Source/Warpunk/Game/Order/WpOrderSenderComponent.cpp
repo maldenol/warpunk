@@ -303,6 +303,11 @@ void UWpOrderSenderComponent::SetSelectEntitiesStartLocation()
 
 void UWpOrderSenderComponent::SelectEntities()
 {
+	if (!GetPlayerController()->GetPlayerState<AWpGamePlayerState>())
+	{
+		return;
+	}
+
 	for (const TTuple<FWpDefaultOrders, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerDefaultOrders)
 	{
 		for (IWpEntityInterface* const SelectedEntity : SelectedEntitiesPerDefaultOrders[KeyValue.Key])
@@ -423,6 +428,11 @@ void UWpOrderSenderComponent::SetOrderStartLocation()
 
 void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 {
+	if (!GetPlayerController()->GetPlayerState<AWpGamePlayerState>())
+	{
+		return;
+	}
+
 	switch (OrderType)
 	{
 	case EWpOrderType::Stop:
@@ -508,6 +518,11 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 
 void UWpOrderSenderComponent::UpdateBuildingPlan()
 {
+	if (!GetPlayerController()->GetPlayerState<AWpGamePlayerState>())
+	{
+		return;
+	}
+
 	const FHitResult Hit = LineTraceUnderCursor();
 
 	if (IsValid(BuildingToProduce))
@@ -537,6 +552,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			BuildingToProduce->AcquirePooledObject(PooledEntityData);
 			BuildingToProduce->ReleasePooledObject();
 			BuildingToProduce->SetActorHiddenInGame(false);
+			BuildingToProduce->OnPooledActorVisibilityChanged(true);
 		}
 	}
 }
@@ -570,10 +586,14 @@ APlayerController* UWpOrderSenderComponent::GetPlayerController() const
 
 uint32 UWpOrderSenderComponent::GetBelligerentId() const
 {
-	return GetPlayerController()->GetPlayerState<AWpGamePlayerState>()->GetBelligerentId();
+	const AWpGamePlayerState* const PlayerState = GetPlayerController()->GetPlayerState<AWpGamePlayerState>();
+	ensureAlways(PlayerState);
+	return PlayerState->GetBelligerentId();
 }
 
 uint32 UWpOrderSenderComponent::GetTeamId() const
 {
-	return GetPlayerController()->GetPlayerState<AWpGamePlayerState>()->GetTeamId();
+	const AWpGamePlayerState* const PlayerState = GetPlayerController()->GetPlayerState<AWpGamePlayerState>();
+	ensureAlways(PlayerState);
+	return PlayerState->GetTeamId();
 }

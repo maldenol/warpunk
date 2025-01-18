@@ -255,12 +255,22 @@ void AWpPooledActorVisibilityManager::NetUpdateActorVisibility(AActor* const Act
 
 uint64 AWpPooledActorVisibilityManager::GetActorGuid(AActor* const Actor) const
 {
+	if (GetNetMode() == NM_Standalone)
+	{
+		return Actor->GetUniqueID();
+	}
+
 	const FNetworkGUID NetworkGUID = GetWorld()->GetNetDriver()->GuidCache->GetOrAssignNetGUID(Actor);
 	return NetworkGUID.ObjectId;
 }
 
 AActor* AWpPooledActorVisibilityManager::GetActorByGuid(const uint64 Guid) const
 {
+	if (GetNetMode() == NM_Standalone)
+	{
+		return Cast<AActor>(static_cast<UObject*>(GUObjectArray.IndexToObjectUnsafeForGC(Guid)->Object));
+	}
+
 	FNetworkGUID NetworkGUID;
 	NetworkGUID.ObjectId = Guid;
 	UObject* const Object = GetWorld()->GetNetDriver()->GuidCache->GetObjectFromNetGUID(NetworkGUID, true);

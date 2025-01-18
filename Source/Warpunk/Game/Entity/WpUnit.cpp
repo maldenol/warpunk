@@ -59,6 +59,8 @@ AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
 
 	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	AWpUnit::OnPooledActorVisibilityChanged(false);
 }
 
 void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

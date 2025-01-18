@@ -50,7 +50,7 @@ void UWpLobbyHUDWidget::OnBackPressed()
 {
 	FWorldContext& WorldContext = *GEngine->GetWorldContextFromWorld(GetWorld());
 	FURL Url;
-	Url.Map = TEXT("MenuMap");
+	Url.Map = TEXT("/Game/Maps/MenuMap");
 	FString Error;
 	GEngine->Browse(WorldContext, Url, Error);
 }

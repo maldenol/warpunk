@@ -42,7 +42,7 @@ void AWpMenuHUD::SetMenuState(const EWpMenuState MenuState)
 		{
 			FWorldContext& WorldContext = *GEngine->GetWorldContextFromWorld(GetWorld());
 			FURL Url;
-			Url.Map = TEXT("LobbyMap");
+			Url.Map = TEXT("/Game/Maps/LobbyMap");
 			FString Error;
 			GEngine->Browse(WorldContext, Url, Error);
 			return;

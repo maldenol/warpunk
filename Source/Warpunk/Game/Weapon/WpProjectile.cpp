@@ -40,6 +40,8 @@ AWpProjectile::AWpProjectile()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(MovementComponentName);
+
+	OnPooledActorVisibilityChanged(false);
 }
 
 void AWpProjectile::BeginPlay()
