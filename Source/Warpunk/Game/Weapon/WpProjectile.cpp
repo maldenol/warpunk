@@ -26,6 +26,7 @@ AWpProjectile::AWpProjectile()
 	Super::SetReplicateMovement(true);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
+	NetUpdateFrequency = 60.0f;
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(SphereComponentName);
 	SphereComponent->SetCollisionProfileName(SphereComponentCollisionProfileName);
@@ -40,6 +41,10 @@ AWpProjectile::AWpProjectile()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(MovementComponentName);
+	MovementComponent->bSimulationEnabled = false;
+	MovementComponent->bInterpMovement = true;
+	MovementComponent->bInterpRotation = true;
+	MovementComponent->SetInterpolatedComponent(MeshComponent);
 
 	OnPooledActorVisibilityChanged(false);
 }
@@ -50,6 +55,8 @@ void AWpProjectile::BeginPlay()
 
 	if (HasAuthority())
 	{
+		MovementComponent->bSimulationEnabled = true;
+
 		SphereComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
 	}
 }
@@ -69,6 +76,15 @@ bool AWpProjectile::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDi
 	const AWpGamePlayerState* const ViewerPlayerState = ViewerPlayerController->GetPlayerState<AWpGamePlayerState>();
 	const uint32 ViewerTeamId = ViewerPlayerState->GetTeamId();
 	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
+}
+
+void AWpProjectile::PostNetReceiveLocationAndRotation()
+{
+	const FRepMovement& LocalRepMovement = GetReplicatedMovement();
+	const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, this);
+	const FRotator& NewRotation = LocalRepMovement.Rotation;
+
+	MovementComponent->MoveInterpolationTarget(NewLocation, NewRotation);
 }
 
 void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -116,6 +132,14 @@ void AWpProjectile::OnPooledActorVisibilityChanged(const bool bIsVisible)
 	if (MeshComponent->bHiddenInGame != bIsHidden)
 	{
 		MeshComponent->SetHiddenInGame(bIsHidden);
+	}
+
+	if (!HasAuthority())
+	{
+		if (MovementComponent->IsComponentTickEnabled() != bIsVisible)
+		{
+			MovementComponent->SetComponentTickEnabled(bIsVisible);
+		}
 	}
 }
 

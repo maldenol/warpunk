@@ -35,6 +35,7 @@ AWpBuilding::AWpBuilding()
 	Super::SetReplicateMovement(true);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
+	NetUpdateFrequency = 60.0f;
 
 	BoxComponent = CreateDefaultSubobject<UBoxComponent>(BoxComponentName);
 	BoxComponent->SetCollisionProfileName(BoxComponentCollisionProfileName);

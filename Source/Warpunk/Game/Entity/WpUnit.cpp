@@ -36,6 +36,7 @@ AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
 	Super::SetReplicateMovement(true);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
+	NetUpdateFrequency = 60.0f;
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AWpUnitAIController::StaticClass();
@@ -222,6 +223,20 @@ void AWpUnit::OnPooledActorVisibilityChanged(const bool bIsVisible)
 	{
 		MeshComponent->SetHiddenInGame(bIsHidden);
 		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsHidden ? ECR_Ignore : ECR_Block);
+	}
+
+	if (!HasAuthority())
+	{
+		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
+		if (MovementComponent->IsComponentTickEnabled() != bIsVisible)
+		{
+			MovementComponent->SetComponentTickEnabled(bIsVisible);
+
+			if (!bIsVisible)
+			{
+				MovementComponent->Velocity = FVector::ZeroVector;
+			}
+		}
 	}
 
 	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
