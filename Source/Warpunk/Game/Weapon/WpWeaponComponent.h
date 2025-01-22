@@ -13,7 +13,6 @@
 #define WP_ENTITY_MAX_WEAPON 4
 
 enum class EWpEntityState : uint8;
-struct FWpWeaponConfig;
 class IWpEntityInterface;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
@@ -32,7 +31,7 @@ public:
 	FWpWeapon* GetWeapon(const uint32 Index);
 	const FWpWeapon* GetWeapon(const uint32 Index) const;
 
-	const TArray<IWpEntityInterface*>& GetEntitiesInReach() const;
+	const TSet<IWpEntityInterface*>& GetEntitiesInReach() const;
 
 private:
 	UFUNCTION()
@@ -48,7 +47,7 @@ private:
 
 	bool bManualControlOnly = false;
 
-	TArray<IWpEntityInterface*> EntitiesInReach = {};
+	TSet<IWpEntityInterface*> EntitiesInReach = {};
 
 	static const FName MeshCollisionProfileName;
 };

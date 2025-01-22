@@ -167,7 +167,7 @@ const FWpWeapon* UWpWeaponComponent::GetWeapon(const uint32 Index) const
 	return Weapons[Index].Get();
 }
 
-const TArray<IWpEntityInterface*>& UWpWeaponComponent::GetEntitiesInReach() const
+const TSet<IWpEntityInterface*>& UWpWeaponComponent::GetEntitiesInReach() const
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -205,7 +205,7 @@ void UWpWeaponComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompo
 	{
 		ensureAlways(EntitiesInReach.Contains(OtherEntity));
 
-		EntitiesInReach.RemoveSingle(OtherEntity);
+		EntitiesInReach.Remove(OtherEntity);
 	}
 }
 

@@ -7,6 +7,11 @@
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h"
 
+FWpAttackOrderHandler::FWpAttackOrderHandler()
+{
+	SetTickCooldown(0.25f);
+}
+
 void FWpAttackOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
@@ -52,9 +57,9 @@ void FWpAttackOrderHandler::Reactivate()
 	}
 }
 
-void FWpAttackOrderHandler::Tick()
+void FWpAttackOrderHandler::Tick(const float CurrentTime)
 {
-	FWpOrderHandler::Tick();
+	FWpOrderHandler::Tick(CurrentTime);
 
 	if (!IsValid(GetOrder().TargetEntityActor))
 	{

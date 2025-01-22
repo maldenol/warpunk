@@ -9,7 +9,7 @@ class FWpStrikeOrderHandler final : public FWpOrderHandler
 {
 public:
 	virtual void Reactivate() override;
-	virtual void Tick() override;
+	virtual void Tick(const float CurrentTime) override;
 
 private:
 	UWpWeaponComponent* WeaponComponent = nullptr;

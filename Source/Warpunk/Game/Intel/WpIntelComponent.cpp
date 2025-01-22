@@ -95,7 +95,7 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 	SetActive(bIsAcquired);
 }
 
-const TArray<IWpEntityInterface*>& UWpIntelComponent::GetVisibleEntities() const
+const TSet<IWpEntityInterface*>& UWpIntelComponent::GetVisibleEntities() const
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -145,7 +145,7 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 	{
 		ensureAlways(VisibleEntities.Contains(OtherEntity));
 
-		VisibleEntities.RemoveSingle(OtherEntity);
+		VisibleEntities.Remove(OtherEntity);
 	}
 }
 

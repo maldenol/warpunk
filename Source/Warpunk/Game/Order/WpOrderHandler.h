@@ -18,7 +18,7 @@ public:
 	virtual void Execute(const FWpOrder& InOrder);
 
 	virtual void Reactivate();
-	virtual void Tick();
+	virtual void Tick(const float CurrentTime);
 	virtual void Deactivate();
 
 	virtual void SetOrder(const FWpOrder& InOrder);
@@ -27,11 +27,15 @@ public:
 	bool IsRunning() const;
 	bool HasFinished() const;
 
+	bool ShouldTick(const float CurrentTime) const;
+
 protected:
 	void Finish();
 
 	IWpEntityInterface* GetEntity();
 	const IWpEntityInterface* GetEntity() const;
+
+	void SetTickCooldown(const float InTickCooldown);
 
 private:
 	IWpEntityInterface* Entity = nullptr;
@@ -40,4 +44,7 @@ private:
 
 	bool bIsRunning = false;
 	bool bHasFinished = false;
+
+	float LastTickTime = 0.0f;
+	float TickCooldown = 0.0f;
 };

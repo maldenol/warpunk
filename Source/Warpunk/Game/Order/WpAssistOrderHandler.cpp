@@ -8,6 +8,11 @@
 
 const FName FWpAssistOrderHandler::MimicOrderReceiverComponentName = TEXT("MimicOrderReceiverComponent");
 
+FWpAssistOrderHandler::FWpAssistOrderHandler()
+{
+	SetTickCooldown(0.25f);
+}
+
 void FWpAssistOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
@@ -43,9 +48,9 @@ void FWpAssistOrderHandler::Reactivate()
 	OnOrderReceived(TargetEntityOrderReceiverComponent->GetOrder());
 }
 
-void FWpAssistOrderHandler::Tick()
+void FWpAssistOrderHandler::Tick(const float CurrentTime)
 {
-	FWpOrderHandler::Tick();
+	FWpOrderHandler::Tick(CurrentTime);
 
 	if (!bCanAssist)
 	{

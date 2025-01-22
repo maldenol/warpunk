@@ -54,4 +54,7 @@ private:
 	float LastFireTime = 0.0f;
 	IWpEntityInterface* CurrentTargetEntity = nullptr;
 	IWpEntityInterface* PriorityTargetEntity = nullptr;
+
+	float LastUpdateCurrentTargetEntityTime = 0.0f;
+	const float UpdateCurrentTargetEntityCooldown = 0.25f;
 };

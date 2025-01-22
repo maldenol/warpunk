@@ -68,7 +68,7 @@ private:
 	void Repair(const float DeltaTime);
 	void Reclaim(const float DeltaTime);
 
-	void FindNewTarget();
+	void UpdateCurrentTargetEntity();
 
 	UPROPERTY(VisibleInstanceOnly)
 	float MatterConsumption = 0.0f;
@@ -91,6 +91,9 @@ private:
 	TArray<FWpOrder> ProxyOrderQueue = {};
 	IWpEntityInterface* CurrentTargetEntity = nullptr;
 	IWpEntityInterface* PriorityTargetEntity = nullptr;
+
+	float LastUpdateCurrentTargetEntityTime = 0.0f;
+	const float UpdateCurrentTargetEntityCooldown = 0.25f;
 
 	FRepairFinishedEvent RepairFinishedEvent = {};
 	FReclaimFinishedEvent ReclaimFinishedEvent = {};

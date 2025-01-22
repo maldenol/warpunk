@@ -11,10 +11,12 @@ class AAIController;
 class FWpAssistOrderHandler final : public FWpOrderHandler
 {
 public:
+	FWpAssistOrderHandler();
+
 	virtual void Initialize(IWpEntityInterface* const InEntity) override;
 
 	virtual void Reactivate() override;
-	virtual void Tick() override;
+	virtual void Tick(const float CurrentTime) override;
 	virtual void Deactivate() override;
 
 private:

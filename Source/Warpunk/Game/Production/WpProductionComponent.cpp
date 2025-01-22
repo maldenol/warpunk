@@ -90,7 +90,7 @@ void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTi
 		case EWpProductionState::Idle:
 			if (bShouldSupport)
 			{
-				FindNewTarget();
+				UpdateCurrentTargetEntity();
 			}
 			break;
 		default:
@@ -472,25 +472,55 @@ void UWpProductionComponent::Reclaim(const float DeltaTime)
 	CurrentTargetEntity->GetEnduranceComponent()->ReceiveReclaim(DeltaTime * MatterConsumption);
 }
 
-void UWpProductionComponent::FindNewTarget()
+void UWpProductionComponent::UpdateCurrentTargetEntity()
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime >= LastUpdateCurrentTargetEntityTime + UpdateCurrentTargetEntityCooldown)
+	{
+		LastUpdateCurrentTargetEntityTime = CurrentTime;
+	}
+	else
+	{
+		return;
+	}
+
+	if (CurrentTargetEntity)
+	{
+		const bool bCanReachAndRepairCurrentTarget = CanReachAndRepair(CurrentTargetEntity);
+		if (!bCanReachAndRepairCurrentTarget)
+		{
+			CurrentTargetEntity = nullptr;
+		}
+	}
+
+	const bool bCurrentTargetIsPriorityTarget = CurrentTargetEntity && (CurrentTargetEntity == PriorityTargetEntity);
+	if (bCurrentTargetIsPriorityTarget)
+	{
+		return;
+	}
+
 	const UWpIntelComponent* const IntelComponent = GetOwner<IWpEntityInterface>()->GetIntelComponent();
 	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetVisibleEntities())
 	{
-		const bool bCanReachAndRepairCandidate = CanReachAndRepair(CandidateEntity);
-		const bool bCandidateIsCurrentTarget = CurrentTargetEntity == CandidateEntity;
-		if (!bCanReachAndRepairCandidate || bCandidateIsCurrentTarget)
+		const bool bCandidateIsCurrentTarget = (CurrentTargetEntity == CandidateEntity);
+		if (bCandidateIsCurrentTarget)
 		{
 			continue;
 		}
 
-		const bool bCandidateIsPriorityTarget = CandidateEntity == PriorityTargetEntity;
-		const bool bCanReachAndRepairCurrentTarget = CanReachAndRepair(CurrentTargetEntity);
+		const bool bCanReachAndRepairCandidate = CanReachAndRepair(CandidateEntity);
+		if (!bCanReachAndRepairCandidate)
+		{
+			continue;
+		}
+
+		const bool bCandidateIsPriorityTarget = (CandidateEntity == PriorityTargetEntity);
+		const bool bHasCurrentTarget = (CurrentTargetEntity != nullptr);
 		const bool bCandidateBelongsToSameTeam = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
-		if (bCandidateIsPriorityTarget || (!bCanReachAndRepairCurrentTarget && bCandidateBelongsToSameTeam))
+		if (bCandidateIsPriorityTarget || (!bHasCurrentTarget && bCandidateBelongsToSameTeam))
 		{
 			StartRepair(CandidateEntity);
 			break;

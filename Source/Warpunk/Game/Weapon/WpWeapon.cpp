@@ -170,10 +170,20 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
 	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
 
+	const float CurrentTime = Cast<AActor>(OwnerEntity)->GetWorld()->GetTimeSeconds();
+	if (CurrentTime >= LastUpdateCurrentTargetEntityTime + UpdateCurrentTargetEntityCooldown)
+	{
+		LastUpdateCurrentTargetEntityTime = CurrentTime;
+	}
+	else
+	{
+		return;
+	}
+
 	const uint32 EntityTeamId = OwnerEntity->GetBelligerentComponent()->GetTeamId();
 
 	const UWpWeaponComponent* const WeaponComponent = OwnerEntity->GetWeaponComponent();
-	const TArray<IWpEntityInterface*>& EntitiesInReach = WeaponComponent->GetEntitiesInReach();
+	const TSet<IWpEntityInterface*>& EntitiesInReach = WeaponComponent->GetEntitiesInReach();
 
 	if (CurrentTargetEntity)
 	{
@@ -202,6 +212,12 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 
 	for (IWpEntityInterface* const CandidateEntity : EntitiesInReach)
 	{
+		const bool bCandidateIsCurrentTarget = (CurrentTargetEntity == CandidateEntity);
+		if (bCandidateIsCurrentTarget)
+		{
+			continue;
+		}
+
 		const AActor* const CandidateActor = Cast<AActor>(CandidateEntity);
 
 		const bool bIsCandidateVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CandidateActor);
@@ -218,10 +234,10 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 			continue;
 		}
 
-		const bool bCandidateIsPriorityTarget = CandidateEntity == PriorityTargetEntity;
-		const bool bCanReachCurrentTarget = CanReach(CurrentTargetEntity);
+		const bool bCandidateIsPriorityTarget = (CandidateEntity == PriorityTargetEntity);
+		const bool bHasCurrentTarget = (CurrentTargetEntity != nullptr);
 		const bool bCandidateBelongsToSameTeam = OwnerEntity->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
-		if (bCandidateIsPriorityTarget || (!bCanReachCurrentTarget && !bCandidateBelongsToSameTeam))
+		if (bCandidateIsPriorityTarget || (!bHasCurrentTarget && !bCandidateBelongsToSameTeam))
 		{
 			CurrentTargetEntity = CandidateEntity;
 			break;

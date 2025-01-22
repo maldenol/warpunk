@@ -6,6 +6,11 @@
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h"
 
+FWpReclaimOrderHandler::FWpReclaimOrderHandler()
+{
+	SetTickCooldown(0.25f);
+}
+
 void FWpReclaimOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
@@ -36,9 +41,9 @@ void FWpReclaimOrderHandler::Reactivate()
 	OnReclaimFinishedDelegateHandle = ProductionComponent->OnReclaimFinished().AddRaw(this, &FWpReclaimOrderHandler::OnReclaimFinished);
 }
 
-void FWpReclaimOrderHandler::Tick()
+void FWpReclaimOrderHandler::Tick(const float CurrentTime)
 {
-	FWpOrderHandler::Tick();
+	FWpOrderHandler::Tick(CurrentTime);
 
 	const bool bCanReach = ProductionComponent->CanReach(GetOrder().GetTargetEntity());
 	const bool bIsMoving = AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle;

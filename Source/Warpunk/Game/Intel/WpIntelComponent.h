@@ -25,7 +25,7 @@ public:
 
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
-	const TArray<IWpEntityInterface*>& GetVisibleEntities() const;
+	const TSet<IWpEntityInterface*>& GetVisibleEntities() const;
 
 private:
 	UFUNCTION()
@@ -47,7 +47,7 @@ private:
 
 	void OnPlayerStateReplicated();
 
-	TArray<IWpEntityInterface*> VisibleEntities = {};
+	TSet<IWpEntityInterface*> VisibleEntities = {};
 
 	UPROPERTY(ReplicatedUsing=OnRep_bIsMeshVisible)
 	bool bIsMeshVisible = false;

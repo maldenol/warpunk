@@ -19,9 +19,9 @@ void FWpStrikeOrderHandler::Reactivate()
 	ensureAlways(bHasAtLeastOneWeapon);
 }
 
-void FWpStrikeOrderHandler::Tick()
+void FWpStrikeOrderHandler::Tick(const float CurrentTime)
 {
-	FWpOrderHandler::Tick();
+	FWpOrderHandler::Tick(CurrentTime);
 
 	bool bNoWaitingWeapons = true;
 

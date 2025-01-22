@@ -73,7 +73,11 @@ void UWpOrderReceiverComponent::TickComponent(const float DeltaTime, const ELeve
 		}
 		else
 		{
-			OrderHandler->Tick();
+			const float CurrentTime = GetWorld()->GetTimeSeconds();
+			if (OrderHandler->ShouldTick(CurrentTime))
+			{
+				OrderHandler->Tick(CurrentTime);
+			}
 		}
 	}
 

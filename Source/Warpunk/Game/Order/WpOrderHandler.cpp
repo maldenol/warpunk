@@ -15,8 +15,11 @@ void FWpOrderHandler::Reactivate()
 	bHasFinished = false;
 }
 
-void FWpOrderHandler::Tick()
+void FWpOrderHandler::Tick(const float CurrentTime)
 {
+	ensureAlways(ShouldTick(CurrentTime));
+
+	LastTickTime = CurrentTime;
 }
 
 void FWpOrderHandler::Deactivate()
@@ -45,6 +48,11 @@ bool FWpOrderHandler::HasFinished() const
 	return bHasFinished;
 }
 
+bool FWpOrderHandler::ShouldTick(const float CurrentTime) const
+{
+	return CurrentTime >= LastTickTime + TickCooldown;
+}
+
 void FWpOrderHandler::Finish()
 {
 	bHasFinished = true;
@@ -58,4 +66,9 @@ IWpEntityInterface* FWpOrderHandler::GetEntity()
 const IWpEntityInterface* FWpOrderHandler::GetEntity() const
 {
 	return Entity;
+}
+
+void FWpOrderHandler::SetTickCooldown(const float InTickCooldown)
+{
+	TickCooldown = InTickCooldown;
 }
