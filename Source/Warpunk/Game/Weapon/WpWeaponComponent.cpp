@@ -99,7 +99,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 				PooledWeaponData.WeaponConfig = &WeaponConfig;
 				Weapon->AcquirePooledObject(PooledWeaponData);
 
-				const float Range = Weapon->GetRange();
+				const float Range = Weapon->GetRange() * ((WeaponConfig.Type == EWpWeaponType::Projectile) ? 3.0f : 1.0f);
 				if (Range > LongestRange)
 				{
 					LongestRange = Range;

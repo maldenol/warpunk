@@ -26,6 +26,7 @@ public:
 	virtual bool CanReach(const FVector& Location) const;
 
 	float GetRange() const;
+	float GetMinRange() const;
 	IWpEntityInterface* GetCurrentTargetEntity() const;
 	void SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity);
 
@@ -45,6 +46,7 @@ private:
 	IWpEntityInterface* OwnerEntity = nullptr;
 
 	float Range = 0.0f;
+	float MinRange = 0.0f;
 	float Cooldown = 0.0f;
 	float Damage = 0.0f;
 	FVector FireLocation = FVector::ZeroVector;

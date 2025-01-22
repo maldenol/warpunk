@@ -89,6 +89,8 @@ struct FWpWeaponConfig final
 	UPROPERTY(EditAnywhere)
 	float Range = 0.0f;
 	UPROPERTY(EditAnywhere)
+	float MinRange = 0.0f;
+	UPROPERTY(EditAnywhere)
 	float FireRate = 0.0f;
 	UPROPERTY(EditAnywhere)
 	EWpWeaponType Type = EWpWeaponType::None;
@@ -100,6 +102,8 @@ struct FWpWeaponConfig final
 	float ProjectileRadius = 0.0f;
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UStaticMesh> ProjectileMesh = nullptr;
+	UPROPERTY(EditAnywhere)
+	bool bHighAngle = false;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)

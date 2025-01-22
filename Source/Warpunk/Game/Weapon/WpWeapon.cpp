@@ -21,6 +21,7 @@ void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		ensureAlways(!WeaponConfig.FireLocation.IsNearlyZero());
 
 		Range = WeaponConfig.Range;
+		MinRange = WeaponConfig.MinRange;
 		Cooldown = 1.0f / WeaponConfig.FireRate;
 		Damage = WeaponConfig.Damage;
 		FireLocation = WeaponConfig.FireLocation;
@@ -89,8 +90,7 @@ bool FWpWeapon::CanReach(const FVector& Location) const
 
 	const FVector OwnerLocation = Cast<AActor>(OwnerEntity)->GetActorLocation();
 	const float Distance2 = FVector::DistSquared2D(OwnerLocation, Location);
-
-	return Distance2 <= Range * Range;
+	return (Distance2 <= Range * Range) && (Distance2 >= MinRange * MinRange);
 }
 
 float FWpWeapon::GetRange() const
@@ -98,6 +98,13 @@ float FWpWeapon::GetRange() const
 	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
 
 	return Range;
+}
+
+float FWpWeapon::GetMinRange() const
+{
+	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+
+	return MinRange;
 }
 
 IWpEntityInterface* FWpWeapon::GetCurrentTargetEntity() const
