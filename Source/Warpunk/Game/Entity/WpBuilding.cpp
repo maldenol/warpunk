@@ -4,6 +4,7 @@
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
+#include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
@@ -66,11 +67,7 @@ void AWpBuilding::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AWpBuilding, MeshComponentTransform);
-	DOREPLIFETIME(AWpBuilding, MeshComponentSkeletalMesh);
-	DOREPLIFETIME(AWpBuilding, MeshComponentMaterial);
-	DOREPLIFETIME(AWpBuilding, MeshComponentAnimInstanceClass);
-	DOREPLIFETIME(AWpBuilding, BoxComponentExtent);
+	DOREPLIFETIME(AWpBuilding, ConfigId);
 }
 
 bool AWpBuilding::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
@@ -153,32 +150,11 @@ void AWpBuilding::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
-		const FWpEntityConfig& EntityConfig = *PooledEntityData.EntityConfig;
 
 		ensureAlways(PooledEntityData.EntityConfigId > 0);
 
 		ConfigId = PooledEntityData.EntityConfigId;
-
-		ensureAlways(EntityConfig.EntityMeshConfig.Mesh);
-		ensureAlways(EntityConfig.EntityMeshConfig.Material);
-		ensureAlways(EntityConfig.EntityMeshConfig.Animation);
-
-		MeshComponent->SetRelativeTransform(EntityConfig.EntityMeshConfig.Transform);
-		MeshComponent->SetSkeletalMesh(EntityConfig.EntityMeshConfig.Mesh);
-		MeshComponent->SetMaterial(0, EntityConfig.EntityMeshConfig.Material);
-		MeshComponent->SetAnimInstanceClass(EntityConfig.EntityMeshConfig.Animation);
-
-		const FBoxSphereBounds MeshBounds = MeshComponent->GetLocalBounds();
-		const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
-		MeshComponent->SetRelativeLocation(-MeshOrigin);
-		const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
-		BoxComponent->SetBoxExtent(MeshExtent);
-
-		MeshComponentTransform = MeshComponent->GetRelativeTransform();
-		MeshComponentSkeletalMesh = MeshComponent->GetSkeletalMeshAsset();
-		MeshComponentMaterial = MeshComponent->GetMaterial(0);
-		MeshComponentAnimInstanceClass = MeshComponent->GetAnimClass();
-		BoxComponentExtent = BoxComponent->GetUnscaledBoxExtent();
+		OnRep_ConfigId();
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -200,44 +176,33 @@ TArray<IWpPooledObjectInterface*> AWpBuilding::GetInnerPooledObjects()
 
 void AWpBuilding::OnPooledActorVisibilityChanged(const bool bIsVisible)
 {
-	const bool bIsHidden = !bIsVisible;
-
-	if (MeshComponent->bHiddenInGame != bIsHidden)
-	{
-		MeshComponent->SetHiddenInGame(bIsHidden);
-		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsHidden ? ECR_Ignore : ECR_Block);
-	}
+	MeshComponent->SetHiddenInGame(!bIsVisible);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
 
 	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
 	{
-		if (WidgetComponent->bHiddenInGame != bIsHidden)
-		{
-			WidgetComponent->SetHiddenInGame(bIsHidden);
-		}
+		WidgetComponent->SetHiddenInGame(!bIsVisible);
 	}
 }
 
-void AWpBuilding::OnRep_MeshComponentTransform()
+void AWpBuilding::OnRep_ConfigId()
 {
-	MeshComponent->SetRelativeTransform(MeshComponentTransform);
-}
+	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const FName RowName = FName{FString::FromInt(ConfigId)};
+	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
-void AWpBuilding::OnRep_MeshComponentSkeletalMesh()
-{
-	MeshComponent->SetSkeletalMesh(MeshComponentSkeletalMesh);
-}
+	ensureAlways(EntityConfig.EntityMeshConfig.Mesh);
+	ensureAlways(EntityConfig.EntityMeshConfig.Material);
+	ensureAlways(EntityConfig.EntityMeshConfig.Animation);
 
-void AWpBuilding::OnRep_MeshComponentMaterial()
-{
-	MeshComponent->SetMaterial(0, MeshComponentMaterial);
-}
+	MeshComponent->SetRelativeTransform(EntityConfig.EntityMeshConfig.Transform);
+	MeshComponent->SetSkeletalMesh(EntityConfig.EntityMeshConfig.Mesh);
+	MeshComponent->SetMaterial(0, EntityConfig.EntityMeshConfig.Material);
+	MeshComponent->SetAnimInstanceClass(EntityConfig.EntityMeshConfig.Animation);
 
-void AWpBuilding::OnRep_MeshComponentAnimInstanceClass()
-{
-	MeshComponent->SetAnimInstanceClass(MeshComponentAnimInstanceClass);
-}
-
-void AWpBuilding::OnRep_BoxComponentExtent()
-{
-	BoxComponent->SetBoxExtent(BoxComponentExtent);
+	const FBoxSphereBounds MeshBounds = MeshComponent->GetLocalBounds();
+	const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
+	MeshComponent->SetRelativeLocation(-MeshOrigin);
+	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
+	BoxComponent->SetBoxExtent(MeshExtent);
 }

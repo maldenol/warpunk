@@ -54,15 +54,7 @@ public:
 
 private:
 	UFUNCTION()
-	void OnRep_MeshComponentTransform();
-	UFUNCTION()
-	void OnRep_MeshComponentSkeletalMesh();
-	UFUNCTION()
-	void OnRep_MeshComponentMaterial();
-	UFUNCTION()
-	void OnRep_MeshComponentAnimInstanceClass();
-	UFUNCTION()
-	void OnRep_CapsuleComponentSize();
+	void OnRep_ConfigId();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpBelligerentComponent> BelligerentComponent = nullptr;
@@ -77,19 +69,8 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpWeaponComponent> WeaponComponent = nullptr;
 
-	UPROPERTY(VisibleInstanceOnly)
+	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing=OnRep_ConfigId)
 	uint32 ConfigId = 0;
-
-	UPROPERTY(ReplicatedUsing=OnRep_MeshComponentTransform)
-	FTransform MeshComponentTransform = FTransform::Identity;
-	UPROPERTY(ReplicatedUsing=OnRep_MeshComponentSkeletalMesh)
-	TObjectPtr<USkeletalMesh> MeshComponentSkeletalMesh = nullptr;
-	UPROPERTY(ReplicatedUsing=OnRep_MeshComponentMaterial)
-	TObjectPtr<UMaterialInterface> MeshComponentMaterial = nullptr;
-	UPROPERTY(ReplicatedUsing=OnRep_MeshComponentAnimInstanceClass)
-	TSubclassOf<UAnimInstance> MeshComponentAnimInstanceClass = nullptr;
-	UPROPERTY(ReplicatedUsing=OnRep_CapsuleComponentSize)
-	FVector2D CapsuleComponentSize = FVector2D::ZeroVector;
 
 	static const FName BelligerentComponentName;
 	static const FName EnduranceComponentName;

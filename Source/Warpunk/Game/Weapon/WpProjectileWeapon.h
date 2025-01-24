@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 
+#include "Warpunk/Game/Weapon/WpProjectileConfig.h"
 #include "Warpunk/Game/Weapon/WpWeapon.h"
 
 class IWpEntityInterface;
@@ -25,8 +26,7 @@ private:
 	float CalcDiscriminantMinRange(const float HorizontalDelta, const float VerticalDelta, const float GravityZ) const;
 	float GetGravityZ() const;
 
-	float ProjectileRadius = 0.0f;
-	UStaticMesh* ProjectileMesh = nullptr;
+	FWpProjectileConfig ProjectileConfig = {};
 	bool bHighAngle = false;
 
 	float ProjectileSpeed = 0.0f;

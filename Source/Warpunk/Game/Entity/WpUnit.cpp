@@ -4,6 +4,7 @@
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
+#include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Movement/WpUnitMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
@@ -68,11 +69,7 @@ void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AWpUnit, MeshComponentTransform);
-	DOREPLIFETIME(AWpUnit, MeshComponentSkeletalMesh);
-	DOREPLIFETIME(AWpUnit, MeshComponentMaterial);
-	DOREPLIFETIME(AWpUnit, MeshComponentAnimInstanceClass);
-	DOREPLIFETIME(AWpUnit, CapsuleComponentSize);
+	DOREPLIFETIME(AWpUnit, ConfigId);
 }
 
 bool AWpUnit::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
@@ -155,39 +152,11 @@ void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWp
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
-		const FWpEntityConfig& EntityConfig = *PooledEntityData.EntityConfig;
 
 		ensureAlways(PooledEntityData.EntityConfigId > 0);
 
 		ConfigId = PooledEntityData.EntityConfigId;
-
-		ensureAlways(EntityConfig.EntityMeshConfig.Mesh);
-		ensureAlways(EntityConfig.EntityMeshConfig.Material);
-		ensureAlways(EntityConfig.EntityMeshConfig.Animation);
-
-		USkeletalMeshComponent* const MeshComponent = GetMesh();
-		MeshComponent->SetRelativeTransform(EntityConfig.EntityMeshConfig.Transform);
-		MeshComponent->SetSkeletalMesh(EntityConfig.EntityMeshConfig.Mesh);
-		MeshComponent->SetMaterial(0, EntityConfig.EntityMeshConfig.Material);
-		MeshComponent->SetAnimInstanceClass(EntityConfig.EntityMeshConfig.Animation);
-
-		const FBoxSphereBounds MeshBounds = MeshComponent->GetLocalBounds();
-		const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
-		MeshComponent->SetRelativeLocation(-MeshOrigin);
-		const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
-		const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
-		const float HalfHeight = MeshExtent.Z;
-		UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
-		CapsuleComp->SetCapsuleSize(Radius, HalfHeight);
-
-		CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation());
-
-		MeshComponentTransform = MeshComponent->GetRelativeTransform();
-		MeshComponentSkeletalMesh = MeshComponent->GetSkeletalMeshAsset();
-		MeshComponentMaterial = MeshComponent->GetMaterial(0);
-		MeshComponentAnimInstanceClass = MeshComponent->GetAnimClass();
-		CapsuleComponentSize.X = CapsuleComp->GetUnscaledCapsuleRadius();
-		CapsuleComponentSize.Y = CapsuleComp->GetUnscaledCapsuleHalfHeight();
+		OnRep_ConfigId();
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -216,61 +185,51 @@ TArray<IWpPooledObjectInterface*> AWpUnit::GetInnerPooledObjects()
 
 void AWpUnit::OnPooledActorVisibilityChanged(const bool bIsVisible)
 {
-	const bool bIsHidden = !bIsVisible;
-
 	UMeshComponent* const MeshComponent = GetMesh();
-	if (MeshComponent->bHiddenInGame != bIsHidden)
-	{
-		MeshComponent->SetHiddenInGame(bIsHidden);
-		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsHidden ? ECR_Ignore : ECR_Block);
-	}
+	MeshComponent->SetHiddenInGame(!bIsVisible);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
 
 	if (!HasAuthority())
 	{
 		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
-		if (MovementComponent->IsComponentTickEnabled() != bIsVisible)
-		{
-			MovementComponent->SetComponentTickEnabled(bIsVisible);
+		MovementComponent->SetComponentTickEnabled(bIsVisible);
 
-			if (!bIsVisible)
-			{
-				MovementComponent->Velocity = FVector::ZeroVector;
-			}
+		if (!bIsVisible)
+		{
+			MovementComponent->Velocity = FVector::ZeroVector;
 		}
 	}
 
 	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
 	{
-		if (WidgetComponent->bHiddenInGame != bIsHidden)
-		{
-			WidgetComponent->SetHiddenInGame(bIsHidden);
-		}
+		WidgetComponent->SetHiddenInGame(!bIsVisible);
 	}
 }
 
-void AWpUnit::OnRep_MeshComponentTransform()
+void AWpUnit::OnRep_ConfigId()
 {
-	GetMesh()->SetRelativeTransform(MeshComponentTransform);
+	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const FName RowName = FName{FString::FromInt(ConfigId)};
+	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
-	CacheInitialMeshOffset(GetMesh()->GetRelativeLocation(), GetMesh()->GetRelativeRotation());
-}
+	ensureAlways(EntityConfig.EntityMeshConfig.Mesh);
+	ensureAlways(EntityConfig.EntityMeshConfig.Material);
+	ensureAlways(EntityConfig.EntityMeshConfig.Animation);
 
-void AWpUnit::OnRep_MeshComponentSkeletalMesh()
-{
-	GetMesh()->SetSkeletalMesh(MeshComponentSkeletalMesh);
-}
+	USkeletalMeshComponent* const MeshComponent = GetMesh();
+	MeshComponent->SetRelativeTransform(EntityConfig.EntityMeshConfig.Transform);
+	MeshComponent->SetSkeletalMesh(EntityConfig.EntityMeshConfig.Mesh);
+	MeshComponent->SetMaterial(0, EntityConfig.EntityMeshConfig.Material);
+	MeshComponent->SetAnimInstanceClass(EntityConfig.EntityMeshConfig.Animation);
 
-void AWpUnit::OnRep_MeshComponentMaterial()
-{
-	GetMesh()->SetMaterial(0, MeshComponentMaterial);
-}
+	const FBoxSphereBounds MeshBounds = MeshComponent->GetLocalBounds();
+	const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
+	MeshComponent->SetRelativeLocation(-MeshOrigin);
+	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
+	const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
+	const float HalfHeight = MeshExtent.Z;
+	UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
+	CapsuleComp->SetCapsuleSize(Radius, HalfHeight);
 
-void AWpUnit::OnRep_MeshComponentAnimInstanceClass()
-{
-	GetMesh()->SetAnimInstanceClass(MeshComponentAnimInstanceClass);
-}
-
-void AWpUnit::OnRep_CapsuleComponentSize()
-{
-	GetCapsuleComponent()->SetCapsuleSize(CapsuleComponentSize.X, CapsuleComponentSize.Y);
+	CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation());
 }

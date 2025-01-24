@@ -97,6 +97,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 
 				FWpPooledWeaponData PooledWeaponData;
 				PooledWeaponData.WeaponConfig = &WeaponConfig;
+				PooledWeaponData.ProjectileConfig = FWpProjectileConfig{PooledEntityData.EntityConfigId, Index};
 				Weapon->AcquirePooledObject(PooledWeaponData);
 
 				const float Range = Weapon->GetRange() * ((WeaponConfig.Type == EWpWeaponType::Projectile) ? 3.0f : 1.0f);

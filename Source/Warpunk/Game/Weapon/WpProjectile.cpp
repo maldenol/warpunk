@@ -1,6 +1,8 @@
 #include "WpProjectile.h"
 
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
@@ -41,9 +43,6 @@ AWpProjectile::AWpProjectile()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(MovementComponentName);
-	MovementComponent->bSimulationEnabled = false;
-	MovementComponent->bInterpMovement = true;
-	MovementComponent->bInterpRotation = true;
 	MovementComponent->SetInterpolatedComponent(MeshComponent);
 
 	OnPooledActorVisibilityChanged(false);
@@ -53,21 +52,23 @@ void AWpProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
-	{
-		MovementComponent->bSimulationEnabled = true;
+	const bool bHasAuthority = HasAuthority();
 
+	if (bHasAuthority)
+	{
 		SphereComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
 	}
+
+	MovementComponent->bSimulationEnabled = bHasAuthority;
+	MovementComponent->bInterpMovement = !bHasAuthority;
+	MovementComponent->bInterpRotation = !bHasAuthority;
 }
 
 void AWpProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AWpProjectile, SphereComponentRadius);
-	DOREPLIFETIME(AWpProjectile, MeshComponentStaticMesh);
-	DOREPLIFETIME(AWpProjectile, MeshComponentScale);
+	DOREPLIFETIME(AWpProjectile, ProjectileConfig);
 }
 
 bool AWpProjectile::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
@@ -95,27 +96,15 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 	{
 		const FWpPooledProjectileData& PooledProjectileData = static_cast<const FWpPooledProjectileData&>(PooledObjectData);
 
-		ensureAlways(PooledProjectileData.Radius >= 1.0f);
-		ensureAlways(PooledProjectileData.Weapon);
-		ensureAlways(PooledProjectileData.Mesh);
+		ensureAlways(PooledProjectileData.ProjectileConfig.EntityConfigId > 0);
 		ensureAlways(!PooledProjectileData.InitialVelocity.IsNearlyZero());
+		ensureAlways(PooledProjectileData.Weapon);
 
-		const float Radius = PooledProjectileData.Radius;
+		ProjectileConfig = PooledProjectileData.ProjectileConfig;
+		OnRep_ProjectileConfig();
 
-		Weapon = PooledProjectileData.Weapon;
-		SphereComponent->SetSphereRadius(Radius);
-		MeshComponent->SetStaticMesh(PooledProjectileData.Mesh);
 		MovementComponent->Velocity = PooledProjectileData.InitialVelocity;
-
-		const FVector MeshExtent = MeshComponent->GetStaticMesh()->GetBounds().BoxExtent;
-		const float ScaleX = Radius / MeshExtent.X;
-		const float ScaleY = Radius / MeshExtent.Y;
-		const float ScaleZ = Radius / MeshExtent.Z;
-		MeshComponent->SetRelativeScale3D(FVector{ScaleX, ScaleY, ScaleZ});
-
-		SphereComponentRadius = SphereComponent->GetUnscaledSphereRadius();
-		MeshComponentStaticMesh = MeshComponent->GetStaticMesh();
-		MeshComponentScale = MeshComponent->GetRelativeScale3D();
+		Weapon = PooledProjectileData.Weapon;
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -127,19 +116,11 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 void AWpProjectile::OnPooledActorVisibilityChanged(const bool bIsVisible)
 {
-	const bool bIsHidden = !bIsVisible;
-
-	if (MeshComponent->bHiddenInGame != bIsHidden)
-	{
-		MeshComponent->SetHiddenInGame(bIsHidden);
-	}
+	MeshComponent->SetHiddenInGame(!bIsVisible);
 
 	if (!HasAuthority())
 	{
-		if (MovementComponent->IsComponentTickEnabled() != bIsVisible)
-		{
-			MovementComponent->SetComponentTickEnabled(bIsVisible);
-		}
+		MovementComponent->SetComponentTickEnabled(bIsVisible);
 	}
 }
 
@@ -155,17 +136,24 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 	AWpActorPool::Release<AWpProjectile>(this);
 }
 
-void AWpProjectile::OnRep_SphereComponentRadius()
+void AWpProjectile::OnRep_ProjectileConfig()
 {
-	SphereComponent->SetSphereRadius(SphereComponentRadius);
-}
+	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const FName RowName = FName{FString::FromInt(ProjectileConfig.EntityConfigId)};
+	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+	const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
 
-void AWpProjectile::OnRep_MeshComponentStaticMesh()
-{
-	MeshComponent->SetStaticMesh(MeshComponentStaticMesh);
-}
+	ensureAlways(WeaponConfig.ProjectileRadius >= 1.0f);
+	ensureAlways(WeaponConfig.ProjectileMesh);
 
-void AWpProjectile::OnRep_MeshComponentScale()
-{
-	MeshComponent->SetRelativeScale3D(MeshComponentScale);
+	const float Radius = WeaponConfig.ProjectileRadius;
+
+	SphereComponent->SetSphereRadius(Radius);
+	MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
+
+	const FVector MeshExtent = MeshComponent->GetStaticMesh()->GetBounds().BoxExtent;
+	const float ScaleX = Radius / MeshExtent.X;
+	const float ScaleY = Radius / MeshExtent.Y;
+	const float ScaleZ = Radius / MeshExtent.Z;
+	MeshComponent->SetRelativeScale3D(FVector{ScaleX, ScaleY, ScaleZ});
 }

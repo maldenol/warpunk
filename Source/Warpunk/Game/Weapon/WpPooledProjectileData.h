@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 
 #include "Warpunk/Game/Pool/WpPooledObjectData.h"
+#include "Warpunk/Game/Weapon/WpProjectileConfig.h"
 
 class FWpProjectileWeapon;
 
 struct FWpPooledProjectileData final : FWpPooledObjectData
 {
-	FWpProjectileWeapon* Weapon = nullptr;
-	float Radius = 0.0f;
-	UStaticMesh* Mesh = nullptr;
+	FWpProjectileConfig ProjectileConfig = {};
 	FVector InitialVelocity = FVector::ZeroVector;
+	FWpProjectileWeapon* Weapon = nullptr;
 };

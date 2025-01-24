@@ -19,11 +19,9 @@ void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquire
 		const FWpPooledWeaponData& PooledWeaponData = static_cast<const FWpPooledWeaponData&>(PooledObjectData);
 		const FWpWeaponConfig& WeaponConfig = *PooledWeaponData.WeaponConfig;
 
-		ensureAlways(WeaponConfig.ProjectileRadius >= 1.0f);
-		ensureAlways(WeaponConfig.ProjectileMesh);
+		ensureAlways(PooledWeaponData.ProjectileConfig.EntityConfigId > 0);
 
-		ProjectileRadius = WeaponConfig.ProjectileRadius;
-		ProjectileMesh = WeaponConfig.ProjectileMesh;
+		ProjectileConfig = PooledWeaponData.ProjectileConfig;
 		bHighAngle = WeaponConfig.bHighAngle;
 
 		const float GravityZ = GetGravityZ();
@@ -96,10 +94,9 @@ void FWpProjectileWeapon::Fire(const FVector& Location)
 	const FVector InitialVelocity = FireVector * ProjectileSpeed;
 
 	FWpPooledProjectileData PooledProjectileData;
-	PooledProjectileData.Weapon = this;
-	PooledProjectileData.Radius = ProjectileRadius;
-	PooledProjectileData.Mesh = ProjectileMesh;
+	PooledProjectileData.ProjectileConfig = ProjectileConfig;
 	PooledProjectileData.InitialVelocity = InitialVelocity;
+	PooledProjectileData.Weapon = this;
 
 	AWpActorPool::Acquire<AWpProjectile>(ProjectileLocation, FRotator::ZeroRotator, PooledProjectileData);
 }

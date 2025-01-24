@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Weapon/WpProjectileConfig.h"
 
 #include "GameFramework/Actor.h"
 
@@ -37,11 +38,7 @@ private:
 	void OnComponentHit(UPrimitiveComponent* const HitComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const FVector NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION()
-	void OnRep_SphereComponentRadius();
-	UFUNCTION()
-	void OnRep_MeshComponentStaticMesh();
-	UFUNCTION()
-	void OnRep_MeshComponentScale();
+	void OnRep_ProjectileConfig();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> SphereComponent = nullptr;
@@ -52,12 +49,8 @@ private:
 
 	FWpProjectileWeapon* Weapon = nullptr;
 
-	UPROPERTY(ReplicatedUsing=OnRep_SphereComponentRadius)
-	float SphereComponentRadius = 0.0f;
-	UPROPERTY(ReplicatedUsing=OnRep_MeshComponentStaticMesh)
-	TObjectPtr<UStaticMesh> MeshComponentStaticMesh = nullptr;
-	UPROPERTY(ReplicatedUsing = OnRep_MeshComponentScale)
-	FVector MeshComponentScale = FVector::OneVector;
+	UPROPERTY(ReplicatedUsing=OnRep_ProjectileConfig)
+	FWpProjectileConfig ProjectileConfig = {};
 
 	static const FName SphereComponentName;
 	static const FName MeshComponentName;
