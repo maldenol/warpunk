@@ -9,14 +9,12 @@ void FWpStrikeOrderHandler::Reactivate()
 	FWpOrderHandler::Reactivate();
 
 	WeaponComponent = GetEntity()->GetWeaponComponent();
+	ensureAlways(WeaponComponent->IsActive());
 
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
 		WaitingWeapons[Index] = WeaponComponent->GetWeapon(Index) != nullptr;
 	}
-
-	const bool bHasAtLeastOneWeapon = WeaponComponent->GetWeapon(0) != nullptr;
-	ensureAlways(bHasAtLeastOneWeapon);
 }
 
 void FWpStrikeOrderHandler::Tick(const float CurrentTime)

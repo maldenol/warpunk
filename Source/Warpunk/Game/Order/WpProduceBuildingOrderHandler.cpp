@@ -13,6 +13,7 @@ void FWpProduceBuildingOrderHandler::Initialize(IWpEntityInterface* const InEnti
 	ensureAlways(AIController);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
+	ensureAlways(ProductionComponent->IsActive());
 }
 
 void FWpProduceBuildingOrderHandler::Reactivate()

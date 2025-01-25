@@ -19,6 +19,7 @@ void FWpReclaimOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 	ensureAlways(AIController);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
+	ensureAlways(ProductionComponent->IsActive());
 }
 
 void FWpReclaimOrderHandler::Reactivate()

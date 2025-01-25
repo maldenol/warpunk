@@ -7,5 +7,7 @@ void FWpInfiniteUnitProductionOnOrderHandler::Execute(const FWpOrder& InOrder)
 {
 	FWpOrderHandler::Execute(InOrder);
 
-	GetEntity()->GetProductionComponent()->EnableInfiniteProduction(true);
+	UWpProductionComponent* const ProductionComponent = GetEntity()->GetProductionComponent();
+	ensureAlways(ProductionComponent->IsActive());
+	ProductionComponent->EnableInfiniteProduction(true);
 }

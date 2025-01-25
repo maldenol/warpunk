@@ -13,6 +13,7 @@ const FName UWpOrderReceiverComponent::SelectionWidgetComponentName = TEXT("Sele
 
 const TSet<EWpOrderType> UWpOrderReceiverComponent::ImmediateOrders =
 {
+	EWpOrderType::Assist,
 	EWpOrderType::InfiniteUnitProductionOff,
 	EWpOrderType::InfiniteUnitProductionOn,
 	EWpOrderType::SelfDestruct,
@@ -141,14 +142,14 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 	SetComponentTickEnabled(bIsAcquired);
 }
 
-bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool bOverride)
+void UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool bOverride)
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Wreck)
 	{
-		return false;
+		return;
 	}
 
 	const bool bIsProxyOrder = bShouldProxyOrders && ProductionProxyOrders.Contains(Order.Type);
@@ -166,12 +167,12 @@ bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool b
 		{
 			OrderReceivedEvent.Broadcast(Order);
 		}
-		return true;
+		return;
 	}
 
 	if (!SupportedOrders.Contains(Order.Type))
 	{
-		return false;
+		return;
 	}
 
 	if (Order.TargetEntityActor == GetOwner())
@@ -180,7 +181,7 @@ bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool b
 		{
 			OrderReceivedEvent.Broadcast(Order);
 		}
-		return false;
+		return;
 	}
 
 	if (ImmediateOrders.Contains(Order.Type))
@@ -228,13 +229,9 @@ bool UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool b
 				OrderQueue.Enqueue(Order);
 			}
 		}
-	}
 
-	if (!bIsProxyOrder)
-	{
 		OrderReceivedEvent.Broadcast(Order);
 	}
-	return true;
 }
 
 FWpOrder UWpOrderReceiverComponent::GetOrder() const
@@ -296,14 +293,6 @@ void UWpOrderReceiverComponent::Select(const bool bSelected)
 	}
 
 	SelectionWidgetComponent->SetVisibility(bSelected);
-}
-
-void UWpOrderReceiverComponent::NotifyOrderReceived(const FWpOrder& Order)
-{
-	ensureAlways(IsActive());
-	ensureAlways(GetOwner()->HasAuthority());
-
-	OrderReceivedEvent.Broadcast(Order);
 }
 
 void UWpOrderReceiverComponent::SetUnitToProduceConfigIdNumbers(const TArray<FWpConfigIdNumber>& InUnitToProduceConfigIdNumbers)

@@ -2,114 +2,63 @@
 
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
+#include "Warpunk/Game/Production/WpProductionComponent.h"
 
-#include "AIController.h"
-#include "Navigation/PathFollowingComponent.h"
-
-const FName FWpAssistOrderHandler::MimicOrderReceiverComponentName = TEXT("MimicOrderReceiverComponent");
-
-FWpAssistOrderHandler::FWpAssistOrderHandler()
+void FWpAssistOrderHandler::Execute(const FWpOrder& InOrder)
 {
-	SetTickCooldown(0.25f);
-}
+	FWpOrderHandler::Execute(InOrder);
 
-void FWpAssistOrderHandler::Initialize(IWpEntityInterface* const InEntity)
-{
-	FWpOrderHandler::Initialize(InEntity);
-
-	AIController = Cast<APawn>(InEntity)->GetController<AAIController>();
-	ensureAlways(AIController);
-
-	OrderReceiverComponent = InEntity->GetOrderReceiverComponent();
-}
-
-void FWpAssistOrderHandler::Reactivate()
-{
-	FWpOrderHandler::Reactivate();
-
-	if (!GetOrder().TargetEntityActor)
+	const IWpEntityInterface* const TargetEntity = InOrder.GetTargetEntity();
+	if (!TargetEntity)
 	{
-		Finish();
 		return;
 	}
 
-	MimicOrderReceiverComponent = NewObject<UWpOrderReceiverComponent>(Cast<AActor>(GetEntity()), UWpOrderReceiverComponent::StaticClass(), MimicOrderReceiverComponentName);
-	MimicOrderReceiverComponent->RegisterComponent();
-	MimicOrderReceiverComponent->Activate();
-	MimicOrderReceiverComponent->SetDefaultOrders(OrderReceiverComponent->GetDefaultOrders());
-	MimicOrderReceiverComponent->SetSupportedOrders(OrderReceiverComponent->GetSupportedOrders());
-	MimicOrderReceiverComponent->SetShouldProxyOrders(false);
+	UWpOrderReceiverComponent* const OrderReceiverComponent = GetEntity()->GetOrderReceiverComponent();
 
-	UWpOrderReceiverComponent* const TargetEntityOrderReceiverComponent = GetOrder().GetTargetEntity()->GetOrderReceiverComponent();
-	if (!OnOrderReceivedDelegateHandle.IsValid())
+	const UWpOrderReceiverComponent* const TargetOrderReceiverComponent = TargetEntity->GetOrderReceiverComponent();
+	if (TargetOrderReceiverComponent->IsActive())
 	{
-		OnOrderReceivedDelegateHandle = TargetEntityOrderReceiverComponent->OnOrderReceived().AddRaw(this, &FWpAssistOrderHandler::OnOrderReceived);
-	}
-	OnOrderReceived(TargetEntityOrderReceiverComponent->GetOrder());
-}
+		const FWpOrder TargetOrder = TargetOrderReceiverComponent->GetOrder();
 
-void FWpAssistOrderHandler::Tick(const float CurrentTime)
-{
-	FWpOrderHandler::Tick(CurrentTime);
+		const bool bCanAssistAttack = GetEntity()->GetWeaponComponent()->IsActive()
+			&& (TargetOrder.Type == EWpOrderType::Attack);
 
-	if (!bCanAssist)
-	{
-		static constexpr float Radius = 300.0f;
-		const float Distance2 = FVector::DistSquared2D(Cast<AActor>(GetEntity())->GetActorLocation(), GetOrder().TargetEntityActor->GetActorLocation());
-		const bool bIsInRange = Distance2 <= Radius * Radius;
-		const bool bIsMoving = AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle;
-		if (!bIsInRange && !bIsMoving)
+		const bool bCanAssistProduction = GetEntity()->GetProductionComponent()->IsActive()
+			&& ((TargetOrder.Type == EWpOrderType::ProduceBuilding)
+				|| (TargetOrder.Type == EWpOrderType::ProduceUnit)
+				|| (TargetOrder.Type == EWpOrderType::Repair)
+				|| (TargetOrder.Type == EWpOrderType::Reclaim));
+
+		const bool bCanAssistPatrol = OrderReceiverComponent->GetSupportedOrders().Contains(EWpOrderType::Patrol)
+			&& (TargetOrder.Type == EWpOrderType::Patrol);
+
+		if (bCanAssistAttack || bCanAssistProduction || bCanAssistPatrol)
 		{
-			AIController->MoveToActor(GetOrder().TargetEntityActor, Radius, false, true, false, nullptr, false);
+			OrderReceiverComponent->ReceiveOrder(TargetOrder, true);
+			return;
 		}
 	}
-}
 
-void FWpAssistOrderHandler::Deactivate()
-{
-	if (GetOrder().TargetEntityActor)
+	const bool bCanRepair = GetEntity()->GetProductionComponent()->IsActive()
+		&& GetEntity()->GetProductionComponent()->CanRepair(TargetEntity);
+	if (bCanRepair)
 	{
-		GetOrder().GetTargetEntity()->GetOrderReceiverComponent()->OnOrderReceived().Remove(OnOrderReceivedDelegateHandle);
-	}
-	OnOrderReceivedDelegateHandle.Reset();
-
-	MimicOrderReceiverComponent->DestroyComponent();
-	MimicOrderReceiverComponent = nullptr;
-
-	if (AIController)
-	{
-		AIController->StopMovement();
-	}
-
-	FWpOrderHandler::Deactivate();
-}
-
-void FWpAssistOrderHandler::OnOrderReceived(const FWpOrder& InOrder)
-{
-	if (!GetOrder().TargetEntityActor)
-	{
-		Finish();
+		FWpOrder RepairOrder;
+		RepairOrder.Type = EWpOrderType::Repair;
+		RepairOrder.TargetEntityActor = InOrder.TargetEntityActor;
+		OrderReceiverComponent->ReceiveOrder(RepairOrder, true);
 		return;
 	}
 
-	if (!bCanAssist)
+	if (OrderReceiverComponent->GetSupportedOrders().Contains(EWpOrderType::Move))
 	{
-		AIController->StopMovement();
-		bCanAssist = true;
-	}
-
-	if (MimicOrderReceiverComponent->ReceiveOrder(InOrder, true))
-	{
+		FWpOrder MoveOrder;
+		MoveOrder.Type = EWpOrderType::Move;
+		MoveOrder.TargetLocation = InOrder.TargetEntityActor->GetActorLocation();
+		OrderReceiverComponent->ReceiveOrder(MoveOrder, true);
 		return;
 	}
 
-	FWpOrder RepairOrder;
-	RepairOrder.Type = EWpOrderType::Repair;
-	RepairOrder.TargetEntityActor = GetOrder().TargetEntityActor;
-	if (MimicOrderReceiverComponent->ReceiveOrder(RepairOrder, true))
-	{
-		return;
-	}
-
-	bCanAssist = false;
+	ensureAlways(false);
 }

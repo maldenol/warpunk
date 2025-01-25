@@ -29,7 +29,7 @@ public:
 
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
-	bool ReceiveOrder(const FWpOrder& Order, const bool bOverride);
+	void ReceiveOrder(const FWpOrder& Order, const bool bOverride);
 	FWpOrder GetOrder() const;
 
 	void SetDefaultOrders(const FWpDefaultOrders& InDefaultOrders);
@@ -39,8 +39,6 @@ public:
 	void SetShouldProxyOrders(const bool bInShouldProxyOrders);
 
 	void Select(const bool bSelected);
-
-	void NotifyOrderReceived(const FWpOrder& Order);
 
 	void SetUnitToProduceConfigIdNumbers(const TArray<FWpConfigIdNumber>& InUnitToProduceConfigIdNumbers);
 	const TArray<FWpConfigIdNumber>& GetUnitToProduceConfigIdNumbers() const;

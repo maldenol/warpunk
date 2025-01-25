@@ -19,6 +19,7 @@ void FWpRepairOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 	ensureAlways(AIController);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
+	ensureAlways(ProductionComponent->IsActive());
 }
 
 void FWpRepairOrderHandler::Reactivate()

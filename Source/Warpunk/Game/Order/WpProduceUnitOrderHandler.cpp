@@ -10,6 +10,7 @@ void FWpProduceUnitOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 	FWpOrderHandler::Initialize(InEntity);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
+	ensureAlways(ProductionComponent->IsActive());
 }
 
 void FWpProduceUnitOrderHandler::Reactivate()

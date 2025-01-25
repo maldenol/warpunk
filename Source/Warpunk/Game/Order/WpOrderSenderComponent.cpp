@@ -622,7 +622,8 @@ void UWpOrderSenderComponent::PopulateUnitToProduceConfigIdNumbersPerProducer()
 
 		for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
 		{
-			UnitToProduceConfigIdNumbersPerProducer.Emplace(SelectedEntity,
+			UnitToProduceConfigIdNumbersPerProducer.Emplace(
+				SelectedEntity,
 				FWpConfigIdNumber::ToMap(SelectedEntity->GetOrderReceiverComponent()->GetUnitToProduceConfigIdNumbers()));
 		}
 	}

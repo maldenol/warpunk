@@ -411,11 +411,6 @@ void UWpProductionComponent::Produce()
 
 	ProductionState = NewProductionState;
 	SetCurrentTargetEntity(Entity);
-
-	FWpOrder RepairOrder;
-	RepairOrder.Type = EWpOrderType::Repair;
-	RepairOrder.TargetEntityActor = Cast<AActor>(CurrentTargetEntity);
-	GetOwner<IWpEntityInterface>()->GetOrderReceiverComponent()->NotifyOrderReceived(RepairOrder);
 }
 
 void UWpProductionComponent::Repair(const float DeltaTime)

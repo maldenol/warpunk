@@ -20,6 +20,7 @@ void FWpAttackOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 	ensureAlways(AIController);
 
 	WeaponComponent = GetEntity()->GetWeaponComponent();
+	ensureAlways(WeaponComponent->IsActive());
 
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
@@ -35,9 +36,6 @@ void FWpAttackOrderHandler::Initialize(IWpEntityInterface* const InEntity)
 			break;
 		}
 	}
-
-	const bool bHasAtLeastOneWeapon = ShortestRangeWeapon != nullptr;
-	ensureAlways(bHasAtLeastOneWeapon);
 }
 
 void FWpAttackOrderHandler::Reactivate()

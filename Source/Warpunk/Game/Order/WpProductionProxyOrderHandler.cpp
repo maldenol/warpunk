@@ -7,5 +7,7 @@ void FWpProductionProxyOrderHandler::Execute(const FWpOrder& InOrder)
 {
 	FWpOrderHandler::Execute(InOrder);
 
-	GetEntity()->GetProductionComponent()->ReceiveProxyOrder(InOrder, InOrder.bOverride);
+	UWpProductionComponent* const ProductionComponent = GetEntity()->GetProductionComponent();
+	ensureAlways(ProductionComponent->IsActive());
+	ProductionComponent->ReceiveProxyOrder(InOrder, InOrder.bOverride);
 }
