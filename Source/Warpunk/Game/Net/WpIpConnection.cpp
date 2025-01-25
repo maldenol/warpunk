@@ -9,7 +9,7 @@ void UWpIpConnection::FlushDormancy(AActor* const Actor)
 {
 	if (PlayerController->GetClass()->IsChildOf<AWpGamePlayerController>())
 	{
-		if (Actor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
+		if (Actor->Implements<UWpPooledActorInterface>())
 		{
 			const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
 			const uint32 PlayerTeamId = PlayerState->GetTeamId();

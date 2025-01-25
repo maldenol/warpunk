@@ -45,7 +45,7 @@ void FWpPatrolOrderHandler::Reactivate()
 
 void FWpPatrolOrderHandler::Deactivate()
 {
-	if (IsValid(AIController))
+	if (AIController)
 	{
 		AIController->OnMovementCompleted().Remove(OnMovementCompletedDelegateHandle);
 		AIController->StopMovement();

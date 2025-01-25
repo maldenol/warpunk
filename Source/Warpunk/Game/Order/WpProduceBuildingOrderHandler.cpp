@@ -40,7 +40,7 @@ void FWpProduceBuildingOrderHandler::Deactivate()
 	OnRepairFinishedDelegateHandle.Reset();
 	ProductionComponent->Stop();
 
-	if (IsValid(AIController))
+	if (AIController)
 	{
 		AIController->StopMovement();
 	}

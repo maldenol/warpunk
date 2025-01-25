@@ -35,7 +35,7 @@ public:
 	void SetDefaultOrders(const FWpDefaultOrders& InDefaultOrders);
 	const FWpDefaultOrders& GetDefaultOrders() const;
 	void SetSupportedOrders(const TArray<EWpOrderType>& InSupportedOrders);
-	TArray<EWpOrderType> GetSupportedOrders() const;
+	const TArray<EWpOrderType>& GetSupportedOrders() const;
 	void SetShouldProxyOrders(const bool bInShouldProxyOrders);
 
 	void Select(const bool bSelected);

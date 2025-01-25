@@ -74,3 +74,6 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Unreal Editor Temp
+enc_temp_folder/*

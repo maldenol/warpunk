@@ -4,6 +4,7 @@
 
 #include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
+enum class EWpEntityState : uint8;
 class IWpEntityInterface;
 
 class FWpWeapon : public IWpPooledObjectInterface
@@ -27,6 +28,7 @@ public:
 
 	float GetRange() const;
 	float GetMinRange() const;
+	void ClearCurrentTargetEntity();
 	IWpEntityInterface* GetCurrentTargetEntity() const;
 	void SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity);
 
@@ -41,7 +43,11 @@ protected:
 	const IWpEntityInterface* GetOwnerEntity() const;
 
 private:
+	void SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity);
+
 	void UpdateCurrentTargetEntity();
+
+	void OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
 
 	IWpEntityInterface* OwnerEntity = nullptr;
 
@@ -54,6 +60,8 @@ private:
 	float LastFireTime = 0.0f;
 	IWpEntityInterface* CurrentTargetEntity = nullptr;
 	IWpEntityInterface* PriorityTargetEntity = nullptr;
+
+	FDelegateHandle OnCurrentTargetEntityStateChangedDelegateHandle = {};
 
 	float LastUpdateCurrentTargetEntityTime = 0.0f;
 	const float UpdateCurrentTargetEntityCooldown = 0.25f;

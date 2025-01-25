@@ -1,6 +1,7 @@
 #include "WpWeapon.h"
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
@@ -25,6 +26,11 @@ void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		Cooldown = 1.0f / WeaponConfig.FireRate;
 		Damage = WeaponConfig.Damage;
 		FireLocation = WeaponConfig.FireLocation;
+	}
+	else
+	{
+		SetCurrentTargetEntity(nullptr);
+		PriorityTargetEntity = nullptr;
 	}
 }
 
@@ -107,6 +113,13 @@ float FWpWeapon::GetMinRange() const
 	return MinRange;
 }
 
+void FWpWeapon::ClearCurrentTargetEntity()
+{
+	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+
+	SetCurrentTargetEntity(nullptr);
+}
+
 IWpEntityInterface* FWpWeapon::GetCurrentTargetEntity() const
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
@@ -119,6 +132,13 @@ void FWpWeapon::SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTarg
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
 	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+
+	const UWpBelligerentComponent* const BelligerentComponent = OwnerEntity->GetBelligerentComponent();
+	const bool bPriorityTargetBelongsToSameTeam = BelligerentComponent->BelongsToSameTeam(InPriorityTargetEntity->GetBelligerentComponent());
+	if (bPriorityTargetBelongsToSameTeam)
+	{
+		return;
+	}
 
 	PriorityTargetEntity = InPriorityTargetEntity;
 }
@@ -165,6 +185,31 @@ const IWpEntityInterface* FWpWeapon::GetOwnerEntity() const
 	return OwnerEntity;
 }
 
+void FWpWeapon::SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity)
+{
+	if (NewTargetEntity)
+	{
+		ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
+	}
+	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+
+	if (CurrentTargetEntity)
+	{
+		ensureAlways(OnCurrentTargetEntityStateChangedDelegateHandle.IsValid());
+		UWpEnduranceComponent* const CurrentTargetEnduranceComponent = CurrentTargetEntity->GetEnduranceComponent();
+		CurrentTargetEnduranceComponent->OnEntityStateChanged().Remove(OnCurrentTargetEntityStateChangedDelegateHandle);
+	}
+
+	if (NewTargetEntity)
+	{
+		UWpEnduranceComponent* const NewTargetEnduranceComponent = NewTargetEntity->GetEnduranceComponent();
+		OnCurrentTargetEntityStateChangedDelegateHandle =
+			NewTargetEnduranceComponent->OnEntityStateChanged().AddRaw(this, &FWpWeapon::OnCurrentTargetEntityStateChanged);
+	}
+
+	CurrentTargetEntity = NewTargetEntity;
+}
+
 void FWpWeapon::UpdateCurrentTargetEntity()
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
@@ -189,23 +234,38 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 	{
 		const AActor* const CurrentTargetActor = Cast<AActor>(CurrentTargetEntity);
 
-		const bool bIsCurrentTargetVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CurrentTargetActor);
-		if (!bIsCurrentTargetVisible)
+		const bool bCurrentTargetIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CurrentTargetActor);
+		if (!bCurrentTargetIsVisible)
 		{
-			CurrentTargetEntity = nullptr;
+			SetCurrentTargetEntity(nullptr);
 		}
 		else
 		{
 			const bool bCanReachCurrentTarget = EntitiesInReach.Contains(CurrentTargetEntity);
 			if (!bCanReachCurrentTarget)
 			{
-				CurrentTargetEntity = nullptr;
+				SetCurrentTargetEntity(nullptr);
 			}
 		}
 	}
 
 	const bool bCurrentTargetIsPriorityTarget = CurrentTargetEntity && (CurrentTargetEntity == PriorityTargetEntity);
 	if (bCurrentTargetIsPriorityTarget)
+	{
+		return;
+	}
+
+	if (PriorityTargetEntity && EntitiesInReach.Contains(PriorityTargetEntity))
+	{
+		const bool bPriorityTargetIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, Cast<AActor>(PriorityTargetEntity));
+		if (bPriorityTargetIsVisible)
+		{
+			SetCurrentTargetEntity(PriorityTargetEntity);
+			return;
+		}
+	}
+
+	if (CurrentTargetEntity)
 	{
 		return;
 	}
@@ -220,27 +280,33 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 
 		const AActor* const CandidateActor = Cast<AActor>(CandidateEntity);
 
-		const bool bIsCandidateVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CandidateActor);
-		if (!bIsCandidateVisible)
+		const bool bCandidateIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CandidateActor);
+		if (!bCandidateIsVisible)
 		{
 			continue;
 		}
 
-		const FVector CandidateLocation = CandidateActor->GetActorLocation();
+		const bool bCandidateBelongsToSameTeam = OwnerEntity->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
+		if (bCandidateBelongsToSameTeam)
+		{
+			continue;
+		}
 
-		const bool bCanReachCandidate = CanReach(CandidateLocation);
+		const bool bCanReachCandidate = CanReach(CandidateActor->GetActorLocation());
 		if (!bCanReachCandidate)
 		{
 			continue;
 		}
 
-		const bool bCandidateIsPriorityTarget = (CandidateEntity == PriorityTargetEntity);
-		const bool bHasCurrentTarget = (CurrentTargetEntity != nullptr);
-		const bool bCandidateBelongsToSameTeam = OwnerEntity->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
-		if (bCandidateIsPriorityTarget || (!bHasCurrentTarget && !bCandidateBelongsToSameTeam))
-		{
-			CurrentTargetEntity = CandidateEntity;
-			break;
-		}
+		SetCurrentTargetEntity(CandidateEntity);
+		break;
+	}
+}
+
+void FWpWeapon::OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
+{
+	if (EntityState == EWpEntityState::Wreck)
+	{
+		SetCurrentTargetEntity(nullptr);
 	}
 }

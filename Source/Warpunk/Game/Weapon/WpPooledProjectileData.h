@@ -11,5 +11,6 @@ struct FWpPooledProjectileData final : FWpPooledObjectData
 {
 	FWpProjectileConfig ProjectileConfig = {};
 	FVector InitialVelocity = FVector::ZeroVector;
+	float Damage = 0.0f;
 	FWpProjectileWeapon* Weapon = nullptr;
 };

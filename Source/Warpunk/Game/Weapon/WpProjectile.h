@@ -47,10 +47,10 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UProjectileMovementComponent> MovementComponent = nullptr;
 
-	FWpProjectileWeapon* Weapon = nullptr;
-
 	UPROPERTY(ReplicatedUsing=OnRep_ProjectileConfig)
 	FWpProjectileConfig ProjectileConfig = {};
+	float Damage = 0.0f;
+	FWpProjectileWeapon* Weapon = nullptr;
 
 	static const FName SphereComponentName;
 	static const FName MeshComponentName;

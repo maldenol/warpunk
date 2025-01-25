@@ -41,22 +41,21 @@ void UWpIntelComponent::BeginPlay()
 		OnComponentBeginOverlap.AddDynamic(this, &UWpIntelComponent::OnBeginOverlap);
 		OnComponentEndOverlap.AddDynamic(this, &UWpIntelComponent::OnEndOverlap);
 	}
-
-	if (!GetOwner()->HasAuthority())
+	else
 	{
 		InitializeMesh();
 	}
 
 	UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
 	EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpIntelComponent::OnEntityStateChanged);
-	OnEntityStateChanged(EnduranceComponent->GetEntityState());
+	OnEntityStateChanged(Cast<IWpEntityInterface>(GetOwner()), EnduranceComponent->GetEntityState());
 }
 
 void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UWpIntelComponent, bIsMeshVisible);
+	DOREPLIFETIME(UWpIntelComponent, bMeshIsVisible);
 	DOREPLIFETIME(UWpIntelComponent, MeshTransform);
 }
 
@@ -90,7 +89,7 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 		bIsAcquired = IntelConfig != nullptr;
 	}
 
-	SetMeshVisibility(bIsAcquired);
+	SetMeshIsVisibile(bIsAcquired);
 
 	SetActive(bIsAcquired);
 }
@@ -112,7 +111,7 @@ void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComp
 		return;
 	}
 
-	if (OtherActor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
+	if (OtherActor->Implements<UWpPooledActorInterface>())
 	{
 		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
 		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, true);
@@ -135,7 +134,7 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 		return;
 	}
 
-	if (OtherActor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
+	if (OtherActor->Implements<UWpPooledActorInterface>())
 	{
 		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
 		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, false);
@@ -149,7 +148,7 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 	}
 }
 
-void UWpIntelComponent::OnRep_bIsMeshVisible()
+void UWpIntelComponent::OnRep_bMeshIsVisible()
 {
 	UpdateMeshVisibilityBasedOnTeam();
 }
@@ -172,7 +171,7 @@ void UWpIntelComponent::InitializeMesh()
 	SetMaterial(0, IntelMaterial);
 }
 
-void UWpIntelComponent::OnEntityStateChanged(const EWpEntityState EntityState)
+void UWpIntelComponent::OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
 {
 	const bool bHasAuthorityAndIsOperational = GetOwner()->HasAuthority() && (EntityState == EWpEntityState::Operational);
 	SetGenerateOverlapEvents(bHasAuthorityAndIsOperational);
@@ -186,17 +185,17 @@ void UWpIntelComponent::OnEntityStateChanged(const EWpEntityState EntityState)
 	UpdateMeshVisibilityBasedOnTeam();
 }
 
-void UWpIntelComponent::SetMeshVisibility(const bool bInIsMeshVisible)
+void UWpIntelComponent::SetMeshIsVisibile(const bool bInMeshIsVisible)
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	bIsMeshVisible = bInIsMeshVisible;
-	OnRep_bIsMeshVisible();
+	bMeshIsVisible = bInMeshIsVisible;
+	OnRep_bMeshIsVisible();
 }
 
 void UWpIntelComponent::UpdateMeshVisibilityBasedOnTeam()
 {
-	bool bIsVisibleIntelVolumeOnClient = bIsMeshVisible;
+	bool bIsVisibleIntelVolumeOnClient = bMeshIsVisible;
 
 	if (bIsVisibleIntelVolumeOnClient)
 	{
@@ -236,7 +235,7 @@ void UWpIntelComponent::OnPlayerStateReplicated()
 	LocalPlayerController->OnPlayerStateReplicated().Remove(OnPlayerStateReplicatedDelegateHandle);
 	OnPlayerStateReplicatedDelegateHandle.Reset();
 
-	if (bIsMeshVisible)
+	if (bMeshIsVisible)
 	{
 		UpdateMeshVisibilityBasedOnTeam();
 	}

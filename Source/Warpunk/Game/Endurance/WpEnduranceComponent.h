@@ -8,6 +8,7 @@
 
 #include "WpEnduranceComponent.generated.h"
 
+class IWpEntityInterface;
 class UWidgetComponent;
 
 UENUM(NotBlueprintable, NotBlueprintType)
@@ -24,7 +25,7 @@ class UWpEnduranceComponent final : public UActorComponent, public IWpPooledObje
 	GENERATED_BODY()
 
 public:
-	DECLARE_EVENT_OneParam(UWpEnduranceComponent, FEntityStateChangedEvent, EWpEntityState);
+	DECLARE_EVENT_TwoParams(UWpEnduranceComponent, FEntityStateChangedEvent, IWpEntityInterface*, EWpEntityState);
 
 	DECLARE_EVENT_TwoParams(UWpEnduranceComponent, FCurrentEnduranceChangedEvent, float, float);
 

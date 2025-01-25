@@ -25,7 +25,7 @@ void FWpReclaimOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	if (!IsValid(GetOrder().TargetEntityActor))
+	if (!GetOrder().TargetEntityActor)
 	{
 		Finish();
 		return;
@@ -59,7 +59,7 @@ void FWpReclaimOrderHandler::Deactivate()
 	OnReclaimFinishedDelegateHandle.Reset();
 	ProductionComponent->Stop();
 
-	if (IsValid(AIController))
+	if (AIController)
 	{
 		AIController->StopMovement();
 	}

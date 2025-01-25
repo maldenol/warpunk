@@ -8,8 +8,6 @@
 #include "Warpunk/Game/Weapon/WpProjectile.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
-#include "Kismet/GameplayStatics.h"
-
 void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	FWpWeapon::OnPooledObjectAcquiredOrReleased(bIsAcquired, PooledObjectData);
@@ -70,7 +68,12 @@ bool FWpProjectileWeapon::CanReach(const FVector& Location) const
 
 void FWpProjectileWeapon::OnProjectileHit(IWpEntityInterface* const Entity)
 {
-	UGameplayStatics::ApplyPointDamage(Cast<AActor>(Entity), GetDamage(), FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
+	ensureAlways(Cast<AActor>(GetOwnerEntity())->HasAuthority());
+
+	if (!GetOwnerEntity()->GetWeaponComponent()->IsActive())
+	{
+		return;
+	}
 }
 
 void FWpProjectileWeapon::Fire(const FVector& Location)
@@ -96,6 +99,7 @@ void FWpProjectileWeapon::Fire(const FVector& Location)
 	FWpPooledProjectileData PooledProjectileData;
 	PooledProjectileData.ProjectileConfig = ProjectileConfig;
 	PooledProjectileData.InitialVelocity = InitialVelocity;
+	PooledProjectileData.Damage = GetDamage();
 	PooledProjectileData.Weapon = this;
 
 	AWpActorPool::Acquire<AWpProjectile>(ProjectileLocation, FRotator::ZeroRotator, PooledProjectileData);

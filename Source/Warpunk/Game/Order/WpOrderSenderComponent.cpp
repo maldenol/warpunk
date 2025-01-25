@@ -16,6 +16,18 @@
 
 const FName UWpOrderSenderComponent::OverrideInputKeyName = TEXT("LeftShift");
 
+bool FWpSelectedEntityCategory::operator==(const FWpSelectedEntityCategory& Other) const
+{
+	return (DefaultOrders == Other.DefaultOrders) && (EntityClass == Other.EntityClass);
+}
+
+uint32 GetTypeHash(const FWpSelectedEntityCategory& Other)
+{
+	uint32 Hash = GetTypeHash(Other.DefaultOrders);
+	Hash = HashCombine(Hash, GetTypeHash(Other.EntityClass));
+	return Hash;
+}
+
 UWpOrderSenderComponent::UWpOrderSenderComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -51,7 +63,7 @@ void UWpOrderSenderComponent::SelectOrderType(const EWpOrderType OrderType)
 
 void UWpOrderSenderComponent::SelectBuildingToProduce(const uint32 BuildingConfigId)
 {
-	if (IsValid(BuildingToProduce))
+	if (BuildingToProduce)
 	{
 		BuildingToProduce->Destroy();
 		BuildingToProduce = nullptr;
@@ -73,69 +85,76 @@ void UWpOrderSenderComponent::AddUnitToProduce(const uint32 UnitConfigId)
 {
 	ensureAlways(UnitConfigId > 0);
 
-	const TArray<IWpEntityInterface*> SelectedEntities = GetSelectedEntities(nullptr);
-	if (!SelectedEntities.IsEmpty())
+	if (SelectedEntities.IsEmpty())
 	{
-		PopulateUnitToProduceConfigIdNumbersPerProducer(SelectedEntities);
-
-		for (int32 Index = 0; Index < SelectedEntities.Num(); ++Index)
-		{
-			if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[Index].Find(UnitConfigId))
-			{
-				*UnitToProduceNumber = *UnitToProduceNumber + 1;
-			}
-			else
-			{
-				UnitToProduceConfigIdNumbersPerProducer[Index].Add(UnitConfigId, 1);
-			}
-		}
-
-		OrderSenderState = EWpOrderSenderState::ProduceUnitOrder;
-
-		SendOrders(EWpOrderType::ProduceUnit);
-
-		OrderSenderState = EWpOrderSenderState::DefaultOrder;
+		return;
 	}
+
+	PopulateUnitToProduceConfigIdNumbersPerProducer();
+
+	for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	{
+		if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[SelectedEntity].Find(UnitConfigId))
+		{
+			*UnitToProduceNumber = *UnitToProduceNumber + 1;
+		}
+		else
+		{
+			UnitToProduceConfigIdNumbersPerProducer[SelectedEntity].Add(UnitConfigId, 1);
+		}
+	}
+
+	OrderSenderState = EWpOrderSenderState::ProduceUnitOrder;
+
+	SendOrders(EWpOrderType::ProduceUnit);
+
+	OrderSenderState = EWpOrderSenderState::DefaultOrder;
 }
 
 void UWpOrderSenderComponent::RemoveUnitToProduce(const uint32 UnitConfigId)
 {
 	ensureAlways(UnitConfigId > 0);
 
-	const TArray<IWpEntityInterface*> SelectedEntities = GetSelectedEntities(nullptr);
-	if (!SelectedEntities.IsEmpty())
+	if (SelectedEntities.IsEmpty())
 	{
-		PopulateUnitToProduceConfigIdNumbersPerProducer(SelectedEntities);
+		return;
+	}
 
-		for (int32 Index = 0; Index < SelectedEntities.Num(); ++Index)
+	PopulateUnitToProduceConfigIdNumbersPerProducer();
+
+	for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	{
+		if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[SelectedEntity].Find(UnitConfigId))
 		{
-			if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[Index].Find(UnitConfigId))
-			{
-				*UnitToProduceNumber = *UnitToProduceNumber - 1;
+			*UnitToProduceNumber = *UnitToProduceNumber - 1;
 
-				if (*UnitToProduceNumber == 0)
-				{
-					UnitToProduceConfigIdNumbersPerProducer[Index].Remove(UnitConfigId);
-				}
+			if (*UnitToProduceNumber == 0)
+			{
+				UnitToProduceConfigIdNumbersPerProducer[SelectedEntity].Remove(UnitConfigId);
 			}
 		}
-
-		OrderSenderState = EWpOrderSenderState::ProduceUnitOrder;
-
-		SendOrders(EWpOrderType::ProduceUnit);
-
-		OrderSenderState = EWpOrderSenderState::DefaultOrder;
 	}
+
+	OrderSenderState = EWpOrderSenderState::ProduceUnitOrder;
+
+	SendOrders(EWpOrderType::ProduceUnit);
+
+	OrderSenderState = EWpOrderSenderState::DefaultOrder;
 }
 
 TMap<uint32, uint32> UWpOrderSenderComponent::GetUnitsToProduce()
 {
-	const TArray<IWpEntityInterface*> SelectedEntities = GetSelectedEntities(nullptr);
-	PopulateUnitToProduceConfigIdNumbersPerProducer(SelectedEntities);
+	if (SelectedEntities.IsEmpty())
+	{
+		return {};
+	}
+
+	PopulateUnitToProduceConfigIdNumbersPerProducer();
 
 	TMap<uint32, uint32> UnitToProduceClassNumbersTotal;
-	for (const TMap<uint32, uint32>& UnitToProduceConfigIdNumbers : UnitToProduceConfigIdNumbersPerProducer)
+	for (const TPair<const IWpEntityInterface*, TMap<uint32, uint32>>& KeyValue : UnitToProduceConfigIdNumbersPerProducer)
 	{
+		const TMap<uint32, uint32>& UnitToProduceConfigIdNumbers = KeyValue.Value;
 		for (const TPair<uint32, uint32>& UnitToProduceConfigIdNumber : UnitToProduceConfigIdNumbers)
 		{
 			const uint32 UnitToProduceConfigId = UnitToProduceConfigIdNumber.Key;
@@ -270,7 +289,7 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 
 		if (Order.TargetEntityActor)
 		{
-			const bool bTargetEntityIsPooledActor = Order.TargetEntityActor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass());
+			const bool bTargetEntityIsPooledActor = Order.TargetEntityActor->Implements<UWpPooledActorInterface>();
 			if (!bTargetEntityIsPooledActor)
 			{
 				continue;
@@ -308,13 +327,10 @@ void UWpOrderSenderComponent::SelectEntities()
 		return;
 	}
 
-	for (const TTuple<FWpDefaultOrders, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerDefaultOrders)
+	const TSet<IWpEntityInterface*> PreviouslySelectedEntities = SelectedEntities;
+	for (IWpEntityInterface* const SelectedEntity : PreviouslySelectedEntities)
 	{
-		for (IWpEntityInterface* const SelectedEntity : SelectedEntitiesPerDefaultOrders[KeyValue.Key])
-		{
-			SelectedEntity->GetOrderReceiverComponent()->Select(false);
-		}
-		SelectedEntitiesPerDefaultOrders[KeyValue.Key].Empty();
+		SelectEntity(SelectedEntity, false);
 	}
 
 	if (SelectEntitiesStartLocation.IsNearlyZero())
@@ -342,11 +358,6 @@ void UWpOrderSenderComponent::SelectEntities()
 
 	for (AActor* const SelectedActor : SelectedActors)
 	{
-		if (!IsValid(SelectedActor))
-		{
-			continue;
-		}
-
 		if (IWpEntityInterface* const SelectedEntity = Cast<IWpEntityInterface>(SelectedActor))
 		{
 			const UWpBelligerentComponent* const BelligerentComponent = SelectedEntity->GetBelligerentComponent();
@@ -362,59 +373,107 @@ void UWpOrderSenderComponent::SelectEntities()
 			}
 
 			const EWpEntityState EntityState = SelectedEntity->GetEnduranceComponent()->GetEntityState();
-			if (EntityState == EWpEntityState::Wreck || SelectedActor->IsA<AWpUnit>() && EntityState != EWpEntityState::Operational)
+			if ((EntityState == EWpEntityState::Wreck) || (SelectedActor->IsA<AWpUnit>() && (EntityState != EWpEntityState::Operational)))
 			{
 				continue;
 			}
 
 			const FWpDefaultOrders& DefaultOrders = OrderReceiverComponent->GetDefaultOrders();
-			if (!SelectedEntitiesPerDefaultOrders.Contains(DefaultOrders))
+			const UClass* const EntityClass = Cast<AActor>(SelectedEntity)->GetClass();
+			const FWpSelectedEntityCategory Category = {DefaultOrders, EntityClass};
+
+			if (!SelectedEntitiesPerCategory.Contains(Category))
 			{
-				SelectedEntitiesPerDefaultOrders.Add(DefaultOrders, {});
+				SelectedEntitiesPerCategory.Add(Category, {});
 			}
-			SelectedEntitiesPerDefaultOrders[DefaultOrders].Add(SelectedEntity);
+			SelectedEntitiesPerCategory[Category].Add(SelectedEntity);
 		}
 	}
 
-	const TArray<IWpEntityInterface*> SelectedEntities = GetSelectedEntities(nullptr);
-	TSet<EWpOrderType> AvailableOrderTypes;
-	if (!SelectedEntities.IsEmpty())
+	if (const TArray<IWpEntityInterface*>* const NewSelectedEntities = GetSelectedEntitiesWithDefaultOrders(&SelectedEntitiesDefaultOrders))
 	{
-		for (IWpEntityInterface* const SelectedEntity : SelectedEntities)
+		for (IWpEntityInterface* const SelectedEntity : *NewSelectedEntities)
 		{
-			UWpOrderReceiverComponent* const OrderReceiverComponent = SelectedEntity->GetOrderReceiverComponent();
-			OrderReceiverComponent->Select(true);
-			AvailableOrderTypes.Append(OrderReceiverComponent->GetSupportedOrders());
+			SelectEntity(SelectedEntity, true);
+		}
+
+		for (TPair<FWpSelectedEntityCategory, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerCategory)
+		{
+			KeyValue.Value.Empty(KeyValue.Value.Num());
 		}
 	}
 
-	AvailableOrdersChangedEvent.Broadcast(AvailableOrderTypes);
+	UpdateAvailableOrderTypes();
 }
 
-TArray<IWpEntityInterface*> UWpOrderSenderComponent::GetSelectedEntities(FWpDefaultOrders* const OutDefaultOrders) const
+const TArray<IWpEntityInterface*>* UWpOrderSenderComponent::GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const
 {
 	const TArray<IWpEntityInterface*>* MaxNumEntities = nullptr;
 	uint32 MaxNum = 0;
-	for (const TTuple<FWpDefaultOrders, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerDefaultOrders)
+	for (const TPair<FWpSelectedEntityCategory, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerCategory)
 	{
-		const uint32 Num = SelectedEntitiesPerDefaultOrders[KeyValue.Key].Num();
+		const uint32 Num = KeyValue.Value.Num();
 		if (MaxNum < Num)
 		{
 			MaxNum = Num;
 			MaxNumEntities = &KeyValue.Value;
+
 			if (OutDefaultOrders)
 			{
-				*OutDefaultOrders = KeyValue.Key;
+				const FWpSelectedEntityCategory& MaxNumCategory = KeyValue.Key;
+				*OutDefaultOrders = MaxNumCategory.DefaultOrders;
 			}
 		}
 	}
 
 	if (MaxNumEntities)
 	{
-		return *MaxNumEntities;
+		return MaxNumEntities;
 	}
 
-	return {};
+	if (OutDefaultOrders)
+	{
+		*OutDefaultOrders = {};
+	}
+	return nullptr;
+}
+
+void UWpOrderSenderComponent::SelectEntity(IWpEntityInterface* const Entity, const bool bSelected)
+{
+	UWpOrderReceiverComponent* const OrderReceiverComponent = Entity->GetOrderReceiverComponent();
+	OrderReceiverComponent->Select(bSelected);
+
+	UWpEnduranceComponent* const EnduranceComponent = Entity->GetEnduranceComponent();
+	if (bSelected)
+	{
+		ensureAlways(!SelectedEntities.Contains(Entity));
+		SelectedEntities.Add(Entity);
+
+		const FDelegateHandle DelegateHandle = EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpOrderSenderComponent::OnSelectedEntityStateChanged);
+		OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity.Emplace(Entity, DelegateHandle);
+	}
+	else if (OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity.Contains(Entity))
+	{
+		ensureAlways(SelectedEntities.Contains(Entity));
+		SelectedEntities.Remove(Entity);
+
+		const FDelegateHandle DelegateHandle = OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity[Entity];
+		OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity.Remove(Entity);
+		EnduranceComponent->OnEntityStateChanged().Remove(DelegateHandle);
+	}
+}
+
+void UWpOrderSenderComponent::UpdateAvailableOrderTypes()
+{
+	SelectedEntitiesAvailableOrderTypes.Empty(SelectedEntitiesAvailableOrderTypes.Num());
+
+	for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	{
+		const UWpOrderReceiverComponent* const OrderReceiverComponent = SelectedEntity->GetOrderReceiverComponent();
+		SelectedEntitiesAvailableOrderTypes.Append(OrderReceiverComponent->GetSupportedOrders());
+	}
+
+	AvailableOrdersChangedEvent.Broadcast(SelectedEntitiesAvailableOrderTypes);
 }
 
 void UWpOrderSenderComponent::SetOrderStartLocation()
@@ -449,8 +508,6 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 		break;
 	}
 
-	FWpDefaultOrders DefaultOrders;
-	const TArray<IWpEntityInterface*> SelectedEntities = GetSelectedEntities(&DefaultOrders);
 	if (SelectedEntities.IsEmpty())
 	{
 		OrderStartLocation = FVector::ZeroVector;
@@ -465,7 +522,7 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 	}
 
 	FWpOrder Order;
-	Order.Type = (OrderType != EWpOrderType::Undefined) ? OrderType : DefaultOrders.Get(GetBelligerentId(), Hit.GetActor());
+	Order.Type = (OrderType != EWpOrderType::Undefined) ? OrderType : SelectedEntitiesDefaultOrders.Get(GetBelligerentId(), Hit.GetActor());
 	Order.TargetLocation = Hit.Location;
 
 	Order.Radius = FVector::Dist2D(Hit.Location, OrderStartLocation);
@@ -499,15 +556,15 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 
 	TArray<FWpNetOrder> NetOrders;
 	NetOrders.Reserve(SelectedEntities.Num());
-	for (int32 Index = 0; Index < SelectedEntities.Num(); ++Index)
+	for (IWpEntityInterface* const SelectedEntity : SelectedEntities)
 	{
 		if (OrderSenderState == EWpOrderSenderState::ProduceUnitOrder)
 		{
-			Order.UnitToProduceConfigIdNumbers = FWpConfigIdNumber::FromMap(UnitToProduceConfigIdNumbersPerProducer[Index]);
+			Order.UnitToProduceConfigIdNumbers = FWpConfigIdNumber::FromMap(UnitToProduceConfigIdNumbersPerProducer[SelectedEntity]);
 		}
 
 		FWpNetOrder NetOrder;
-		NetOrder.EntityActor = Cast<AActor>(SelectedEntities[Index]);
+		NetOrder.EntityActor = Cast<AActor>(SelectedEntity);
 		NetOrder.Order = Order;
 		NetOrders.Add(NetOrder);
 	}
@@ -525,7 +582,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 
 	const FHitResult Hit = LineTraceUnderCursor();
 
-	if (IsValid(BuildingToProduce))
+	if (BuildingToProduce)
 	{
 		if (Hit.bBlockingHit)
 		{
@@ -557,16 +614,16 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 	}
 }
 
-void UWpOrderSenderComponent::PopulateUnitToProduceConfigIdNumbersPerProducer(const TArray<IWpEntityInterface*>& SelectedEntities)
+void UWpOrderSenderComponent::PopulateUnitToProduceConfigIdNumbersPerProducer()
 {
 	if (!SelectedEntities.IsEmpty())
 	{
-		UnitToProduceConfigIdNumbersPerProducer.SetNum(SelectedEntities.Num());
+		UnitToProduceConfigIdNumbersPerProducer.Empty(SelectedEntities.Num());
 
-		for (int32 Index = 0; Index < SelectedEntities.Num(); ++Index)
+		for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
 		{
-			const IWpEntityInterface* const SelectedEntity = SelectedEntities[Index];
-			UnitToProduceConfigIdNumbersPerProducer[Index] = FWpConfigIdNumber::ToMap(SelectedEntity->GetOrderReceiverComponent()->GetUnitToProduceConfigIdNumbers());
+			UnitToProduceConfigIdNumbersPerProducer.Emplace(SelectedEntity,
+				FWpConfigIdNumber::ToMap(SelectedEntity->GetOrderReceiverComponent()->GetUnitToProduceConfigIdNumbers()));
 		}
 	}
 }
@@ -596,4 +653,14 @@ uint32 UWpOrderSenderComponent::GetTeamId() const
 	const AWpGamePlayerState* const PlayerState = GetPlayerController()->GetPlayerState<AWpGamePlayerState>();
 	ensureAlways(PlayerState);
 	return PlayerState->GetTeamId();
+}
+
+void UWpOrderSenderComponent::OnSelectedEntityStateChanged(IWpEntityInterface* const SelectedEntity, const EWpEntityState EntityState)
+{
+	if (EntityState == EWpEntityState::Wreck)
+	{
+		SelectEntity(SelectedEntity, false);
+
+		UpdateAvailableOrderTypes();
+	}
 }

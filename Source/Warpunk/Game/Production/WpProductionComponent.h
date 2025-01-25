@@ -8,6 +8,7 @@
 
 #include "WpProductionComponent.generated.h"
 
+enum class EWpEntityState : uint8;
 struct FWpOrder;
 class IWpEntityInterface;
 
@@ -68,7 +69,12 @@ private:
 	void Repair(const float DeltaTime);
 	void Reclaim(const float DeltaTime);
 
+	void SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity);
+
 	void UpdateCurrentTargetEntity();
+
+	void OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
+	void OnOrderReceived(const FWpOrder& InOrder);
 
 	UPROPERTY(VisibleInstanceOnly)
 	float MatterConsumption = 0.0f;
@@ -91,6 +97,8 @@ private:
 	TArray<FWpOrder> ProxyOrderQueue = {};
 	IWpEntityInterface* CurrentTargetEntity = nullptr;
 	IWpEntityInterface* PriorityTargetEntity = nullptr;
+
+	FDelegateHandle OnCurrentTargetEntityStateChangedDelegateHandle = {};
 
 	float LastUpdateCurrentTargetEntityTime = 0.0f;
 	const float UpdateCurrentTargetEntityCooldown = 0.25f;

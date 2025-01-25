@@ -13,6 +13,7 @@
 #define WP_ENTITY_MAX_WEAPON 4
 
 enum class EWpEntityState : uint8;
+struct FWpOrder;
 class IWpEntityInterface;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
@@ -41,7 +42,8 @@ private:
 
 	void InitializeMesh();
 
-	void OnEntityStateChanged(const EWpEntityState EntityState);
+	void OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
+	void OnOrderReceived(const FWpOrder& InOrder);
 
 	TStaticArray<FWpWeaponWrapper, WP_ENTITY_MAX_WEAPON> Weapons = {};
 

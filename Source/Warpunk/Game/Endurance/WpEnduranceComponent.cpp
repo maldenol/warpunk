@@ -1,6 +1,7 @@
 #include "WpEnduranceComponent.h"
 
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
@@ -134,6 +135,8 @@ void UWpEnduranceComponent::Destruct()
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
+	SetEntityState(EWpEntityState::Wreck);
+
 	AActor* const OwnerActor = GetOwner();
 	if (AWpActorPool* const ActorPool = AWpActorPool::Instance(OwnerActor->GetClass()))
 	{
@@ -206,7 +209,7 @@ void UWpEnduranceComponent::OnTakeAnyDamage(AActor* const DamagedActor, const fl
 
 void UWpEnduranceComponent::OnRep_EntityState()
 {
-	EntityStateChangedEvent.Broadcast(EntityState);
+	EntityStateChangedEvent.Broadcast(Cast<IWpEntityInterface>(GetOwner()), EntityState);
 }
 
 void UWpEnduranceComponent::OnRep_CurrentEndurance()

@@ -25,7 +25,7 @@ void FWpRepairOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	if (!IsValid(GetOrder().TargetEntityActor))
+	if (!GetOrder().TargetEntityActor)
 	{
 		Finish();
 		return;
@@ -59,7 +59,7 @@ void FWpRepairOrderHandler::Deactivate()
 	OnRepairFinishedDelegateHandle.Reset();
 	ProductionComponent->Stop();
 
-	if (IsValid(AIController))
+	if (AIController)
 	{
 		AIController->StopMovement();
 	}

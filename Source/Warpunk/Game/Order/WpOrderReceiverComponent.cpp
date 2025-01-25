@@ -131,6 +131,8 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 		}
 
 		OrderQueue.Empty();
+
+		Select(false);
 	}
 
 	SelectionWidgetComponent->SetVisibility(false);
@@ -271,7 +273,7 @@ void UWpOrderReceiverComponent::SetSupportedOrders(const TArray<EWpOrderType>& I
 	SupportedOrders = InSupportedOrders;
 }
 
-TArray<EWpOrderType> UWpOrderReceiverComponent::GetSupportedOrders() const
+const TArray<EWpOrderType>& UWpOrderReceiverComponent::GetSupportedOrders() const
 {
 	ensureAlways(IsActive());
 
@@ -288,7 +290,10 @@ void UWpOrderReceiverComponent::SetShouldProxyOrders(const bool bInShouldProxyOr
 
 void UWpOrderReceiverComponent::Select(const bool bSelected)
 {
-	ensureAlways(IsActive());
+	if (bSelected)
+	{
+		ensureAlways(IsActive());
+	}
 
 	SelectionWidgetComponent->SetVisibility(bSelected);
 }
@@ -318,7 +323,6 @@ const TArray<FWpConfigIdNumber>& UWpOrderReceiverComponent::GetUnitToProduceConf
 
 UWpOrderReceiverComponent::FOrderReceivedEvent& UWpOrderReceiverComponent::OnOrderReceived()
 {
-	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
 	return OrderReceivedEvent;

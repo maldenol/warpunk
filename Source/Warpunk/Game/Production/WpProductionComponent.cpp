@@ -29,15 +29,20 @@ void UWpProductionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!GetOwner()->HasAuthority())
+	if (GetOwner()->HasAuthority())
+	{
+		if (const APawn* const Pawn = GetOwner<APawn>())
+		{
+			AIController = Pawn->GetController<AAIController>();
+		}
+
+		UWpOrderReceiverComponent* const OrderReceiverComponent = Cast<IWpEntityInterface>(GetOwner())->GetOrderReceiverComponent();
+		OrderReceiverComponent->OnOrderReceived().AddUObject(this, &UWpProductionComponent::OnOrderReceived);
+	}
+	else
 	{
 		SetComponentTickEnabled(false);
 		PrimaryComponentTick.bCanEverTick = false;
-	}
-
-	if (const APawn* const Pawn = GetOwner<APawn>())
-	{
-		AIController = Pawn->GetController<AAIController>();
 	}
 }
 
@@ -124,8 +129,6 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 			EntityToProduceConfigId = 0;
 			EntityToProduceLocation = FVector::ZeroVector;
 			bInfiniteProductionEnabled = false;
-			CurrentTargetEntity = nullptr;
-			PriorityTargetEntity = nullptr;
 		}
 
 		bIsAcquired = ProductionConfig != nullptr;
@@ -133,7 +136,7 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 
 	if (!bIsAcquired)
 	{
-		ProxyOrderQueue.Empty();
+		ProxyOrderQueue.Empty(ProxyOrderQueue.Num());
 
 		if (IsActive())
 		{
@@ -165,7 +168,7 @@ void UWpProductionComponent::StartRepair(IWpEntityInterface* const Entity)
 	Stop();
 
 	ProductionState = EWpProductionState::Repairing;
-	CurrentTargetEntity = Entity;
+	SetCurrentTargetEntity(Entity);
 }
 
 void UWpProductionComponent::StartReclaim(IWpEntityInterface* const Entity)
@@ -176,7 +179,7 @@ void UWpProductionComponent::StartReclaim(IWpEntityInterface* const Entity)
 	Stop();
 
 	ProductionState = EWpProductionState::Reclaiming;
-	CurrentTargetEntity = Entity;
+	SetCurrentTargetEntity(Entity);
 }
 
 void UWpProductionComponent::Stop()
@@ -189,7 +192,7 @@ void UWpProductionComponent::Stop()
 	{
 		PriorityTargetEntity = nullptr;
 	}
-	CurrentTargetEntity = nullptr;
+	SetCurrentTargetEntity(nullptr);
 }
 
 bool UWpProductionComponent::CanReach(const FVector& Location) const
@@ -233,7 +236,7 @@ void UWpProductionComponent::ReceiveProxyOrder(const FWpOrder& Order, const bool
 
 	if (bOverride)
 	{
-		ProxyOrderQueue.Empty();
+		ProxyOrderQueue.Empty(ProxyOrderQueue.Num());
 	}
 
 	ProxyOrderQueue.Add(Order);
@@ -275,6 +278,13 @@ void UWpProductionComponent::SetPriorityTargetEntity(IWpEntityInterface* const I
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
+
+	const UWpBelligerentComponent* const BelligerentComponent = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent();
+	const bool bPriorityTargetBelongsToSameTeam = BelligerentComponent->BelongsToSameTeam(InPriorityTargetEntity->GetBelligerentComponent());
+	if (!bPriorityTargetBelongsToSameTeam)
+	{
+		return;
+	}
 
 	PriorityTargetEntity = InPriorityTargetEntity;
 
@@ -400,7 +410,7 @@ void UWpProductionComponent::Produce()
 	}
 
 	ProductionState = NewProductionState;
-	CurrentTargetEntity = Entity;
+	SetCurrentTargetEntity(Entity);
 
 	FWpOrder RepairOrder;
 	RepairOrder.Type = EWpOrderType::Repair;
@@ -472,6 +482,31 @@ void UWpProductionComponent::Reclaim(const float DeltaTime)
 	CurrentTargetEntity->GetEnduranceComponent()->ReceiveReclaim(DeltaTime * MatterConsumption);
 }
 
+void UWpProductionComponent::SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity)
+{
+	if (NewTargetEntity)
+	{
+		ensureAlways(IsActive());
+	}
+	ensureAlways(GetOwner()->HasAuthority());
+
+	if (CurrentTargetEntity)
+	{
+		ensureAlways(OnCurrentTargetEntityStateChangedDelegateHandle.IsValid());
+		UWpEnduranceComponent* const CurrentTargetEnduranceComponent = CurrentTargetEntity->GetEnduranceComponent();
+		CurrentTargetEnduranceComponent->OnEntityStateChanged().Remove(OnCurrentTargetEntityStateChangedDelegateHandle);
+	}
+
+	if (NewTargetEntity)
+	{
+		UWpEnduranceComponent* const NewTargetEnduranceComponent = NewTargetEntity->GetEnduranceComponent();
+		OnCurrentTargetEntityStateChangedDelegateHandle =
+			NewTargetEnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpProductionComponent::OnCurrentTargetEntityStateChanged);
+	}
+
+	CurrentTargetEntity = NewTargetEntity;
+}
+
 void UWpProductionComponent::UpdateCurrentTargetEntity()
 {
 	ensureAlways(IsActive());
@@ -492,7 +527,7 @@ void UWpProductionComponent::UpdateCurrentTargetEntity()
 		const bool bCanReachAndRepairCurrentTarget = CanReachAndRepair(CurrentTargetEntity);
 		if (!bCanReachAndRepairCurrentTarget)
 		{
-			CurrentTargetEntity = nullptr;
+			SetCurrentTargetEntity(nullptr);
 		}
 	}
 
@@ -503,27 +538,64 @@ void UWpProductionComponent::UpdateCurrentTargetEntity()
 	}
 
 	const UWpIntelComponent* const IntelComponent = GetOwner<IWpEntityInterface>()->GetIntelComponent();
-	for (IWpEntityInterface* const CandidateEntity : IntelComponent->GetVisibleEntities())
-	{
-		const bool bCandidateIsCurrentTarget = (CurrentTargetEntity == CandidateEntity);
-		if (bCandidateIsCurrentTarget)
-		{
-			continue;
-		}
+	const TSet<IWpEntityInterface*>& VisibleEntities = IntelComponent->GetVisibleEntities();
 
+	if (PriorityTargetEntity && VisibleEntities.Contains(PriorityTargetEntity))
+	{
+		const bool bCanReachAndRepairPriorityTarget = CanReachAndRepair(PriorityTargetEntity);
+		if (bCanReachAndRepairPriorityTarget)
+		{
+			StartRepair(PriorityTargetEntity);
+			return;
+		}
+	}
+
+	if (CurrentTargetEntity)
+	{
+		return;
+	}
+
+	for (IWpEntityInterface* const CandidateEntity : VisibleEntities)
+	{
 		const bool bCanReachAndRepairCandidate = CanReachAndRepair(CandidateEntity);
 		if (!bCanReachAndRepairCandidate)
 		{
 			continue;
 		}
 
-		const bool bCandidateIsPriorityTarget = (CandidateEntity == PriorityTargetEntity);
-		const bool bHasCurrentTarget = (CurrentTargetEntity != nullptr);
 		const bool bCandidateBelongsToSameTeam = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
-		if (bCandidateIsPriorityTarget || (!bHasCurrentTarget && bCandidateBelongsToSameTeam))
+		if (!bCandidateBelongsToSameTeam)
 		{
-			StartRepair(CandidateEntity);
-			break;
+			continue;
 		}
+
+		StartRepair(CandidateEntity);
+		break;
+	}
+}
+
+void UWpProductionComponent::OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
+{
+	if (EntityState == EWpEntityState::Wreck)
+	{
+		IWpEntityInterface* const LastTargetEntity = CurrentTargetEntity;
+
+		Stop();
+
+		RepairFinishedEvent.Broadcast(LastTargetEntity);
+	}
+}
+
+void UWpProductionComponent::OnOrderReceived(const FWpOrder& InOrder)
+{
+	if (InOrder.Type == EWpOrderType::Stop)
+	{
+		IWpEntityInterface* const LastTargetEntity = CurrentTargetEntity;
+
+		Stop();
+
+		RepairFinishedEvent.Broadcast(LastTargetEntity);
+
+		PriorityTargetEntity = nullptr;
 	}
 }

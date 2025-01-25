@@ -9,6 +9,7 @@
 #include "WpOrderSenderComponent.generated.h"
 
 class AWpBuilding;
+enum class EWpEntityState : uint8;
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
 struct FWpNetOrder
@@ -19,6 +20,15 @@ struct FWpNetOrder
 	AActor* EntityActor = nullptr;
 	UPROPERTY()
 	FWpOrder Order = {};
+};
+
+struct FWpSelectedEntityCategory
+{
+	FWpDefaultOrders DefaultOrders = {};
+	const UClass* EntityClass = nullptr;
+
+	bool operator==(const FWpSelectedEntityCategory& Other) const;
+	friend uint32 GetTypeHash(const FWpSelectedEntityCategory& Other);
 };
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
@@ -64,14 +74,17 @@ private:
 
 	void SetSelectEntitiesStartLocation();
 	void SelectEntities();
-	TArray<IWpEntityInterface*> GetSelectedEntities(FWpDefaultOrders* const OutDefaultOrders) const;
+	const TArray<IWpEntityInterface*>* GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const;
+
+	void SelectEntity(IWpEntityInterface* const Entity, const bool bSelected);
+	void UpdateAvailableOrderTypes();
 
 	void SetOrderStartLocation();
 	void SendOrders(const EWpOrderType OrderType);
 
 	void UpdateBuildingPlan();
 
-	void PopulateUnitToProduceConfigIdNumbersPerProducer(const TArray<IWpEntityInterface*>& SelectedEntities);
+	void PopulateUnitToProduceConfigIdNumbersPerProducer();
 
 	FHitResult LineTraceUnderCursor() const;
 
@@ -79,10 +92,16 @@ private:
 	uint32 GetBelligerentId() const;
 	uint32 GetTeamId() const;
 
+	void OnSelectedEntityStateChanged(IWpEntityInterface* const SelectedEntity, const EWpEntityState EntityState);
+
 	EWpOrderSenderState OrderSenderState = EWpOrderSenderState::DefaultOrder;
 
 	FVector SelectEntitiesStartLocation = FVector::ZeroVector;
-	TMap<FWpDefaultOrders, TArray<IWpEntityInterface*>> SelectedEntitiesPerDefaultOrders = {};
+	TMap<FWpSelectedEntityCategory, TArray<IWpEntityInterface*>> SelectedEntitiesPerCategory = {};
+
+	TSet<IWpEntityInterface*> SelectedEntities = {};
+	TSet<EWpOrderType> SelectedEntitiesAvailableOrderTypes = {};
+	FWpDefaultOrders SelectedEntitiesDefaultOrders = {};
 
 	EWpOrderType SelectedOrderType = EWpOrderType::Undefined;
 	FVector OrderStartLocation = FVector::ZeroVector;
@@ -90,7 +109,9 @@ private:
 	uint32 BuildingToProduceConfigId = 0;
 	TObjectPtr<AWpBuilding> BuildingToProduce = nullptr;
 
-	TArray<TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
+	TMap<const IWpEntityInterface*, TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
+
+	TMap<const IWpEntityInterface*, FDelegateHandle> OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity = {};
 
 	FAvailableOrdersChangedEvent AvailableOrdersChangedEvent = {};
 

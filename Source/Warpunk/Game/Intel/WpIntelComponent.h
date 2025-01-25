@@ -34,23 +34,23 @@ private:
 	void OnEndOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex);
 
 	UFUNCTION()
-	void OnRep_bIsMeshVisible();
+	void OnRep_bMeshIsVisible();
 	UFUNCTION()
 	void OnRep_MeshTransform();
 
 	void InitializeMesh();
 
-	void OnEntityStateChanged(const EWpEntityState EntityState);
+	void OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
 
-	void SetMeshVisibility(const bool bInIsMeshVisible);
+	void SetMeshIsVisibile(const bool bInMeshIsVisible);
 	void UpdateMeshVisibilityBasedOnTeam();
 
 	void OnPlayerStateReplicated();
 
 	TSet<IWpEntityInterface*> VisibleEntities = {};
 
-	UPROPERTY(ReplicatedUsing=OnRep_bIsMeshVisible)
-	bool bIsMeshVisible = false;
+	UPROPERTY(ReplicatedUsing=OnRep_bMeshIsVisible)
+	bool bMeshIsVisible = false;
 	UPROPERTY(ReplicatedUsing=OnRep_MeshTransform)
 	FTransform MeshTransform = FTransform::Identity;
 

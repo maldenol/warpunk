@@ -11,6 +11,7 @@
 
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 const FName AWpProjectile::SphereComponentName = TEXT("SphereCollision");
@@ -98,12 +99,14 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 		ensureAlways(PooledProjectileData.ProjectileConfig.EntityConfigId > 0);
 		ensureAlways(!PooledProjectileData.InitialVelocity.IsNearlyZero());
+		ensureAlways(PooledProjectileData.Damage >= 1.0f);
 		ensureAlways(PooledProjectileData.Weapon);
 
 		ProjectileConfig = PooledProjectileData.ProjectileConfig;
 		OnRep_ProjectileConfig();
 
 		MovementComponent->Velocity = PooledProjectileData.InitialVelocity;
+		Damage = PooledProjectileData.Damage;
 		Weapon = PooledProjectileData.Weapon;
 	}
 
@@ -130,6 +133,8 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 
 	if (IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(OtherActor))
 	{
+		UGameplayStatics::ApplyPointDamage(Cast<AActor>(Entity), Damage, FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
+
 		Weapon->OnProjectileHit(Entity);
 	}
 

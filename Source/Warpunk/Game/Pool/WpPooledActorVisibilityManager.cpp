@@ -36,7 +36,7 @@ void AWpPooledActorVisibilityManager::BeginPlay()
 	{
 		AActor* const Actor = *Iter;
 
-		if (!Actor->GetClass()->ImplementsInterface(UWpPooledActorInterface::StaticClass()))
+		if (!Actor->Implements<UWpPooledActorInterface>())
 		{
 			continue;
 		}
@@ -289,7 +289,7 @@ AWpPooledActorVisibilityManager* AWpPooledActorVisibilityManager::Instance(const
 
 void AWpPooledActorVisibilityManager::InitializeActorVisibility(const uint32 TeamId, AActor* const Actor)
 {
-	for (const TTuple<uint32, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
+	for (const TPair<uint32, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
 	{
 		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = TeamPooledActorVisibilityManager.Value;
 		const bool bIsVisible = (PooledActorVisibilityManager->GetTeamId() == TeamId);

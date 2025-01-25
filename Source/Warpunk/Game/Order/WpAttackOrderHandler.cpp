@@ -61,7 +61,7 @@ void FWpAttackOrderHandler::Tick(const float CurrentTime)
 {
 	FWpOrderHandler::Tick(CurrentTime);
 
-	if (!IsValid(GetOrder().TargetEntityActor))
+	if (!GetOrder().TargetEntityActor)
 	{
 		Finish();
 		return;
@@ -77,7 +77,7 @@ void FWpAttackOrderHandler::Tick(const float CurrentTime)
 
 void FWpAttackOrderHandler::Deactivate()
 {
-	if (IsValid(AIController))
+	if (AIController)
 	{
 		AIController->StopMovement();
 	}

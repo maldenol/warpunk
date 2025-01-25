@@ -6,6 +6,7 @@
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
+#include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 
 #include "Kismet/GameplayStatics.h"
@@ -29,12 +30,6 @@ void UWpWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!GetOwner()->HasAuthority())
-	{
-		SetComponentTickEnabled(false);
-		PrimaryComponentTick.bCanEverTick = false;
-	}
-
 	if (GetOwner()->HasAuthority())
 	{
 		OnComponentBeginOverlap.AddDynamic(this, &UWpWeaponComponent::OnBeginOverlap);
@@ -42,7 +37,15 @@ void UWpWeaponComponent::BeginPlay()
 
 		UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
 		EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpWeaponComponent::OnEntityStateChanged);
-		OnEntityStateChanged(EnduranceComponent->GetEntityState());
+		OnEntityStateChanged(Cast<IWpEntityInterface>(GetOwner()), EnduranceComponent->GetEntityState());
+
+		UWpOrderReceiverComponent* const OrderReceiverComponent = Cast<IWpEntityInterface>(GetOwner())->GetOrderReceiverComponent();
+		OrderReceiverComponent->OnOrderReceived().AddUObject(this, &UWpWeaponComponent::OnOrderReceived);
+	}
+	else
+	{
+		SetComponentTickEnabled(false);
+		PrimaryComponentTick.bCanEverTick = false;
 	}
 }
 
@@ -222,7 +225,7 @@ void UWpWeaponComponent::InitializeMesh()
 	SetStaticMesh(IntelMesh);
 }
 
-void UWpWeaponComponent::OnEntityStateChanged(const EWpEntityState EntityState)
+void UWpWeaponComponent::OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
@@ -233,5 +236,24 @@ void UWpWeaponComponent::OnEntityStateChanged(const EWpEntityState EntityState)
 		const FVector SmallDelta = FVector::UpVector / 1000.0f;
 		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() + SmallDelta);
 		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() - SmallDelta);
+	}
+}
+
+void UWpWeaponComponent::OnOrderReceived(const FWpOrder& InOrder)
+{
+	if (InOrder.Type == EWpOrderType::Stop)
+	{
+		for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
+		{
+			if (FWpWeapon* const Weapon = Weapons[Index].Get())
+			{
+				Weapon->ClearCurrentTargetEntity();
+				Weapon->SetPriorityTargetEntity(nullptr);
+			}
+			else
+			{
+				break;
+			}
+		}
 	}
 }

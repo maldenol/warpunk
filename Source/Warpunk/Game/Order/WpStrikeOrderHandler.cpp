@@ -36,7 +36,7 @@ void FWpStrikeOrderHandler::Tick(const float CurrentTime)
 
 		FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index);
 
-		if (IsValid(GetOrder().TargetEntityActor))
+		if (GetOrder().TargetEntityActor)
 		{
 			if (Weapon->TryFire(GetOrder().GetTargetEntity()))
 			{

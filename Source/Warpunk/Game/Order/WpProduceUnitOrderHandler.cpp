@@ -53,10 +53,10 @@ void FWpProduceUnitOrderHandler::Reactivate()
 				}
 			}
 		}
-		ProducedUnits.Empty();
+		ProducedUnits.Empty(ProducedUnits.Num());
 	}
 
-	UnitQueue.Empty();
+	UnitQueue.Empty(UnitQueue.Num());
 	while (!UnitToProduceConfigIdNumbers.IsEmpty())
 	{
 		UnitToProduceConfigIdNumbers.GetKeys(UnitToProduceConfigIds);
@@ -102,8 +102,8 @@ void FWpProduceUnitOrderHandler::Reactivate()
 
 void FWpProduceUnitOrderHandler::Deactivate()
 {
-	UnitQueue.Empty();
-	ProducedUnits.Empty();
+	UnitQueue.Empty(UnitQueue.Num());
+	ProducedUnits.Empty(ProducedUnits.Num());
 
 	ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	OnRepairFinishedDelegateHandle.Reset();
@@ -164,7 +164,7 @@ void FWpProduceUnitOrderHandler::OnRepairFinished(IWpEntityInterface* const InEn
 
 	if (bWasInfiniteProductionEnabled && !ProductionComponent->IsInfiniteProductionEnabled())
 	{
-		ProducedUnits.Empty();
+		ProducedUnits.Empty(ProducedUnits.Num());
 		Reactivate();
 		return;
 	}
@@ -176,7 +176,7 @@ void FWpProduceUnitOrderHandler::OnRepairFinished(IWpEntityInterface* const InEn
 	}
 	else if (ProductionComponent->IsInfiniteProductionEnabled())
 	{
-		ProducedUnits.Empty();
+		ProducedUnits.Empty(ProducedUnits.Num());
 		Reactivate();
 	}
 	else

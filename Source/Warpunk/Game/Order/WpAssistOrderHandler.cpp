@@ -27,7 +27,7 @@ void FWpAssistOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	if (!IsValid(GetOrder().TargetEntityActor))
+	if (!GetOrder().TargetEntityActor)
 	{
 		Finish();
 		return;
@@ -67,7 +67,7 @@ void FWpAssistOrderHandler::Tick(const float CurrentTime)
 
 void FWpAssistOrderHandler::Deactivate()
 {
-	if (IsValid(GetOrder().TargetEntityActor))
+	if (GetOrder().TargetEntityActor)
 	{
 		GetOrder().GetTargetEntity()->GetOrderReceiverComponent()->OnOrderReceived().Remove(OnOrderReceivedDelegateHandle);
 	}
@@ -76,7 +76,7 @@ void FWpAssistOrderHandler::Deactivate()
 	MimicOrderReceiverComponent->DestroyComponent();
 	MimicOrderReceiverComponent = nullptr;
 
-	if (IsValid(AIController))
+	if (AIController)
 	{
 		AIController->StopMovement();
 	}
@@ -86,7 +86,7 @@ void FWpAssistOrderHandler::Deactivate()
 
 void FWpAssistOrderHandler::OnOrderReceived(const FWpOrder& InOrder)
 {
-	if (!IsValid(GetOrder().TargetEntityActor))
+	if (!GetOrder().TargetEntityActor)
 	{
 		Finish();
 		return;
