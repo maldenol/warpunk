@@ -1,7 +1,6 @@
 #include "WpActorPool.h"
 
 #include "Warpunk/Game/Pool/WpPooledActorInterface.h"
-#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 
 AWpActorPool::AWpActorPool()
 {

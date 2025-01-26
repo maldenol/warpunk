@@ -16,6 +16,8 @@ public:
 
 	AWpGameGameState();
 
+	virtual void BeginPlay() override;
+
 	const UDataTable* GetEntityConfigs() const;
 
 	UPROPERTY(EditDefaultsOnly)

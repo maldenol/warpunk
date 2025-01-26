@@ -9,8 +9,6 @@
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 
-#include "Kismet/GameplayStatics.h"
-
 const FName UWpWeaponComponent::MeshCollisionProfileName = TEXT("WpIntel");
 
 UWpWeaponComponent::UWpWeaponComponent()
@@ -219,7 +217,7 @@ void UWpWeaponComponent::InitializeMesh()
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	const AWpFogOfWarManager* const FogOfWarManager = Cast<AWpFogOfWarManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AWpFogOfWarManager::StaticClass()));
+	const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
 	UStaticMesh* const IntelMesh = FogOfWarManager->GetIntelMesh();
 
 	ensureAlways(IntelMesh);

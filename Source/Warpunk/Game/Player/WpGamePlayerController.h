@@ -28,6 +28,9 @@ public:
 	void SetStrategicViewPawn(AWpStrategicViewPawn* const InStrategicViewPawn);
 	void SetCommander(AWpCommander* const InCommander);
 
+	UFUNCTION(Client, Reliable)
+	void ClientSetExpectedActorNum(const uint32 ExpectedActorNum);
+
 	FPlayerStateReplicatedEvent& OnPlayerStateReplicated();
 
 private:

@@ -1,5 +1,7 @@
 #include "WpGamePlayerState.h"
 
+#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
+
 #include "Net/UnrealNetwork.h"
 
 AWpGamePlayerState::AWpGamePlayerState()
@@ -31,8 +33,8 @@ const FString& AWpGamePlayerState::GetName() const
 
 void AWpGamePlayerState::SetBelligerentId(const uint32 InBelligerentId)
 {
+	ensureAlways(InBelligerentId > 0);
 	BelligerentId = InBelligerentId;
-	ensureAlways(BelligerentId > 0);
 }
 
 uint32 AWpGamePlayerState::GetBelligerentId() const
@@ -42,8 +44,9 @@ uint32 AWpGamePlayerState::GetBelligerentId() const
 
 void AWpGamePlayerState::SetTeamId(const uint32 InTeamId)
 {
+	ensureAlways(InTeamId > 0);
 	TeamId = InTeamId;
-	ensureAlways(TeamId > 0);
+	OnRep_TeamId();
 }
 
 uint32 AWpGamePlayerState::GetTeamId() const
@@ -59,4 +62,16 @@ void AWpGamePlayerState::SetColor(const FColor& InColor)
 const FColor& AWpGamePlayerState::GetColor() const
 {
 	return Color;
+}
+
+void AWpGamePlayerState::OnRep_TeamId()
+{
+	if (bHasNotifiedIsLoaded || !TeamId)
+	{
+		return;
+	}
+
+	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+
+	bHasNotifiedIsLoaded = true;
 }

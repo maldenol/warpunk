@@ -1,6 +1,7 @@
 #include "WpGamePlayerController.h"
 
 #include "Warpunk/Game/Entity/WpCommander.h"
+#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
 
 #include "EnhancedInputComponent.h"
@@ -37,6 +38,11 @@ void AWpGamePlayerController::SetStrategicViewPawn(AWpStrategicViewPawn* const I
 void AWpGamePlayerController::SetCommander(AWpCommander* const InCommander)
 {
 	Commander = InCommander;
+}
+
+void AWpGamePlayerController::ClientSetExpectedActorNum_Implementation(const uint32 ExpectedActorNum)
+{
+	AWpMapLoadManager::Instance(this)->SetExpectedActorNum(ExpectedActorNum);
 }
 
 AWpGamePlayerController::FPlayerStateReplicatedEvent& AWpGamePlayerController::OnPlayerStateReplicated()

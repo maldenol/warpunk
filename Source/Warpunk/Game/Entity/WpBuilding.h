@@ -26,6 +26,8 @@ class AWpBuilding final : public AActor, public IWpEntityInterface, public IWpPo
 public:
 	AWpBuilding();
 
+	virtual void BeginPlay() override;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth) override;
 

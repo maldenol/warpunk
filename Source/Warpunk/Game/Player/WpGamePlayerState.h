@@ -26,12 +26,17 @@ public:
 	const FColor& GetColor() const;
 
 private:
+	UFUNCTION()
+	void OnRep_TeamId();
+
 	UPROPERTY(Replicated)
 	FString Name = TEXT("");
 	UPROPERTY(Replicated)
 	uint32 BelligerentId = 0;
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_TeamId)
 	uint32 TeamId = 0;
 	UPROPERTY(Replicated)
 	FColor Color = FColor::Transparent;
+
+	bool bHasNotifiedIsLoaded = false;
 };

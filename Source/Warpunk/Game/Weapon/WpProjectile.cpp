@@ -3,6 +3,7 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
@@ -63,6 +64,8 @@ void AWpProjectile::BeginPlay()
 	MovementComponent->bSimulationEnabled = bHasAuthority;
 	MovementComponent->bInterpMovement = !bHasAuthority;
 	MovementComponent->bInterpRotation = !bHasAuthority;
+
+	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
 }
 
 void AWpProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

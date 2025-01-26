@@ -12,7 +12,6 @@
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 const FName UWpIntelComponent::MeshCollisionProfileName = TEXT("WpIntel");
@@ -160,7 +159,7 @@ void UWpIntelComponent::OnRep_MeshTransform()
 
 void UWpIntelComponent::InitializeMesh()
 {
-	const AWpFogOfWarManager* const FogOfWarManager = Cast<AWpFogOfWarManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AWpFogOfWarManager::StaticClass()));
+	const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
 	UStaticMesh* const IntelMesh = FogOfWarManager->GetIntelMesh();
 	UMaterialInterface* const IntelMaterial = FogOfWarManager->GetIntelMaterial();
 

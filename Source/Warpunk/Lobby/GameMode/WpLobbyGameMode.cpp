@@ -1,5 +1,6 @@
 #include "WpLobbyGameMode.h"
 
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Lobby/GameMode/WpLobbyGameState.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerController.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"
@@ -88,6 +89,14 @@ void AWpLobbyGameMode::NotifyPlayerReadinessChanged()
 
 void AWpLobbyGameMode::StartGame()
 {
+	TArray<int32> PlayerIds;
+	PlayerIds.Reserve(GameState->PlayerArray.Num());
+	for (const APlayerState* const PlayerState : GameState->PlayerArray)
+	{
+		PlayerIds.Add(PlayerState->GetPlayerId());
+	}
+	GetGameInstance<UWpGameInstance>()->SetPlayerIds(PlayerIds);
+
 	static const FString Url = TEXT("/Game/Maps/GameMap");
 	GetWorld()->ServerTravel(Url);
 }

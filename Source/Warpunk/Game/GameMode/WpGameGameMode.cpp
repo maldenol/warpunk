@@ -6,6 +6,7 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Entity/WpUnit.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
@@ -17,6 +18,10 @@
 
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
+
+static constexpr uint32 UnitPoolSize = 50;
+static constexpr uint32 BuildingPoolSize = 50;
+static constexpr uint32 ProjectilePoolSize = 10;
 
 AWpGameGameMode::AWpGameGameMode()
 {
@@ -34,13 +39,13 @@ void AWpGameGameMode::BeginPlay()
 	ensureAlways(DefaultPawnClass->IsChildOf<AWpStrategicViewPawn>());
 
 	AWpActorPool* const UnitPool = GetWorld()->SpawnActor<AWpActorPool>();
-	UnitPool->Reserve(AWpUnit::StaticClass(), 50);
+	UnitPool->Reserve(AWpUnit::StaticClass(), UnitPoolSize);
 
 	AWpActorPool* const BuildingPool = GetWorld()->SpawnActor<AWpActorPool>();
-	BuildingPool->Reserve(AWpBuilding::StaticClass(), 50);
+	BuildingPool->Reserve(AWpBuilding::StaticClass(), BuildingPoolSize);
 
 	AWpActorPool* const ProjectilePool = GetWorld()->SpawnActor<AWpActorPool>();
-	ProjectilePool->Reserve(AWpProjectile::StaticClass(), 10);
+	ProjectilePool->Reserve(AWpProjectile::StaticClass(), ProjectilePoolSize);
 }
 
 void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* const NewPlayer)
@@ -93,6 +98,13 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 	CommanderEnduranceComponent->ReceiveRepair(CommanderEnduranceComponent->GetMatterCost());
 
 	PlayerController->SetCommander(Commander);
+
+	const uint32 PlayerNum = GetGameInstance<UWpGameInstance>()->GetPlayerIds().Num();
+	const uint32 ExpectedActorNum =
+		1 // Game state
+		+ 2 * PlayerNum // Player states and commanders
+		+ (UnitPoolSize + BuildingPoolSize + ProjectilePoolSize); // Pooled actors
+	PlayerController->ClientSetExpectedActorNum(ExpectedActorNum);
 }
 
 AActor* AWpGameGameMode::ChoosePlayerStart_Implementation(AController* const Player)

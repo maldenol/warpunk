@@ -6,6 +6,7 @@
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
+#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Movement/WpUnitMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpUnitAIController.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
@@ -63,6 +64,13 @@ AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
 	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	AWpUnit::OnPooledActorVisibilityChanged(false);
+}
+
+void AWpUnit::BeginPlay()
+{
+	Super::BeginPlay();
+
+	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
 }
 
 void AWpUnit::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

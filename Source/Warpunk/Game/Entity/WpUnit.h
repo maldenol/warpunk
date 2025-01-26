@@ -24,6 +24,8 @@ class AWpUnit : public ACharacter, public IWpEntityInterface, public IWpPooledAc
 public:
 	AWpUnit(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual void BeginPlay() override;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth) override;
 

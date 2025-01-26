@@ -19,6 +19,8 @@ public:
 	UStaticMesh* GetIntelMesh() const;
 	UMaterialInterface* GetIntelMaterial() const;
 
+	static AWpFogOfWarManager* Instance(const UObject* const WorldContextObject);
+
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UTextureRenderTarget2D> TextureRenderTarget = nullptr;

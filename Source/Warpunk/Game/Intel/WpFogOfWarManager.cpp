@@ -1,6 +1,7 @@
 #include "WpFogOfWarManager.h"
 
 #include "Components/SceneCaptureComponent2D.h"
+#include "Kismet/GameplayStatics.h"
 
 const FName AWpFogOfWarManager::RootComponentName = TEXT("RootComponent");
 const FName AWpFogOfWarManager::SceneCaptureComponentName = TEXT("SceneCaptureComponent");
@@ -44,4 +45,9 @@ UStaticMesh* AWpFogOfWarManager::GetIntelMesh() const
 UMaterialInterface* AWpFogOfWarManager::GetIntelMaterial() const
 {
 	return IntelMaterial;
+}
+
+AWpFogOfWarManager* AWpFogOfWarManager::Instance(const UObject* const WorldContextObject)
+{
+	return Cast<AWpFogOfWarManager>(UGameplayStatics::GetActorOfClass(WorldContextObject, StaticClass()));
 }
