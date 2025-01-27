@@ -23,6 +23,8 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	virtual void OnRep_IsActive() override;
+
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
 	const TSet<IWpEntityInterface*>& GetVisibleEntities() const;
@@ -41,14 +43,14 @@ private:
 	void InitializeMesh();
 
 	void OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
+	void OnMapLoaded();
 
 	void SetMeshIsVisibile(const bool bInMeshIsVisible);
 	void UpdateMeshVisibilityBasedOnTeam();
 
-	void OnPlayerStateReplicated();
-
 	TSet<IWpEntityInterface*> VisibleEntities = {};
 
+	bool bCanCheckTeam = false;
 	UPROPERTY(ReplicatedUsing=OnRep_bMeshIsVisible)
 	bool bMeshIsVisible = false;
 	UPROPERTY(ReplicatedUsing=OnRep_MeshTransform)

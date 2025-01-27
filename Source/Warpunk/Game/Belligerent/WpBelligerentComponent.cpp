@@ -20,6 +20,11 @@ void UWpBelligerentComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(UWpBelligerentComponent, TeamId);
 }
 
+void UWpBelligerentComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
+}
+
 void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	ensureAlways(GetOwner()->HasAuthority());

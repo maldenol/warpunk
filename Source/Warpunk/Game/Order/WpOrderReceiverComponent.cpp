@@ -4,7 +4,7 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -32,6 +32,8 @@ const TSet<EWpOrderType> UWpOrderReceiverComponent::ProductionProxyOrders =
 UWpOrderReceiverComponent::UWpOrderReceiverComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(true);
 }
@@ -39,12 +41,6 @@ UWpOrderReceiverComponent::UWpOrderReceiverComponent()
 void UWpOrderReceiverComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (!GetOwner()->HasAuthority())
-	{
-		SetComponentTickEnabled(false);
-		PrimaryComponentTick.bCanEverTick = false;
-	}
 
 	CreateSelectionWidgetComponentIfNull();
 }
@@ -101,6 +97,11 @@ void UWpOrderReceiverComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(UWpOrderReceiverComponent, UnitToProduceConfigIdNumbers);
 }
 
+void UWpOrderReceiverComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
+}
+
 void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	ensureAlways(GetOwner()->HasAuthority());
@@ -121,7 +122,7 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 			bShouldProxyOrders = OrderReceiverConfig->bShouldProxyOrders;
 		}
 
-		bIsAcquired = OrderReceiverConfig != nullptr;
+		bIsAcquired = (OrderReceiverConfig != nullptr);
 	}
 
 	if (!bIsAcquired)
@@ -384,7 +385,7 @@ void UWpOrderReceiverComponent::CreateSelectionWidgetComponentIfNull()
 	SelectionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	SelectionWidgetComponent->SetDrawAtDesiredSize(true);
 
-	const TSubclassOf<UUserWidget> SelectionWidgetClass = GetWorld()->GetGameState<AWpGameGameState>()->SelectionWidgetClass;
+	const TSubclassOf<UUserWidget>& SelectionWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->SelectionWidgetClass;
 	ensureAlways(SelectionWidgetClass);
 	SelectionWidgetComponent->SetWidgetClass(SelectionWidgetClass);
 

@@ -2,6 +2,7 @@
 
 #include "Warpunk/Game/Entity/WpCommander.h"
 #include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
+#include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
 
 #include "EnhancedInputComponent.h"
@@ -11,6 +12,16 @@ AWpGamePlayerController::AWpGamePlayerController()
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+}
+
+void AWpGamePlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsLocalController() && HasAuthority())
+	{
+		AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+	}
 }
 
 void AWpGamePlayerController::SetupInputComponent()
@@ -27,7 +38,12 @@ void AWpGamePlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	PlayerStateReplicatedEvent.Broadcast();
+	if (!bHasNotifiedPlayerStareReplicated && GetPlayerState<AWpGamePlayerState>())
+	{
+		AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+
+		bHasNotifiedPlayerStareReplicated = true;
+	}
 }
 
 void AWpGamePlayerController::SetStrategicViewPawn(AWpStrategicViewPawn* const InStrategicViewPawn)
@@ -45,14 +61,14 @@ void AWpGamePlayerController::ClientSetExpectedActorNum_Implementation(const uin
 	AWpMapLoadManager::Instance(this)->SetExpectedActorNum(ExpectedActorNum);
 }
 
-AWpGamePlayerController::FPlayerStateReplicatedEvent& AWpGamePlayerController::OnPlayerStateReplicated()
-{
-	return PlayerStateReplicatedEvent;
-}
-
 void AWpGamePlayerController::ServerToggleView_Implementation()
 {
-	const bool bStrategicView = GetPawn() == StrategicViewPawn;
+	if (!StrategicViewPawn || !Commander)
+	{
+		return;
+	}
+
+	const bool bStrategicView = (GetPawn() == StrategicViewPawn);
 
 	SetView(!bStrategicView);
 }

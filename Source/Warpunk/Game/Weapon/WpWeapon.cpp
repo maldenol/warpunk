@@ -195,16 +195,14 @@ void FWpWeapon::SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity
 
 	if (CurrentTargetEntity)
 	{
-		ensureAlways(OnCurrentTargetEntityStateChangedDelegateHandle.IsValid());
 		UWpEnduranceComponent* const CurrentTargetEnduranceComponent = CurrentTargetEntity->GetEnduranceComponent();
-		CurrentTargetEnduranceComponent->OnEntityStateChanged().Remove(OnCurrentTargetEntityStateChangedDelegateHandle);
+		CurrentTargetEnduranceComponent->OnEntityStateChanged().RemoveAll(this);
 	}
 
 	if (NewTargetEntity)
 	{
 		UWpEnduranceComponent* const NewTargetEnduranceComponent = NewTargetEntity->GetEnduranceComponent();
-		OnCurrentTargetEntityStateChangedDelegateHandle =
-			NewTargetEnduranceComponent->OnEntityStateChanged().AddRaw(this, &FWpWeapon::OnCurrentTargetEntityStateChanged);
+		NewTargetEnduranceComponent->OnEntityStateChanged().AddRaw(this, &FWpWeapon::OnCurrentTargetEntityStateChanged);
 	}
 
 	CurrentTargetEntity = NewTargetEntity;

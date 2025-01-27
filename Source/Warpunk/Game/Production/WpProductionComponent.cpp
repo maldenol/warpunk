@@ -7,7 +7,7 @@
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Entity/WpUnit.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
@@ -21,6 +21,8 @@
 UWpProductionComponent::UWpProductionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(false);
 }
@@ -38,11 +40,6 @@ void UWpProductionComponent::BeginPlay()
 
 		UWpOrderReceiverComponent* const OrderReceiverComponent = Cast<IWpEntityInterface>(GetOwner())->GetOrderReceiverComponent();
 		OrderReceiverComponent->OnOrderReceived().AddUObject(this, &UWpProductionComponent::OnOrderReceived);
-	}
-	else
-	{
-		SetComponentTickEnabled(false);
-		PrimaryComponentTick.bCanEverTick = false;
 	}
 }
 
@@ -104,6 +101,11 @@ void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTi
 	}
 }
 
+void UWpProductionComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
+}
+
 void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	ensureAlways(GetOwner()->HasAuthority());
@@ -131,7 +133,7 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 			bInfiniteProductionEnabled = false;
 		}
 
-		bIsAcquired = ProductionConfig != nullptr;
+		bIsAcquired = (ProductionConfig != nullptr);
 	}
 
 	if (!bIsAcquired)
@@ -331,11 +333,11 @@ void UWpProductionComponent::Produce()
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const UDataTable* const EntityConfigs = GetWorld()->GetGameInstance<UWpGameInstance>()->EntityConfigs;
 	const FName RowName = FName{FString::FromInt(EntityToProduceConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
-	EWpProductionState NewProductionState = EWpProductionState::Idle;
+	EWpProductionState NewProductionState;
 	if (EntityConfig.EntityClass->GetDefaultObject()->IsA<AWpBuilding>())
 	{
 		NewProductionState = EWpProductionState::ProducingBuilding;
@@ -358,18 +360,20 @@ void UWpProductionComponent::Produce()
 	const FVector SpawnLocation = EntityToProduceLocation + ActorBounds.BoxExtent * 0.5f * FVector::UpVector;
 
 	TArray<AActor*> Actors;
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel1));
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel5));
+	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes =
+	{
+		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel1),
+		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel5),
+	};
 	UKismetSystemLibrary::BoxOverlapActors(GetWorld(), SpawnLocation, ActorBounds.BoxExtent, ObjectTypes, AActor::StaticClass(), {}, Actors);
 	UKismetSystemLibrary::DrawDebugBox(GetWorld(), SpawnLocation, ActorBounds.BoxExtent, FColor::Red);
 	const bool bHasSpaceToProduce = Actors.IsEmpty();
 
-	IWpEntityInterface* Entity = nullptr;
+	IWpEntityInterface* Entity;
 
 	if (bHasSpaceToProduce)
 	{
-		const TSubclassOf<AActor> ActorClass = (NewProductionState == EWpProductionState::ProducingBuilding) ? AWpBuilding::StaticClass() : AWpUnit::StaticClass();
+		const TSubclassOf<AActor>& ActorClass = (NewProductionState == EWpProductionState::ProducingBuilding) ? AWpBuilding::StaticClass() : AWpUnit::StaticClass();
 
 		const UWpBelligerentComponent* const BelligerentComponent = GetOwner<IWpEntityInterface>()->GetBelligerentComponent();
 
@@ -487,16 +491,14 @@ void UWpProductionComponent::SetCurrentTargetEntity(IWpEntityInterface* const Ne
 
 	if (CurrentTargetEntity)
 	{
-		ensureAlways(OnCurrentTargetEntityStateChangedDelegateHandle.IsValid());
 		UWpEnduranceComponent* const CurrentTargetEnduranceComponent = CurrentTargetEntity->GetEnduranceComponent();
-		CurrentTargetEnduranceComponent->OnEntityStateChanged().Remove(OnCurrentTargetEntityStateChangedDelegateHandle);
+		CurrentTargetEnduranceComponent->OnEntityStateChanged().RemoveAll(this);
 	}
 
 	if (NewTargetEntity)
 	{
 		UWpEnduranceComponent* const NewTargetEnduranceComponent = NewTargetEntity->GetEnduranceComponent();
-		OnCurrentTargetEntityStateChangedDelegateHandle =
-			NewTargetEnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpProductionComponent::OnCurrentTargetEntityStateChanged);
+		NewTargetEnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpProductionComponent::OnCurrentTargetEntityStateChanged);
 	}
 
 	CurrentTargetEntity = NewTargetEntity;

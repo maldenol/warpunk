@@ -3,7 +3,7 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/UI/WpGameEntityEnduranceWidget.h"
 
@@ -39,7 +39,7 @@ void UWpEnduranceComponent::BeginPlay()
 	EnduranceWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	EnduranceWidgetComponent->SetDrawAtDesiredSize(true);
 
-	const TSubclassOf<UUserWidget> EnduranceWidgetClass = GetWorld()->GetGameState<AWpGameGameState>()->EnduranceWidgetClass;
+	const TSubclassOf<UUserWidget>& EnduranceWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->EnduranceWidgetClass;
 	ensureAlways(EnduranceWidgetClass);
 	EnduranceWidgetComponent->SetWidgetClass(EnduranceWidgetClass);
 
@@ -53,6 +53,11 @@ void UWpEnduranceComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(UWpEnduranceComponent, MaxEndurance);
 	DOREPLIFETIME(UWpEnduranceComponent, EntityState);
 	DOREPLIFETIME(UWpEnduranceComponent, CurrentEndurance);
+}
+
+void UWpEnduranceComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
 }
 
 void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)

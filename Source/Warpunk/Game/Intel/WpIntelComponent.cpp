@@ -6,6 +6,7 @@
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
+#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpPooledActorInterface.h"
@@ -48,6 +49,12 @@ void UWpIntelComponent::BeginPlay()
 	UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
 	EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpIntelComponent::OnEntityStateChanged);
 	OnEntityStateChanged(Cast<IWpEntityInterface>(GetOwner()), EnduranceComponent->GetEntityState());
+
+	AWpMapLoadManager::Instance(this)->OnMapLoaded().AddUObject(this, &UWpIntelComponent::OnMapLoaded);
+	if (AWpMapLoadManager::Instance(this)->IsMapLoaded())
+	{
+		OnMapLoaded();
+	}
 }
 
 void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -56,6 +63,11 @@ void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME(UWpIntelComponent, bMeshIsVisible);
 	DOREPLIFETIME(UWpIntelComponent, MeshTransform);
+}
+
+void UWpIntelComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
 }
 
 void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -85,7 +97,7 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 			MeshTransform = GetRelativeTransform();
 		}
 
-		bIsAcquired = IntelConfig != nullptr;
+		bIsAcquired = (IntelConfig != nullptr);
 	}
 
 	SetMeshIsVisibile(bIsAcquired);
@@ -184,6 +196,15 @@ void UWpIntelComponent::OnEntityStateChanged(IWpEntityInterface* const Entity, c
 	UpdateMeshVisibilityBasedOnTeam();
 }
 
+void UWpIntelComponent::OnMapLoaded()
+{
+	bCanCheckTeam = true;
+
+	AWpMapLoadManager::Instance(this)->OnMapLoaded().RemoveAll(this);
+
+	UpdateMeshVisibilityBasedOnTeam();
+}
+
 void UWpIntelComponent::SetMeshIsVisibile(const bool bInMeshIsVisible)
 {
 	ensureAlways(GetOwner()->HasAuthority());
@@ -198,10 +219,11 @@ void UWpIntelComponent::UpdateMeshVisibilityBasedOnTeam()
 
 	if (bIsVisibleIntelVolumeOnClient)
 	{
-		const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-		AWpGamePlayerController* const LocalPlayerController = Cast<AWpGamePlayerController>(LocalPlayer->GetPlayerController(GetWorld()));
-		if (const AWpGamePlayerState* const LocalPlayerState = LocalPlayerController->GetPlayerState<AWpGamePlayerState>())
+		if (bCanCheckTeam)
 		{
+			const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+			const AWpGamePlayerController* const LocalPlayerController = Cast<AWpGamePlayerController>(LocalPlayer->GetPlayerController(GetWorld()));
+			const AWpGamePlayerState* const LocalPlayerState = LocalPlayerController->GetPlayerState<AWpGamePlayerState>();
 			const uint32 EntityTeamId = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->GetTeamId();
 			const uint32 LocalPlayerTeamId = LocalPlayerState->GetTeamId();
 			const bool bBelongsToLocalPlayerTeam = (EntityTeamId == LocalPlayerTeamId);
@@ -213,29 +235,9 @@ void UWpIntelComponent::UpdateMeshVisibilityBasedOnTeam()
 		}
 		else
 		{
-			if (!OnPlayerStateReplicatedDelegateHandle.IsValid())
-			{
-				OnPlayerStateReplicatedDelegateHandle = LocalPlayerController->OnPlayerStateReplicated().AddUObject(this, &UWpIntelComponent::OnPlayerStateReplicated);
-			}
-
 			bIsVisibleIntelVolumeOnClient = false;
 		}
 	}
 
 	SetHiddenInSceneCapture(!bIsVisibleIntelVolumeOnClient);
-}
-
-void UWpIntelComponent::OnPlayerStateReplicated()
-{
-	ensureAlways(IsActive());
-
-	const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	AWpGamePlayerController* const LocalPlayerController = Cast<AWpGamePlayerController>(LocalPlayer->GetPlayerController(GetWorld()));
-	LocalPlayerController->OnPlayerStateReplicated().Remove(OnPlayerStateReplicatedDelegateHandle);
-	OnPlayerStateReplicatedDelegateHandle.Reset();
-
-	if (bMeshIsVisible)
-	{
-		UpdateMeshVisibilityBasedOnTeam();
-	}
 }

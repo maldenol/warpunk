@@ -17,9 +17,9 @@ class AWpGamePlayerController final : public APlayerController
 	GENERATED_BODY()
 
 public:
-	DECLARE_EVENT(AWpGamePlayerController, FPlayerStateReplicatedEvent);
-
 	AWpGamePlayerController();
+
+	virtual void BeginPlay() override;
 
 	virtual void SetupInputComponent() override;
 
@@ -31,8 +31,6 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientSetExpectedActorNum(const uint32 ExpectedActorNum);
 
-	FPlayerStateReplicatedEvent& OnPlayerStateReplicated();
-
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerToggleView();
@@ -41,13 +39,11 @@ private:
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UInputAction> ToggleViewIa = nullptr;
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AWpCommander> CommanderClass = nullptr;
 
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpStrategicViewPawn> StrategicViewPawn = nullptr;
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpCommander> Commander = nullptr;
 
-	FPlayerStateReplicatedEvent PlayerStateReplicatedEvent = {};
+	bool bHasNotifiedPlayerStareReplicated = false;
 };

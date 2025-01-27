@@ -111,8 +111,6 @@ private:
 
 	TMap<const IWpEntityInterface*, TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
 
-	TMap<const IWpEntityInterface*, FDelegateHandle> OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity = {};
-
 	FAvailableOrdersChangedEvent AvailableOrdersChangedEvent = {};
 
 	static const FName OverrideInputKeyName;

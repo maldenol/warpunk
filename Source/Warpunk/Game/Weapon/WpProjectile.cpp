@@ -2,7 +2,7 @@
 
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
@@ -146,7 +146,7 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 
 void AWpProjectile::OnRep_ProjectileConfig()
 {
-	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
 	const FName RowName = FName{FString::FromInt(ProjectileConfig.EntityConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 	const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];

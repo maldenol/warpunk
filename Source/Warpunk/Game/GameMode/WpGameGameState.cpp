@@ -15,8 +15,3 @@ void AWpGameGameState::BeginPlay()
 
 	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
 }
-
-const UDataTable* AWpGameGameState::GetEntityConfigs() const
-{
-	return EntityConfigs;
-}

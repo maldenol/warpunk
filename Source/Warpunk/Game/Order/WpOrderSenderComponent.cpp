@@ -7,7 +7,7 @@
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Entity/WpUnit.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
@@ -322,11 +322,6 @@ void UWpOrderSenderComponent::SetSelectEntitiesStartLocation()
 
 void UWpOrderSenderComponent::SelectEntities()
 {
-	if (!GetPlayerController()->GetPlayerState<AWpGamePlayerState>())
-	{
-		return;
-	}
-
 	const TSet<IWpEntityInterface*> PreviouslySelectedEntities = SelectedEntities;
 	for (IWpEntityInterface* const SelectedEntity : PreviouslySelectedEntities)
 	{
@@ -449,17 +444,13 @@ void UWpOrderSenderComponent::SelectEntity(IWpEntityInterface* const Entity, con
 		ensureAlways(!SelectedEntities.Contains(Entity));
 		SelectedEntities.Add(Entity);
 
-		const FDelegateHandle DelegateHandle = EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpOrderSenderComponent::OnSelectedEntityStateChanged);
-		OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity.Emplace(Entity, DelegateHandle);
+		EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpOrderSenderComponent::OnSelectedEntityStateChanged);
 	}
-	else if (OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity.Contains(Entity))
+	else
 	{
-		ensureAlways(SelectedEntities.Contains(Entity));
 		SelectedEntities.Remove(Entity);
 
-		const FDelegateHandle DelegateHandle = OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity[Entity];
-		OnSelectedEntityStateChangedDelegateHandlesPerSelectedEntity.Remove(Entity);
-		EnduranceComponent->OnEntityStateChanged().Remove(DelegateHandle);
+		EnduranceComponent->OnEntityStateChanged().RemoveAll(this);
 	}
 }
 
@@ -487,11 +478,6 @@ void UWpOrderSenderComponent::SetOrderStartLocation()
 
 void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 {
-	if (!GetPlayerController()->GetPlayerState<AWpGamePlayerState>())
-	{
-		return;
-	}
-
 	switch (OrderType)
 	{
 	case EWpOrderType::Stop:
@@ -575,11 +561,6 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 
 void UWpOrderSenderComponent::UpdateBuildingPlan()
 {
-	if (!GetPlayerController()->GetPlayerState<AWpGamePlayerState>())
-	{
-		return;
-	}
-
 	const FHitResult Hit = LineTraceUnderCursor();
 
 	if (BuildingToProduce)
@@ -596,7 +577,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			BuildingToProduce = GetWorld()->SpawnActor<AWpBuilding>();
 			BuildingToProduce->SetReplicates(false);
 
-			const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+			const UDataTable* const EntityConfigs = GetWorld()->GetGameInstance<UWpGameInstance>()->EntityConfigs;
 			const FName RowName = FName{FString::FromInt(BuildingToProduceConfigId)};
 			const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
@@ -645,14 +626,12 @@ APlayerController* UWpOrderSenderComponent::GetPlayerController() const
 uint32 UWpOrderSenderComponent::GetBelligerentId() const
 {
 	const AWpGamePlayerState* const PlayerState = GetPlayerController()->GetPlayerState<AWpGamePlayerState>();
-	ensureAlways(PlayerState);
 	return PlayerState->GetBelligerentId();
 }
 
 uint32 UWpOrderSenderComponent::GetTeamId() const
 {
 	const AWpGamePlayerState* const PlayerState = GetPlayerController()->GetPlayerState<AWpGamePlayerState>();
-	ensureAlways(PlayerState);
 	return PlayerState->GetTeamId();
 }
 

@@ -14,6 +14,8 @@ const FName UWpWeaponComponent::MeshCollisionProfileName = TEXT("WpIntel");
 UWpWeaponComponent::UWpWeaponComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(false);
 
@@ -40,17 +42,13 @@ void UWpWeaponComponent::BeginPlay()
 		UWpOrderReceiverComponent* const OrderReceiverComponent = Cast<IWpEntityInterface>(GetOwner())->GetOrderReceiverComponent();
 		OrderReceiverComponent->OnOrderReceived().AddUObject(this, &UWpWeaponComponent::OnOrderReceived);
 	}
-	else
-	{
-		SetComponentTickEnabled(false);
-		PrimaryComponentTick.bCanEverTick = false;
-	}
 }
 
 void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
 	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
@@ -74,6 +72,11 @@ void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick T
 			break;
 		}
 	}
+}
+
+void UWpWeaponComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
 }
 
 void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)

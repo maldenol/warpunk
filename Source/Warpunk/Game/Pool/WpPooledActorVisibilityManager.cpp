@@ -12,6 +12,8 @@
 AWpPooledActorVisibilityManager::AWpPooledActorVisibilityManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.SetTickFunctionEnable(false);
 
 	bReplicates = true;
 
@@ -24,12 +26,13 @@ void AWpPooledActorVisibilityManager::BeginPlay()
 
 	if (!HasAuthority())
 	{
+		SetActorTickEnabled(true);
 		return;
 	}
 
-	if (TeamId != GetAuthorityTeamId())
+	if (TeamId == GetAuthorityTeamId())
 	{
-		SetActorTickEnabled(false);
+		SetActorTickEnabled(true);
 	}
 
 	for (TActorIterator<AActor> Iter{GetWorld()}; Iter; ++Iter)

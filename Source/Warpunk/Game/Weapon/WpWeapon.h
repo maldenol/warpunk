@@ -61,8 +61,6 @@ private:
 	IWpEntityInterface* CurrentTargetEntity = nullptr;
 	IWpEntityInterface* PriorityTargetEntity = nullptr;
 
-	FDelegateHandle OnCurrentTargetEntityStateChangedDelegateHandle = {};
-
 	float LastUpdateCurrentTargetEntityTime = 0.0f;
 	const float UpdateCurrentTargetEntityCooldown = 0.25f;
 };

@@ -10,11 +10,10 @@ UWpGameMapLoadWidget::UWpGameMapLoadWidget(const FObjectInitializer& ObjectIniti
 
 void UWpGameMapLoadWidget::SetMapLoadManager(AWpMapLoadManager* const MapLoadManager)
 {
-	MapLoadManager->OnMapLoaded().AddUObject(this, &UWpGameMapLoadWidget::OnMapLoaded);
-
 	MapLoadManager->OnProgressChanged().AddUObject(this, &UWpGameMapLoadWidget::OnProgressChanged);
 	OnProgressChanged(MapLoadManager->GetProgress());
 
+	MapLoadManager->OnMapLoaded().AddUObject(this, &UWpGameMapLoadWidget::OnMapLoaded);
 	if (MapLoadManager->IsMapLoaded())
 	{
 		OnMapLoaded();

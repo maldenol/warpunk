@@ -8,6 +8,8 @@
 UWpUnitMovementComponent::UWpUnitMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(true);
 
@@ -24,6 +26,11 @@ void UWpUnitMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UWpUnitMovementComponent, Speed);
+}
+
+void UWpUnitMovementComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
 }
 
 void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)

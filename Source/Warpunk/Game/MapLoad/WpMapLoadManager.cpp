@@ -25,7 +25,7 @@ void AWpMapLoadManager::BeginPlay()
 
 void AWpMapLoadManager::NotifyActorLoaded()
 {
-	if (ExpectedActorNum && (LoadedActorNum == ExpectedActorNum))
+	if (bMapIsLoaded)
 	{
 		return;
 	}
@@ -38,7 +38,8 @@ void AWpMapLoadManager::NotifyActorLoaded()
 
 void AWpMapLoadManager::SetExpectedActorNum(const uint32 InExpectedActorNum)
 {
-	ensureAlways(InExpectedActorNum);
+	ensureAlways(InExpectedActorNum != 0);
+	ensureAlways(ExpectedActorNum == 0);
 
 	ExpectedActorNum = InExpectedActorNum;
 
@@ -73,7 +74,7 @@ AWpMapLoadManager* AWpMapLoadManager::Instance(const UObject* const WorldContext
 
 void AWpMapLoadManager::CheckMapLoaded()
 {
-	if (bMapIsLoaded || !ExpectedActorNum)
+	if (bMapIsLoaded || (ExpectedActorNum == 0))
 	{
 		return;
 	}

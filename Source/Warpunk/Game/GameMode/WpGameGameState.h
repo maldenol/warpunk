@@ -17,18 +17,4 @@ public:
 	AWpGameGameState();
 
 	virtual void BeginPlay() override;
-
-	const UDataTable* GetEntityConfigs() const;
-
-	UPROPERTY(EditDefaultsOnly)
-	uint32 CommanderConfigId = 0;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UUserWidget> EnduranceWidgetClass = nullptr;
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UUserWidget> SelectionWidgetClass = nullptr;
-
-private:
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UDataTable> EntityConfigs = nullptr;
 };

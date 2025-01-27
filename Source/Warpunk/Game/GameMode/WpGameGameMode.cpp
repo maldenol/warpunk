@@ -28,9 +28,9 @@ AWpGameGameMode::AWpGameGameMode()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AWpGameGameMode::BeginPlay()
+void AWpGameGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
-	Super::BeginPlay();
+	Super::InitGame(MapName, Options, ErrorMessage);
 
 	ensureAlways(GameStateClass->IsChildOf<AWpGameGameState>());
 	ensureAlways(PlayerControllerClass->IsChildOf<AWpGamePlayerController>());
@@ -38,14 +38,7 @@ void AWpGameGameMode::BeginPlay()
 	ensureAlways(HUDClass->IsChildOf<AWpGameHUD>());
 	ensureAlways(DefaultPawnClass->IsChildOf<AWpStrategicViewPawn>());
 
-	AWpActorPool* const UnitPool = GetWorld()->SpawnActor<AWpActorPool>();
-	UnitPool->Reserve(AWpUnit::StaticClass(), UnitPoolSize);
-
-	AWpActorPool* const BuildingPool = GetWorld()->SpawnActor<AWpActorPool>();
-	BuildingPool->Reserve(AWpBuilding::StaticClass(), BuildingPoolSize);
-
-	AWpActorPool* const ProjectilePool = GetWorld()->SpawnActor<AWpActorPool>();
-	ProjectilePool->Reserve(AWpProjectile::StaticClass(), ProjectilePoolSize);
+	InitializeActorPools();
 }
 
 void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* const NewPlayer)
@@ -56,55 +49,13 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 
 	AWpStrategicViewPawn* const StrategicViewPawn = NewPlayer->GetPawn<AWpStrategicViewPawn>();
 	ensureAlways(StrategicViewPawn);
-
 	PlayerController->SetStrategicViewPawn(StrategicViewPawn);
 
-	AWpGameGameState* const InnerGameState = GetWorld()->GetGameState<AWpGameGameState>();
+	SpawnPooledActorVisibilityManager(PlayerController);
 
-	const uint32 ConfigId = InnerGameState->CommanderConfigId;
-	ensureAlways(ConfigId > 0);
-	const UDataTable* const EntityConfigs = InnerGameState->GetEntityConfigs();
-	const FName RowName = FName{FString::FromInt(ConfigId)};
-	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+	InitializeCommander(PlayerController);
 
-	FActorSpawnParameters ActorSpawnParameters;
-	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AWpCommander* const Commander = GetWorld()->SpawnActor<AWpCommander>(EntityConfig.EntityClass, StrategicViewPawn->GetActorTransform(), ActorSpawnParameters);
-	ensureAlways(Commander);
-
-	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
-
-	const uint32 TeamId = PlayerState->GetTeamId();
-	if (!AWpPooledActorVisibilityManager::Instance(TeamId))
-	{
-		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = GetWorld()->SpawnActor<AWpPooledActorVisibilityManager>();
-		PooledActorVisibilityManager->SetTeamId(TeamId);
-
-		if (AWpPooledActorVisibilityManager::GetAuthorityTeamId() == 0)
-		{
-			AWpPooledActorVisibilityManager::SetAuthorityTeamId(TeamId);
-		}
-	}
-
-	FWpPooledEntityData PooledEntityData;
-	PooledEntityData.EntityConfig = &EntityConfig;
-	PooledEntityData.EntityConfigId = ConfigId;
-	PooledEntityData.BelligerentId = PlayerState->GetBelligerentId();
-	PooledEntityData.TeamId = PlayerState->GetTeamId();
-
-	Commander->AcquirePooledObject(PooledEntityData);
-
-	UWpEnduranceComponent* const CommanderEnduranceComponent = Commander->GetEnduranceComponent();
-	CommanderEnduranceComponent->ReceiveRepair(CommanderEnduranceComponent->GetMatterCost());
-
-	PlayerController->SetCommander(Commander);
-
-	const uint32 PlayerNum = GetGameInstance<UWpGameInstance>()->GetPlayerIds().Num();
-	const uint32 ExpectedActorNum =
-		1 // Game state
-		+ 2 * PlayerNum // Player states and commanders
-		+ (UnitPoolSize + BuildingPoolSize + ProjectilePoolSize); // Pooled actors
-	PlayerController->ClientSetExpectedActorNum(ExpectedActorNum);
+	SetExpectedActorNum(PlayerController);
 }
 
 AActor* AWpGameGameMode::ChoosePlayerStart_Implementation(AController* const Player)
@@ -123,4 +74,75 @@ AActor* AWpGameGameMode::ChoosePlayerStart_Implementation(AController* const Pla
 	}
 
 	return nullptr;
+}
+
+void AWpGameGameMode::InitializeActorPools() const
+{
+	AWpActorPool* const CommanderPool = GetWorld()->SpawnActor<AWpActorPool>();
+	const uint32 PlayerNum = GetGameInstance<UWpGameInstance>()->GetPlayerIds().Num();
+	CommanderPool->Reserve(CommanderClass, PlayerNum);
+
+	AWpActorPool* const UnitPool = GetWorld()->SpawnActor<AWpActorPool>();
+	UnitPool->Reserve(AWpUnit::StaticClass(), UnitPoolSize);
+
+	AWpActorPool* const BuildingPool = GetWorld()->SpawnActor<AWpActorPool>();
+	BuildingPool->Reserve(AWpBuilding::StaticClass(), BuildingPoolSize);
+
+	AWpActorPool* const ProjectilePool = GetWorld()->SpawnActor<AWpActorPool>();
+	ProjectilePool->Reserve(AWpProjectile::StaticClass(), ProjectilePoolSize);
+}
+
+void AWpGameGameMode::InitializeCommander(AWpGamePlayerController* const PlayerController) const
+{
+	constexpr uint32 ConfigId = 1;
+	ensureAlways(ConfigId > 0);
+
+	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
+	const FName RowName = FName{FString::FromInt(ConfigId)};
+	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+
+	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
+	FWpPooledEntityData PooledEntityData;
+	PooledEntityData.EntityConfig = &EntityConfig;
+	PooledEntityData.EntityConfigId = ConfigId;
+	PooledEntityData.BelligerentId = PlayerState->GetBelligerentId();
+	PooledEntityData.TeamId = PlayerState->GetTeamId();
+
+	const FTransform Transform = PlayerController->GetPawn()->GetActorTransform();
+
+	AWpActorPool* const CommanderPool = AWpActorPool::Instance(CommanderClass);
+	AWpCommander* const Commander = Cast<AWpCommander>(CommanderPool->Acquire(Transform.GetLocation(), Transform.Rotator(), PooledEntityData));
+
+	UWpEnduranceComponent* const EnduranceComponent = Commander->GetEnduranceComponent();
+	EnduranceComponent->ReceiveRepair(EnduranceComponent->GetMatterCost());
+
+	PlayerController->SetCommander(Commander);
+}
+
+void AWpGameGameMode::SpawnPooledActorVisibilityManager(const AWpGamePlayerController* const PlayerController) const
+{
+	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
+	const uint32 TeamId = PlayerState->GetTeamId();
+
+	if (!AWpPooledActorVisibilityManager::Instance(TeamId))
+	{
+		if (AWpPooledActorVisibilityManager::GetAuthorityTeamId() == 0)
+		{
+			AWpPooledActorVisibilityManager::SetAuthorityTeamId(TeamId);
+		}
+
+		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = GetWorld()->SpawnActor<AWpPooledActorVisibilityManager>();
+		PooledActorVisibilityManager->SetTeamId(TeamId);
+	}
+}
+
+void AWpGameGameMode::SetExpectedActorNum(AWpGamePlayerController* const PlayerController) const
+{
+	const uint32 PlayerNum = GetGameInstance<UWpGameInstance>()->GetPlayerIds().Num();
+	const uint32 ExpectedActorNum =
+		1 // Game state
+		+ 2 * PlayerNum // For each player: commander and player state
+		+ 1 // PlayerState member of local APlayerController
+		+ (UnitPoolSize + BuildingPoolSize + ProjectilePoolSize); // Pooled actors
+	PlayerController->ClientSetExpectedActorNum(ExpectedActorNum);
 }

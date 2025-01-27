@@ -4,7 +4,7 @@
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameMode/WpGameGameState.h"
+#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
@@ -195,7 +195,7 @@ void AWpBuilding::OnPooledActorVisibilityChanged(const bool bIsVisible)
 
 void AWpBuilding::OnRep_ConfigId()
 {
-	const UDataTable* const EntityConfigs = GetWorld()->GetGameState<AWpGameGameState>()->GetEntityConfigs();
+	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
 	const FName RowName = FName{FString::FromInt(ConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 

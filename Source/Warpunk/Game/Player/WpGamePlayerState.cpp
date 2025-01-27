@@ -66,7 +66,7 @@ const FColor& AWpGamePlayerState::GetColor() const
 
 void AWpGamePlayerState::OnRep_TeamId()
 {
-	if (bHasNotifiedIsLoaded || !TeamId)
+	if (bHasNotifiedIsLoaded || (TeamId == 0))
 	{
 		return;
 	}
