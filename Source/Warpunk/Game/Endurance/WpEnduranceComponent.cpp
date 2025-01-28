@@ -3,9 +3,9 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/UI/WpGameEntityEnduranceWidget.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -39,7 +39,7 @@ void UWpEnduranceComponent::BeginPlay()
 	EnduranceWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	EnduranceWidgetComponent->SetDrawAtDesiredSize(true);
 
-	const TSubclassOf<UUserWidget>& EnduranceWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->EnduranceWidgetClass;
+	const TSubclassOf<UWpGameEntityEnduranceWidget>& EnduranceWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->EnduranceWidgetClass;
 	ensureAlways(EnduranceWidgetClass);
 	EnduranceWidgetComponent->SetWidgetClass(EnduranceWidgetClass);
 

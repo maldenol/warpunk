@@ -1,6 +1,6 @@
 #include "WpLobbyGameMode.h"
 
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Lobby/GameMode/WpLobbyGameState.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerController.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"

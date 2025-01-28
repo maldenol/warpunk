@@ -17,8 +17,11 @@ public:
 	AWpGameHUD();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	void OnLoaded();
+
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UWpGameHUDWidget> GameHUDWidgetClass = nullptr;
 

@@ -29,7 +29,7 @@ public:
 	void SetCommander(AWpCommander* const InCommander);
 
 	UFUNCTION(Client, Reliable)
-	void ClientSetExpectedActorNum(const uint32 ExpectedActorNum);
+	void ClientSetExpectedLoadedObjectNum(const uint32 ExpectedLoadedObjectNum);
 
 private:
 	UFUNCTION(Server, Reliable)
@@ -45,5 +45,5 @@ private:
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpCommander> Commander = nullptr;
 
-	bool bHasNotifiedPlayerStareReplicated = false;
+	bool bHasNotifiedObjectLoaded = false;
 };

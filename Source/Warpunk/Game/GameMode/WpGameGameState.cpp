@@ -1,6 +1,7 @@
 #include "WpGameGameState.h"
 
-#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 AWpGameGameState::AWpGameGameState()
 {
@@ -13,5 +14,5 @@ void AWpGameGameState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
 }

@@ -20,6 +20,7 @@ public:
 	UWpIntelComponent();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -43,7 +44,7 @@ private:
 	void InitializeMesh();
 
 	void OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
-	void OnMapLoaded();
+	void OnLoaded();
 
 	void SetMeshIsVisibile(const bool bInMeshIsVisible);
 	void UpdateMeshVisibilityBasedOnTeam();

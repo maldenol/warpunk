@@ -4,14 +4,14 @@
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
-#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
@@ -68,7 +68,11 @@ void AWpBuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+	UWpLoadingScreen* const LoadingScreen = GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
+	if (!LoadingScreen->IsLoaded())
+	{
+		LoadingScreen->NotifyObjectLoaded();
+	}
 }
 
 void AWpBuilding::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

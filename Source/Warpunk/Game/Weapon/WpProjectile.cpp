@@ -2,13 +2,13 @@
 
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
-#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
 #include "Warpunk/Game/Weapon/WpProjectileWeapon.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -65,7 +65,11 @@ void AWpProjectile::BeginPlay()
 	MovementComponent->bInterpMovement = !bHasAuthority;
 	MovementComponent->bInterpRotation = !bHasAuthority;
 
-	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+	UWpLoadingScreen* const LoadingScreen = GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
+	if (!LoadingScreen->IsLoaded())
+	{
+		LoadingScreen->NotifyObjectLoaded();
+	}
 }
 
 void AWpProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

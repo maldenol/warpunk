@@ -74,17 +74,17 @@ void UWpGameUnitProductionTableWidget::NativeConstruct()
 
 	SetVisibility(ESlateVisibility::Collapsed);
 
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
-	OrderSenderComponent->OnAvailableOrdersChanged().AddUObject(this, &UWpGameUnitProductionTableWidget::OnAvailableOrdersChanged);
-
 	for (const uint32 UnitConfigId : UnitConfigIds)
 	{
 		UWpGameUnitProductionTableEntryWidget* const Entry = WidgetTree->ConstructWidget<UWpGameUnitProductionTableEntryWidget>(EntryClass);
 		Entry->SetUnitConfigId(UnitConfigId);
 		Table->AddChildToHorizontalBox(Entry);
 	}
+
+	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
+	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
+	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	OrderSenderComponent->OnAvailableOrdersChanged().AddUObject(this, &UWpGameUnitProductionTableWidget::OnAvailableOrdersChanged);
 }
 
 void UWpGameUnitProductionTableWidget::OnAvailableOrdersChanged(const TSet<EWpOrderType>& AvailableOrders)

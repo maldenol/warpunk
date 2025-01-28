@@ -16,6 +16,8 @@ public:
 
 	AWpLobbyPlayerController();
 
+	virtual void PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel) override;
+
 	virtual void OnRep_PlayerState() override;
 
 	UFUNCTION(Server, Reliable, WithValidation)

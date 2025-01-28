@@ -1,6 +1,8 @@
 #include "WpStrategicViewPawn.h"
 
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -81,6 +83,12 @@ void AWpStrategicViewPawn::ClientPossessed_Implementation()
 	InputMode.SetHideCursorDuringCapture(false);
 	LocalPlayerController->SetInputMode(InputMode);
 	LocalPlayerController->SetShowMouseCursor(true);
+
+	if (!bHasNotifiedObjectLoaded)
+	{
+		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
+		bHasNotifiedObjectLoaded = true;
+	}
 }
 
 void AWpStrategicViewPawn::ClientUnPossessed_Implementation()

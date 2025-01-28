@@ -33,8 +33,8 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
 
-		ensureAlways(PooledEntityData.BelligerentId > 0);
-		ensureAlways(PooledEntityData.TeamId > 0);
+		ensureAlways(PooledEntityData.BelligerentId != 0);
+		ensureAlways(PooledEntityData.TeamId != 0);
 
 		BelligerentId = PooledEntityData.BelligerentId;
 		TeamId = PooledEntityData.TeamId;

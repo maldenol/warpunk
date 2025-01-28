@@ -25,7 +25,7 @@ private:
 	void InitializeActorPools() const;
 	void InitializeCommander(AWpGamePlayerController* const PlayerController) const;
 	void SpawnPooledActorVisibilityManager(const AWpGamePlayerController* const PlayerController) const;
-	void SetExpectedActorNum(AWpGamePlayerController* const PlayerController) const;
+	void SetExpectedLoadedObjectNum(AWpGamePlayerController* const PlayerController) const;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AWpCommander> CommanderClass = nullptr;

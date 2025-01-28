@@ -1,6 +1,7 @@
 #include "WpGamePlayerState.h"
 
-#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Net/UnrealNetwork.h"
 
@@ -33,7 +34,7 @@ const FString& AWpGamePlayerState::GetName() const
 
 void AWpGamePlayerState::SetBelligerentId(const uint32 InBelligerentId)
 {
-	ensureAlways(InBelligerentId > 0);
+	ensureAlways(InBelligerentId != 0);
 	BelligerentId = InBelligerentId;
 }
 
@@ -44,7 +45,7 @@ uint32 AWpGamePlayerState::GetBelligerentId() const
 
 void AWpGamePlayerState::SetTeamId(const uint32 InTeamId)
 {
-	ensureAlways(InTeamId > 0);
+	ensureAlways(InTeamId != 0);
 	TeamId = InTeamId;
 	OnRep_TeamId();
 }
@@ -66,12 +67,9 @@ const FColor& AWpGamePlayerState::GetColor() const
 
 void AWpGamePlayerState::OnRep_TeamId()
 {
-	if (bHasNotifiedIsLoaded || (TeamId == 0))
+	if (!bHasNotifiedObjectLoaded && (TeamId != 0))
 	{
-		return;
+		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
+		bHasNotifiedObjectLoaded = true;
 	}
-
-	AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
-
-	bHasNotifiedIsLoaded = true;
 }

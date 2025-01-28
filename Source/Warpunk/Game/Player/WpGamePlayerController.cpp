@@ -1,9 +1,10 @@
 #include "WpGamePlayerController.h"
 
 #include "Warpunk/Game/Entity/WpCommander.h"
-#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "EnhancedInputComponent.h"
 
@@ -18,9 +19,9 @@ void AWpGamePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalController() && HasAuthority())
+	if (IsLocalController())
 	{
-		AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
+		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
 	}
 }
 
@@ -38,11 +39,10 @@ void AWpGamePlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	if (!bHasNotifiedPlayerStareReplicated && GetPlayerState<AWpGamePlayerState>())
+	if (!bHasNotifiedObjectLoaded && GetPlayerState<AWpGamePlayerState>())
 	{
-		AWpMapLoadManager::Instance(this)->NotifyActorLoaded();
-
-		bHasNotifiedPlayerStareReplicated = true;
+		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
+		bHasNotifiedObjectLoaded = true;
 	}
 }
 
@@ -56,9 +56,9 @@ void AWpGamePlayerController::SetCommander(AWpCommander* const InCommander)
 	Commander = InCommander;
 }
 
-void AWpGamePlayerController::ClientSetExpectedActorNum_Implementation(const uint32 ExpectedActorNum)
+void AWpGamePlayerController::ClientSetExpectedLoadedObjectNum_Implementation(const uint32 ExpectedLoadedObjectNum)
 {
-	AWpMapLoadManager::Instance(this)->SetExpectedActorNum(ExpectedActorNum);
+	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->SetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
 }
 
 void AWpGamePlayerController::ServerToggleView_Implementation()

@@ -6,11 +6,12 @@
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
-#include "Warpunk/Game/MapLoad/WpMapLoadManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpPooledActorInterface.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -50,11 +51,20 @@ void UWpIntelComponent::BeginPlay()
 	EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpIntelComponent::OnEntityStateChanged);
 	OnEntityStateChanged(Cast<IWpEntityInterface>(GetOwner()), EnduranceComponent->GetEntityState());
 
-	AWpMapLoadManager::Instance(this)->OnMapLoaded().AddUObject(this, &UWpIntelComponent::OnMapLoaded);
-	if (AWpMapLoadManager::Instance(this)->IsMapLoaded())
+	UWpLoadingScreen* const LoadingScreen = GetWorld()->GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
+	LoadingScreen->OnLoaded().AddUObject(this, &UWpIntelComponent::OnLoaded);
+	if (LoadingScreen->IsLoaded())
 	{
-		OnMapLoaded();
+		OnLoaded();
 	}
+}
+
+void UWpIntelComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UWpLoadingScreen* const LoadingScreen = GetWorld()->GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
+	LoadingScreen->OnLoaded().RemoveAll(this);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -196,11 +206,11 @@ void UWpIntelComponent::OnEntityStateChanged(IWpEntityInterface* const Entity, c
 	UpdateMeshVisibilityBasedOnTeam();
 }
 
-void UWpIntelComponent::OnMapLoaded()
+void UWpIntelComponent::OnLoaded()
 {
 	bCanCheckTeam = true;
 
-	AWpMapLoadManager::Instance(this)->OnMapLoaded().RemoveAll(this);
+	GetWorld()->GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->OnLoaded().RemoveAll(this);
 
 	UpdateMeshVisibilityBasedOnTeam();
 }

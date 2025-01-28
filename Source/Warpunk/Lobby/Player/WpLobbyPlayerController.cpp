@@ -1,5 +1,7 @@
 #include "WpLobbyPlayerController.h"
 
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"
 
 AWpLobbyPlayerController::AWpLobbyPlayerController()
@@ -7,6 +9,13 @@ AWpLobbyPlayerController::AWpLobbyPlayerController()
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+}
+
+void AWpLobbyPlayerController::PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
+{
+	Super::PreClientTravel(PendingURL, TravelType, bIsSeamlessTravel);
+
+	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->EnableLoadingScreen(true);
 }
 
 void AWpLobbyPlayerController::OnRep_PlayerState()
@@ -24,7 +33,7 @@ void AWpLobbyPlayerController::ServerSetBelligerentId_Implementation(const uint3
 
 bool AWpLobbyPlayerController::ServerSetBelligerentId_Validate(const uint32 BelligerentId)
 {
-	return BelligerentId > 0;
+	return BelligerentId != 0;
 }
 
 void AWpLobbyPlayerController::ServerSetTeamId_Implementation(const uint32 TeamId)
@@ -35,7 +44,7 @@ void AWpLobbyPlayerController::ServerSetTeamId_Implementation(const uint32 TeamI
 
 bool AWpLobbyPlayerController::ServerSetTeamId_Validate(const uint32 TeamId)
 {
-	return TeamId > 0;
+	return TeamId != 0;
 }
 
 void AWpLobbyPlayerController::ServerSetColor_Implementation(const FColor& Color)

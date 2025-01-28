@@ -7,10 +7,10 @@
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Entity/WpUnit.h"
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "AIController.h"
 #include "Components/BoxComponent.h"

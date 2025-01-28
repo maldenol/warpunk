@@ -38,5 +38,5 @@ private:
 	UPROPERTY(Replicated)
 	FColor Color = FColor::Transparent;
 
-	bool bHasNotifiedIsLoaded = false;
+	bool bHasNotifiedObjectLoaded = false;
 };

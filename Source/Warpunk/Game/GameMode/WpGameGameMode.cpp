@@ -6,7 +6,6 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Entity/WpUnit.h"
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
@@ -15,6 +14,7 @@
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/UI/WpGameHUD.h"
 #include "Warpunk/Game/Weapon/WpProjectile.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
@@ -55,7 +55,7 @@ void AWpGameGameMode::HandleStartingNewPlayer_Implementation(APlayerController* 
 
 	InitializeCommander(PlayerController);
 
-	SetExpectedActorNum(PlayerController);
+	SetExpectedLoadedObjectNum(PlayerController);
 }
 
 AActor* AWpGameGameMode::ChoosePlayerStart_Implementation(AController* const Player)
@@ -136,13 +136,14 @@ void AWpGameGameMode::SpawnPooledActorVisibilityManager(const AWpGamePlayerContr
 	}
 }
 
-void AWpGameGameMode::SetExpectedActorNum(AWpGamePlayerController* const PlayerController) const
+void AWpGameGameMode::SetExpectedLoadedObjectNum(AWpGamePlayerController* const PlayerController) const
 {
 	const uint32 PlayerNum = GetGameInstance<UWpGameInstance>()->GetPlayerIds().Num();
-	const uint32 ExpectedActorNum =
+	const uint32 ExpectedLoadedObjectNum =
 		1 // Game state
-		+ 2 * PlayerNum // For each player: commander and player state
-		+ 1 // PlayerState member of local APlayerController
+		+ 1 // PlayerState field of local player controller
+		+ 1 // Local strategic view pawn possession
+		+ 2 * PlayerNum // For each player: player state and commander
 		+ (UnitPoolSize + BuildingPoolSize + ProjectilePoolSize); // Pooled actors
-	PlayerController->ClientSetExpectedActorNum(ExpectedActorNum);
+	PlayerController->ClientSetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
 }

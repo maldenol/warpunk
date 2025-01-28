@@ -61,6 +61,8 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpOrderSenderComponent> OrderSenderComponent = nullptr;
 
+	bool bHasNotifiedObjectLoaded = false;
+
 	static const FName MovementComponentName;
 	static const FName OrderSenderComponentName;
 };

@@ -4,7 +4,7 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
