@@ -35,4 +35,6 @@ private:
 	TObjectPtr<UWpLoadingScreen> LoadingScreen = nullptr;
 
 	TArray<int32> PlayerIds = {};
+
+	static const FName LoadingScreenName;
 };

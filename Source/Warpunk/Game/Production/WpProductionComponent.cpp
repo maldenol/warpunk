@@ -204,8 +204,7 @@ bool UWpProductionComponent::CanReach(const FVector& Location) const
 
 	const FVector OwnerLocation = GetOwner()->GetActorLocation();
 	const float Distance2 = FVector::DistSquared2D(OwnerLocation, Location);
-
-	return Distance2 <= Range * Range;
+	return Distance2 <= FMath::Square(Range);
 }
 
 bool UWpProductionComponent::CanReach(const IWpEntityInterface* const Entity) const

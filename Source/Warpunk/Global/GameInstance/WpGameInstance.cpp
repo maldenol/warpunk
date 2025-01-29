@@ -2,12 +2,14 @@
 
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
+const FName UWpGameInstance::LoadingScreenName = TEXT("LoadingScreen");
+
 UWpLoadingScreen* UWpGameInstance::GetLoadingScreen()
 {
 	if (!LoadingScreen)
 	{
 		ensureAlways(LoadingScreenClass);
-		LoadingScreen = NewObject<UWpLoadingScreen>(this, LoadingScreenClass);
+		LoadingScreen = NewObject<UWpLoadingScreen>(this, LoadingScreenClass, LoadingScreenName);
 	}
 
 	return LoadingScreen;

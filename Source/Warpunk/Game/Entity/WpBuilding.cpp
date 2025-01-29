@@ -195,6 +195,14 @@ void AWpBuilding::OnPooledActorVisibilityChanged(const bool bIsVisible)
 	{
 		WidgetComponent->SetHiddenInGame(!bIsVisible);
 	}
+
+	if (!HasAuthority())
+	{
+		if (!bIsVisible)
+		{
+			SetActorLocation(FVector::ZeroVector);
+		}
+	}
 }
 
 void AWpBuilding::OnRep_ConfigId()

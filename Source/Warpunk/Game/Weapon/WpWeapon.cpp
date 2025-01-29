@@ -96,7 +96,7 @@ bool FWpWeapon::CanReach(const FVector& Location) const
 
 	const FVector OwnerLocation = Cast<AActor>(OwnerEntity)->GetActorLocation();
 	const float Distance2 = FVector::DistSquared2D(OwnerLocation, Location);
-	return (Distance2 <= Range * Range) && (Distance2 >= MinRange * MinRange);
+	return (Distance2 <= FMath::Square(Range)) && (Distance2 >= FMath::Square(MinRange));
 }
 
 float FWpWeapon::GetRange() const

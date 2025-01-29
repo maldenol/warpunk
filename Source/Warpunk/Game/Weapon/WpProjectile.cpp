@@ -46,6 +46,7 @@ AWpProjectile::AWpProjectile()
 
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(MovementComponentName);
 	MovementComponent->SetInterpolatedComponent(MeshComponent);
+	MovementComponent->InterpLocationSnapToTargetDistance = 100.0f;
 
 	OnPooledActorVisibilityChanged(false);
 }
@@ -131,6 +132,11 @@ void AWpProjectile::OnPooledActorVisibilityChanged(const bool bIsVisible)
 	if (!HasAuthority())
 	{
 		MovementComponent->SetComponentTickEnabled(bIsVisible);
+
+		if (!bIsVisible)
+		{
+			SetActorLocation(FVector::ZeroVector);
+		}
 	}
 }
 

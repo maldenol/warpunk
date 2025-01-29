@@ -208,7 +208,7 @@ void AWpUnit::OnPooledActorVisibilityChanged(const bool bIsVisible)
 
 		if (!bIsVisible)
 		{
-			MovementComponent->Velocity = FVector::ZeroVector;
+			SetActorLocation(FVector::ZeroVector);
 		}
 	}
 

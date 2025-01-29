@@ -25,11 +25,11 @@ void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquire
 		const float GravityZ = GetGravityZ();
 
 		ProjectileSpeed2 = GetRange() * GravityZ;
-		ProjectileSpeed4 = ProjectileSpeed2 * ProjectileSpeed2;
+		ProjectileSpeed4 = FMath::Square(ProjectileSpeed2);
 		ProjectileSpeed = FMath::Sqrt(ProjectileSpeed2);
 
 		ProjectileSpeedMinRange2 = GetMinRange() * GravityZ;
-		ProjectileSpeedMinRange4 = ProjectileSpeedMinRange2 * ProjectileSpeedMinRange2;
+		ProjectileSpeedMinRange4 = FMath::Square(ProjectileSpeedMinRange2);
 	}
 }
 
@@ -145,11 +145,8 @@ void FWpProjectileWeapon::CalcLocationDelta(const FVector& ProjectileLocation, c
 
 float FWpProjectileWeapon::CalcDiscriminant(const float HorizontalDelta, const float VerticalDelta, const float GravityZ) const
 {
-	const float GravityZ2 = GravityZ * GravityZ;
-	const float HorizontalDelta2 = HorizontalDelta * HorizontalDelta;
-
 	const float Discriminant = ProjectileSpeed4
-		- HorizontalDelta2 * GravityZ2
+		- FMath::Square(HorizontalDelta) * FMath::Square(GravityZ)
 		- VerticalDelta * ProjectileSpeed2 * GravityZ * 2.0f;
 
 	return Discriminant;
@@ -157,11 +154,8 @@ float FWpProjectileWeapon::CalcDiscriminant(const float HorizontalDelta, const f
 
 float FWpProjectileWeapon::CalcDiscriminantMinRange(const float HorizontalDelta, const float VerticalDelta, const float GravityZ) const
 {
-	const float GravityZ2 = GravityZ * GravityZ;
-	const float HorizontalDelta2 = HorizontalDelta * HorizontalDelta;
-
 	const float DiscriminantMinRange = ProjectileSpeedMinRange4
-		- HorizontalDelta2 * GravityZ2
+		- FMath::Square(HorizontalDelta) * FMath::Square(GravityZ)
 		- VerticalDelta * ProjectileSpeedMinRange2 * GravityZ * 2.0f;
 
 	return DiscriminantMinRange;

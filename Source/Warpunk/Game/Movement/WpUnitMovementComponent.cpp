@@ -13,6 +13,8 @@ UWpUnitMovementComponent::UWpUnitMovementComponent()
 
 	SetIsReplicatedByDefault(true);
 
+	NetworkNoSmoothUpdateDistance = 100.0f;
+
 	FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
 	NavAgentProperties.bCanCrouch = false;
 	NavAgentProperties.bCanFly = false;
