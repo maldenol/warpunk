@@ -42,6 +42,12 @@ void FWpAttackOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
+	if (!GetOrder().TargetEntityActor)
+	{
+		Finish();
+		return;
+	}
+
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
 		if (FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index))

@@ -218,8 +218,10 @@ void AWpBuilding::OnRep_ConfigId()
 	MeshComponent->SetAnimInstanceClass(EntityConfig.EntityMeshConfig.Animation);
 
 	const FBoxSphereBounds MeshBounds = MeshComponent->GetLocalBounds();
+
 	const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
 	MeshComponent->SetRelativeLocation(-MeshOrigin);
+
 	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
 	BoxComponent->SetBoxExtent(MeshExtent);
 }

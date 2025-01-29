@@ -69,8 +69,8 @@ void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcqui
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
 		const FWpEnduranceConfig& EnduranceConfig = PooledEntityData.EntityConfig->EnduranceConfig;
 
-		ensureAlways(EnduranceConfig.MaxEndurance >= 1.0f);
-		ensureAlways(EnduranceConfig.MatterCost >= 1.0f);
+		ensureAlways(!FMath::IsNearlyZero(EnduranceConfig.MaxEndurance));
+		ensureAlways(!FMath::IsNearlyZero(EnduranceConfig.MatterCost));
 
 		MaxEndurance = EnduranceConfig.MaxEndurance;
 		MatterCost = EnduranceConfig.MatterCost;

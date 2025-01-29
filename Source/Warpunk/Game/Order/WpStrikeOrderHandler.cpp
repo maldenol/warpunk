@@ -41,7 +41,7 @@ void FWpStrikeOrderHandler::Tick(const float CurrentTime)
 				WaitingWeapons[Index] = false;
 			}
 		}
-		else if (!GetOrder().TargetLocation.IsNearlyZero())
+		else
 		{
 			if (Weapon->TryFire(GetOrder().TargetLocation))
 			{

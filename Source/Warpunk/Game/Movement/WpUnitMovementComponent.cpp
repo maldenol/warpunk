@@ -44,7 +44,7 @@ void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAc
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
 		const FWpUnitMovementConfig& UnitMovementConfig = PooledEntityData.EntityConfig->UnitMovementConfig;
 
-		ensureAlways(UnitMovementConfig.Speed >= 1.0f);
+		ensureAlways(!FMath::IsNearlyZero(UnitMovementConfig.Speed));
 
 		SetSpeed(UnitMovementConfig.Speed);
 

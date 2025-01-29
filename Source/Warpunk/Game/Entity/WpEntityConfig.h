@@ -98,12 +98,16 @@ struct FWpWeaponConfig final
 	float Damage = 0.0f;
 	UPROPERTY(EditAnywhere)
 	FVector FireLocation = FVector::ZeroVector;
-	UPROPERTY(EditAnywhere)
-	float ProjectileRadius = 0.0f;
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UStaticMesh> ProjectileMesh = nullptr;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
 	bool bHighAngle = false;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	float ProjectileRadius = 0.0f;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	TObjectPtr<UStaticMesh> ProjectileMesh = nullptr;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	FRotator ProjectileMeshRotation = FRotator::ZeroRotator;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	float ProjectileMeshToRadiusScale = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)

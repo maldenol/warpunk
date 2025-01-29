@@ -229,8 +229,10 @@ void AWpUnit::OnRep_ConfigId()
 	MeshComponent->SetAnimInstanceClass(EntityConfig.EntityMeshConfig.Animation);
 
 	const FBoxSphereBounds MeshBounds = MeshComponent->GetLocalBounds();
+
 	const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
 	MeshComponent->SetRelativeLocation(-MeshOrigin);
+
 	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.EntityMeshConfig.Transform.GetScale3D();
 	const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
 	const float HalfHeight = MeshExtent.Z;

@@ -117,9 +117,9 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 
 		if (ProductionConfig)
 		{
-			ensureAlways(ProductionConfig->Range >= 1.0f);
-			ensureAlways(ProductionConfig->MatterConsumption >= 1.0f);
-			ensureAlways(ProductionConfig->EnergyPerMatterRatio >= 0.001f);
+			ensureAlways(!FMath::IsNearlyZero(ProductionConfig->Range));
+			ensureAlways(!FMath::IsNearlyZero(ProductionConfig->MatterConsumption));
+			ensureAlways(!FMath::IsNearlyZero(ProductionConfig->EnergyPerMatterRatio));
 
 			Range = ProductionConfig->Range;
 			MatterConsumption = ProductionConfig->MatterConsumption;

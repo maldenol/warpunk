@@ -11,6 +11,9 @@ UWpProjectileMovementComponent::UWpProjectileMovementComponent()
 
 	SetIsReplicatedByDefault(false);
 
+	bRotationFollowsVelocity = true;
+	bRotationRemainsVertical = false;
+
 	InterpLocationSnapToTargetDistance = 100.0f;
 }
 

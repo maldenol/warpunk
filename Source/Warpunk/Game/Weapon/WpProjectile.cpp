@@ -45,7 +45,6 @@ AWpProjectile::AWpProjectile()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	MovementComponent = CreateDefaultSubobject<UWpProjectileMovementComponent>(MovementComponentName);
-	MovementComponent->SetInterpolatedComponent(MeshComponent);
 
 	SetPooledObjectVisibility(false);
 }
@@ -99,7 +98,7 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 		const FWpPooledProjectileData& PooledProjectileData = static_cast<const FWpPooledProjectileData&>(PooledObjectData);
 
 		ensureAlways(PooledProjectileData.ProjectileConfig.EntityConfigId > 0);
-		ensureAlways(PooledProjectileData.Damage >= 1.0f);
+		ensureAlways(!FMath::IsNearlyZero(PooledProjectileData.Damage));
 		ensureAlways(PooledProjectileData.Weapon);
 
 		ProjectileConfig = PooledProjectileData.ProjectileConfig;
@@ -152,17 +151,23 @@ void AWpProjectile::OnRep_ProjectileConfig()
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 	const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
 
-	ensureAlways(WeaponConfig.ProjectileRadius >= 1.0f);
+	ensureAlways(!FMath::IsNearlyZero(WeaponConfig.ProjectileRadius));
 	ensureAlways(WeaponConfig.ProjectileMesh);
+	ensureAlways(!FMath::IsNearlyZero(WeaponConfig.ProjectileMeshToRadiusScale));
 
-	const float Radius = WeaponConfig.ProjectileRadius;
+	SphereComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
 
-	SphereComponent->SetSphereRadius(Radius);
 	MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
+	MeshComponent->SetRelativeRotation(WeaponConfig.ProjectileMeshRotation);
 
-	const FVector MeshExtent = MeshComponent->GetStaticMesh()->GetBounds().BoxExtent;
-	const float ScaleX = Radius / MeshExtent.X;
-	const float ScaleY = Radius / MeshExtent.Y;
-	const float ScaleZ = Radius / MeshExtent.Z;
-	MeshComponent->SetRelativeScale3D(FVector{ScaleX, ScaleY, ScaleZ});
+	const FBoxSphereBounds& MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
+
+	const float MeshExtentMax = MeshBounds.BoxExtent.GetMax();
+	const float MeshScale = WeaponConfig.ProjectileMeshToRadiusScale * WeaponConfig.ProjectileRadius / MeshExtentMax;
+	MeshComponent->SetRelativeScale3D(FVector{MeshScale});
+
+	const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
+	MeshComponent->SetRelativeLocation(-MeshOrigin);
+
+	MovementComponent->SetInterpolatedComponent(MeshComponent);
 }
