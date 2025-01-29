@@ -8,8 +8,8 @@
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
-#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
+#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
@@ -132,7 +132,7 @@ void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComp
 		return;
 	}
 
-	if (OtherActor->Implements<UWpPooledActorInterface>())
+	if (OtherActor->Implements<UWpPooledObjectInterface>())
 	{
 		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
 		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, true);
@@ -155,7 +155,7 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 		return;
 	}
 
-	if (OtherActor->Implements<UWpPooledActorInterface>())
+	if (OtherActor->Implements<UWpPooledObjectInterface>())
 	{
 		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
 		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, false);

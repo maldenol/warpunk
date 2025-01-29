@@ -30,10 +30,10 @@ public:
 	void UpdateActorVisibility(AActor* const Actor, const bool bGainedSight);
 	bool IsVisibleForTeam(const AActor* const Actor) const;
 
-	void OnPooledActorVisibilityChanged(const uint64 Guid, const bool bIsVisible);
-
 private:
 	void NetUpdateActorVisibility(AActor* const Actor, const bool bIsVisible);
+
+	void SetPooledActorVisibility(const uint64 Guid, const bool bIsVisible);
 
 	uint64 GetActorGuid(AActor* const Actor) const;
 	AActor* GetActorByGuid(const uint64 Guid) const;
@@ -49,6 +49,8 @@ private:
 	TSet<uint64> AlreadyHiddenActorGuids = {};
 	TSet<uint64> ShouldBeVisibleActorGuids = {};
 	TSet<uint64> AlreadyVisibleActorGuids = {};
+
+	friend struct FWpPooledActorVisibilityInfoArray;
 
 public:
 	static AWpPooledActorVisibilityManager* Instance(const uint32 TeamId);

@@ -61,7 +61,7 @@ AWpBuilding::AWpBuilding()
 	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
-	OnPooledActorVisibilityChanged(false);
+	SetPooledObjectVisibility(false);
 }
 
 void AWpBuilding::BeginPlay()
@@ -173,6 +173,22 @@ void AWpBuilding::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const
 	SetActorHiddenInGame(!bIsAcquired);
 }
 
+void AWpBuilding::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!HasAuthority() && !bIsVisible)
+	{
+		SetActorLocation(FVector::ZeroVector);
+	}
+
+	MeshComponent->SetHiddenInGame(!bIsVisible);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
+
+	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
+	{
+		WidgetComponent->SetHiddenInGame(!bIsVisible);
+	}
+}
+
 TArray<IWpPooledObjectInterface*> AWpBuilding::GetInnerPooledObjects()
 {
 	return
@@ -184,25 +200,6 @@ TArray<IWpPooledObjectInterface*> AWpBuilding::GetInnerPooledObjects()
 		Cast<IWpPooledObjectInterface>(ProductionComponent),
 		Cast<IWpPooledObjectInterface>(WeaponComponent),
 	};
-}
-
-void AWpBuilding::OnPooledActorVisibilityChanged(const bool bIsVisible)
-{
-	MeshComponent->SetHiddenInGame(!bIsVisible);
-	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
-
-	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
-	{
-		WidgetComponent->SetHiddenInGame(!bIsVisible);
-	}
-
-	if (!HasAuthority())
-	{
-		if (!bIsVisible)
-		{
-			SetActorLocation(FVector::ZeroVector);
-		}
-	}
 }
 
 void AWpBuilding::OnRep_ConfigId()

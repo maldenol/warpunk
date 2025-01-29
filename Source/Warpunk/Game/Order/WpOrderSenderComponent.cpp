@@ -11,7 +11,6 @@
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
-#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -290,8 +289,8 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 
 		if (Order.TargetEntityActor)
 		{
-			const bool bTargetEntityIsPooledActor = Order.TargetEntityActor->Implements<UWpPooledActorInterface>();
-			if (!bTargetEntityIsPooledActor)
+			const bool bTargetEntityIsPooledObject = Order.TargetEntityActor->Implements<UWpPooledObjectInterface>();
+			if (!bTargetEntityIsPooledObject)
 			{
 				continue;
 			}
@@ -591,7 +590,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			BuildingToProduce->AcquirePooledObject(PooledEntityData);
 			BuildingToProduce->ReleasePooledObject();
 			BuildingToProduce->SetActorHiddenInGame(false);
-			BuildingToProduce->OnPooledActorVisibilityChanged(true);
+			BuildingToProduce->SetPooledObjectVisibility(true);
 		}
 	}
 }

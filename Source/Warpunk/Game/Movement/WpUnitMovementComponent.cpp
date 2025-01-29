@@ -55,6 +55,14 @@ void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAc
 	SetComponentTickEnabled(bIsAcquired);
 }
 
+void UWpUnitMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		SetComponentTickEnabled(bIsVisible);
+	}
+}
+
 void UWpUnitMovementComponent::SetIsFirstPersonControlled(const bool bIsFirstPersonControlled)
 {
 	bOrientRotationToMovement = !bIsFirstPersonControlled;

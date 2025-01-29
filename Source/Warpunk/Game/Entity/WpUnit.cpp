@@ -63,7 +63,7 @@ AWpUnit::AWpUnit(const FObjectInitializer& ObjectInitializer)
 	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
-	AWpUnit::OnPooledActorVisibilityChanged(false);
+	SetPooledObjectVisibility(false);
 }
 
 void AWpUnit::BeginPlay()
@@ -181,6 +181,23 @@ void AWpUnit::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWp
 	}
 }
 
+void AWpUnit::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!HasAuthority() && !bIsVisible)
+	{
+		SetActorLocation(FVector::ZeroVector);
+	}
+
+	UMeshComponent* const MeshComponent = GetMesh();
+	MeshComponent->SetHiddenInGame(!bIsVisible);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
+
+	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
+	{
+		WidgetComponent->SetHiddenInGame(!bIsVisible);
+	}
+}
+
 TArray<IWpPooledObjectInterface*> AWpUnit::GetInnerPooledObjects()
 {
 	return
@@ -193,29 +210,6 @@ TArray<IWpPooledObjectInterface*> AWpUnit::GetInnerPooledObjects()
 		Cast<IWpPooledObjectInterface>(WeaponComponent),
 		Cast<IWpPooledObjectInterface>(GetMovementComponent()),
 	};
-}
-
-void AWpUnit::OnPooledActorVisibilityChanged(const bool bIsVisible)
-{
-	UMeshComponent* const MeshComponent = GetMesh();
-	MeshComponent->SetHiddenInGame(!bIsVisible);
-	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
-
-	if (!HasAuthority())
-	{
-		UCharacterMovementComponent* const MovementComponent = Cast<UCharacterMovementComponent>(GetMovementComponent());
-		MovementComponent->SetComponentTickEnabled(bIsVisible);
-
-		if (!bIsVisible)
-		{
-			SetActorLocation(FVector::ZeroVector);
-		}
-	}
-
-	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
-	{
-		WidgetComponent->SetHiddenInGame(!bIsVisible);
-	}
 }
 
 void AWpUnit::OnRep_ConfigId()

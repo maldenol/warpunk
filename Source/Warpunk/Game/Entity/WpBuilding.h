@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
 #include "GameFramework/Actor.h"
 
@@ -19,7 +19,7 @@ class UWpWeaponComponent;
 class UBoxComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
-class AWpBuilding final : public AActor, public IWpEntityInterface, public IWpPooledActorInterface
+class AWpBuilding final : public AActor, public IWpEntityInterface, public IWpPooledObjectInterface
 {
 	GENERATED_BODY()
 
@@ -52,9 +52,8 @@ public:
 	virtual uint32 GetConfigId() const override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
+	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
-
-	virtual void OnPooledActorVisibilityChanged(const bool bIsVisible) override;
 
 private:
 	UFUNCTION()

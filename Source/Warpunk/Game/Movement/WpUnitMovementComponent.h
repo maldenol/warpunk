@@ -21,6 +21,7 @@ public:
 	virtual void OnRep_IsActive() override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
+	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 
 	void SetIsFirstPersonControlled(const bool bIsFirstPersonControlled);
 

@@ -18,14 +18,19 @@ class IWpPooledObjectInterface
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) = 0;
+
+	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible)
+	{
+	}
 
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects()
 	{
 		return {};
 	}
 
+public:
 	void AcquirePooledObject(const FWpPooledObjectData& PooledObjectData)
 	{
 		OnPooledObjectAcquiredOrReleased(true, PooledObjectData);
@@ -44,5 +49,15 @@ public:
 		}
 
 		OnPooledObjectAcquiredOrReleased(false, {});
+	}
+
+	void SetPooledObjectVisibility(const bool bIsVisible)
+	{
+		OnPooledObjectVisibilityChanged(bIsVisible);
+
+		for (IWpPooledObjectInterface* const InnerPooledObject : GetInnerPooledObjects())
+		{
+			InnerPooledObject->SetPooledObjectVisibility(bIsVisible);
+		}
 	}
 };

@@ -1,6 +1,6 @@
 #include "WpActorPool.h"
 
-#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
 AWpActorPool::AWpActorPool()
 {
@@ -36,7 +36,7 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 	{
 		AActor* const Actor = GetWorld()->SpawnActor(Class, nullptr, nullptr, ActorSpawnParameters);
 
-		Cast<IWpPooledActorInterface>(Actor)->ReleasePooledObject();
+		Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
 
 		FreeActors.Add(Actor);
 	}
@@ -56,7 +56,7 @@ AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation,
 
 	Actor->SetActorLocationAndRotation(Location, Rotation);
 
-	Cast<IWpPooledActorInterface>(Actor)->AcquirePooledObject(PooledObjectData);
+	Cast<IWpPooledObjectInterface>(Actor)->AcquirePooledObject(PooledObjectData);
 
 	GEngine->AddOnScreenDebugMessage(0, 5.0f, FColor::Green, Actor->GetActorNameOrLabel());
 
@@ -69,7 +69,7 @@ void AWpActorPool::Release(AActor* const Actor)
 
 	ensureAlways(Actor);
 
-	Cast<IWpPooledActorInterface>(Actor)->ReleasePooledObject();
+	Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
 
 	Actor->SetActorLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
 

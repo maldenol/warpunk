@@ -47,5 +47,5 @@ void FWpPooledActorVisibilityInfoArray::OnItemChanged(const FWpPooledActorVisibi
 {
 	const uint64 Guid = PooledActorVisibilityInfo.Guid;
 	const bool bIsVisible = PooledActorVisibilityInfo.bIsVisible;
-	PooledActorVisibilityManager->OnPooledActorVisibilityChanged(Guid, bIsVisible);
+	PooledActorVisibilityManager->SetPooledActorVisibility(Guid, bIsVisible);
 }

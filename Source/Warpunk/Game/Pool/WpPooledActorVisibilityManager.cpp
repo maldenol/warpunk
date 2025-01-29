@@ -2,7 +2,7 @@
 
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
-#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
 #include "EngineUtils.h"
 #include "Engine/PackageMapClient.h"
@@ -39,7 +39,7 @@ void AWpPooledActorVisibilityManager::BeginPlay()
 	{
 		AActor* const Actor = *Iter;
 
-		if (!Actor->Implements<UWpPooledActorInterface>())
+		if (!Actor->Implements<UWpPooledObjectInterface>())
 		{
 			continue;
 		}
@@ -67,7 +67,7 @@ void AWpPooledActorVisibilityManager::Tick(float DeltaSeconds)
 		const uint64 Guid = *Iter;
 		if (AActor* const Actor = GetActorByGuid(Guid))
 		{
-			Cast<IWpPooledActorInterface>(Actor)->OnPooledActorVisibilityChanged(false);
+			Cast<IWpPooledObjectInterface>(Actor)->SetPooledObjectVisibility(false);
 
 			Iter.RemoveCurrent();
 
@@ -82,7 +82,7 @@ void AWpPooledActorVisibilityManager::Tick(float DeltaSeconds)
 		const uint64 Guid = *Iter;
 		if (AActor* const Actor = GetActorByGuid(Guid))
 		{
-			Cast<IWpPooledActorInterface>(Actor)->OnPooledActorVisibilityChanged(true);
+			Cast<IWpPooledObjectInterface>(Actor)->SetPooledObjectVisibility(true);
 
 			Iter.RemoveCurrent();
 
@@ -216,7 +216,18 @@ bool AWpPooledActorVisibilityManager::IsVisibleForTeam(const AActor* const Actor
 	return false;
 }
 
-void AWpPooledActorVisibilityManager::OnPooledActorVisibilityChanged(const uint64 Guid, const bool bIsVisible)
+void AWpPooledActorVisibilityManager::NetUpdateActorVisibility(AActor* const Actor, const bool bIsVisible)
+{
+	const uint64 Guid = GetActorGuid(Actor);
+	PooledActorVisibilityInfos.SetVisibilityInfo(Guid, bIsVisible);
+
+	if (bIsVisible)
+	{
+		Actor->FlushNetDormancy();
+	}
+}
+
+void AWpPooledActorVisibilityManager::SetPooledActorVisibility(const uint64 Guid, const bool bIsVisible)
 {
 	if (HasAuthority() && TeamId != AuthorityTeamId)
 	{
@@ -242,17 +253,6 @@ void AWpPooledActorVisibilityManager::OnPooledActorVisibilityChanged(const uint6
 			ShouldBeVisibleActorGuids.Remove(Guid);
 			AlreadyVisibleActorGuids.Remove(Guid);
 		}
-	}
-}
-
-void AWpPooledActorVisibilityManager::NetUpdateActorVisibility(AActor* const Actor, const bool bIsVisible)
-{
-	const uint64 Guid = GetActorGuid(Actor);
-	PooledActorVisibilityInfos.SetVisibilityInfo(Guid, bIsVisible);
-
-	if (bIsVisible)
-	{
-		Actor->FlushNetDormancy();
 	}
 }
 

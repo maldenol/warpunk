@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 
-#include "Warpunk/Game/Pool/WpPooledActorInterface.h"
+#include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 #include "Warpunk/Game/Weapon/WpProjectileConfig.h"
 
 #include "GameFramework/Actor.h"
@@ -10,12 +10,12 @@
 #include "WpProjectile.generated.h"
 
 class FWpProjectileWeapon;
+class UWpProjectileMovementComponent;
 
-class UProjectileMovementComponent;
 class USphereComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
-class AWpProjectile final : public AActor, public IWpPooledActorInterface
+class AWpProjectile final : public AActor, public IWpPooledObjectInterface
 {
 	GENERATED_BODY()
 
@@ -30,8 +30,8 @@ public:
 	virtual void PostNetReceiveLocationAndRotation() override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
-
-	virtual void OnPooledActorVisibilityChanged(const bool bIsVisible) override;
+	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
+	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
 
 private:
 	UFUNCTION()
@@ -45,7 +45,7 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> MeshComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UProjectileMovementComponent> MovementComponent = nullptr;
+	TObjectPtr<UWpProjectileMovementComponent> MovementComponent = nullptr;
 
 	UPROPERTY(ReplicatedUsing=OnRep_ProjectileConfig)
 	FWpProjectileConfig ProjectileConfig = {};

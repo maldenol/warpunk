@@ -2,6 +2,7 @@
 
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Movement/WpProjectileMovementComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
@@ -11,7 +12,6 @@
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Components/SphereComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -44,27 +44,20 @@ AWpProjectile::AWpProjectile()
 	MeshComponent->SetGenerateOverlapEvents(false);
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
-	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(MovementComponentName);
+	MovementComponent = CreateDefaultSubobject<UWpProjectileMovementComponent>(MovementComponentName);
 	MovementComponent->SetInterpolatedComponent(MeshComponent);
-	MovementComponent->InterpLocationSnapToTargetDistance = 100.0f;
 
-	OnPooledActorVisibilityChanged(false);
+	SetPooledObjectVisibility(false);
 }
 
 void AWpProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	const bool bHasAuthority = HasAuthority();
-
-	if (bHasAuthority)
+	if (HasAuthority())
 	{
 		SphereComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
 	}
-
-	MovementComponent->bSimulationEnabled = bHasAuthority;
-	MovementComponent->bInterpMovement = !bHasAuthority;
-	MovementComponent->bInterpRotation = !bHasAuthority;
 
 	UWpLoadingScreen* const LoadingScreen = GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
 	if (!LoadingScreen->IsLoaded())
@@ -106,38 +99,36 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 		const FWpPooledProjectileData& PooledProjectileData = static_cast<const FWpPooledProjectileData&>(PooledObjectData);
 
 		ensureAlways(PooledProjectileData.ProjectileConfig.EntityConfigId > 0);
-		ensureAlways(!PooledProjectileData.InitialVelocity.IsNearlyZero());
 		ensureAlways(PooledProjectileData.Damage >= 1.0f);
 		ensureAlways(PooledProjectileData.Weapon);
 
 		ProjectileConfig = PooledProjectileData.ProjectileConfig;
 		OnRep_ProjectileConfig();
 
-		MovementComponent->Velocity = PooledProjectileData.InitialVelocity;
 		Damage = PooledProjectileData.Damage;
 		Weapon = PooledProjectileData.Weapon;
 	}
 
 	SetActorEnableCollision(bIsAcquired);
 	SetActorHiddenInGame(!bIsAcquired);
-
-	MovementComponent->SetActive(bIsAcquired);
-	MovementComponent->SetComponentTickEnabled(bIsAcquired);
 }
 
-void AWpProjectile::OnPooledActorVisibilityChanged(const bool bIsVisible)
+void AWpProjectile::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
-	MeshComponent->SetHiddenInGame(!bIsVisible);
-
-	if (!HasAuthority())
+	if (!HasAuthority() && !bIsVisible)
 	{
-		MovementComponent->SetComponentTickEnabled(bIsVisible);
-
-		if (!bIsVisible)
-		{
-			SetActorLocation(FVector::ZeroVector);
-		}
+		SetActorLocation(FVector::ZeroVector);
 	}
+
+	MeshComponent->SetHiddenInGame(!bIsVisible);
+}
+
+TArray<IWpPooledObjectInterface*> AWpProjectile::GetInnerPooledObjects()
+{
+	return
+	{
+		Cast<IWpPooledObjectInterface>(MovementComponent),
+	};
 }
 
 void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const FVector NormalImpulse, const FHitResult& Hit)
