@@ -19,9 +19,10 @@ void AWpGamePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalController())
+	if (HasAuthority() && IsLocalController())
 	{
 		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
+		bHasNotifiedObjectLoaded = true;
 	}
 }
 

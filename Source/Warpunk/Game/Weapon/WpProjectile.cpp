@@ -1,7 +1,7 @@
 #include "WpProjectile.h"
 
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Movement/WpProjectileMovementComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
@@ -134,9 +134,9 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 {
 	ensureAlways(HasAuthority());
 
-	if (IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(OtherActor))
+	if (AWpEntity* const Entity = Cast<AWpEntity>(OtherActor))
 	{
-		UGameplayStatics::ApplyPointDamage(Cast<AActor>(Entity), Damage, FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
+		UGameplayStatics::ApplyPointDamage(Entity, Damage, FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
 
 		Weapon->OnProjectileHit(Entity);
 	}

@@ -2,8 +2,8 @@
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
@@ -47,9 +47,9 @@ void UWpIntelComponent::BeginPlay()
 		InitializeMesh();
 	}
 
-	UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
+	UWpEnduranceComponent* const EnduranceComponent = GetOwner<AWpEntity>()->GetEnduranceComponent();
 	EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpIntelComponent::OnEntityStateChanged);
-	OnEntityStateChanged(Cast<IWpEntityInterface>(GetOwner()), EnduranceComponent->GetEntityState());
+	OnEntityStateChanged(GetOwner<AWpEntity>(), EnduranceComponent->GetEntityState());
 
 	UWpLoadingScreen* const LoadingScreen = GetWorld()->GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
 	LoadingScreen->OnLoaded().AddUObject(this, &UWpIntelComponent::OnLoaded);
@@ -115,7 +115,7 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 	SetActive(bIsAcquired);
 }
 
-const TSet<IWpEntityInterface*>& UWpIntelComponent::GetVisibleEntities() const
+const TSet<AWpEntity*>& UWpIntelComponent::GetVisibleEntities() const
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -134,11 +134,11 @@ void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComp
 
 	if (OtherActor->Implements<UWpPooledObjectInterface>())
 	{
-		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
+		const uint32 EntityTeamId = GetOwner<AWpEntity>()->GetBelligerentComponent()->GetTeamId();
 		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, true);
 	}
 
-	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
+	if (AWpEntity* const OtherEntity = Cast<AWpEntity>(OtherActor))
 	{
 		ensureAlways(!VisibleEntities.Contains(OtherEntity));
 
@@ -157,11 +157,11 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 
 	if (OtherActor->Implements<UWpPooledObjectInterface>())
 	{
-		const uint32 EntityTeamId = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent()->GetTeamId();
+		const uint32 EntityTeamId = GetOwner<AWpEntity>()->GetBelligerentComponent()->GetTeamId();
 		AWpPooledActorVisibilityManager::UpdateActorVisibility(EntityTeamId, OtherActor, false);
 	}
 
-	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
+	if (AWpEntity* const OtherEntity = Cast<AWpEntity>(OtherActor))
 	{
 		ensureAlways(VisibleEntities.Contains(OtherEntity));
 
@@ -192,7 +192,7 @@ void UWpIntelComponent::InitializeMesh()
 	SetMaterial(0, IntelMaterial);
 }
 
-void UWpIntelComponent::OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
+void UWpIntelComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState)
 {
 	const bool bHasAuthorityAndIsOperational = GetOwner()->HasAuthority() && (EntityState == EWpEntityState::Operational);
 	SetGenerateOverlapEvents(bHasAuthorityAndIsOperational);
@@ -234,12 +234,12 @@ void UWpIntelComponent::UpdateMeshVisibilityBasedOnTeam()
 			const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 			const AWpGamePlayerController* const LocalPlayerController = Cast<AWpGamePlayerController>(LocalPlayer->GetPlayerController(GetWorld()));
 			const AWpGamePlayerState* const LocalPlayerState = LocalPlayerController->GetPlayerState<AWpGamePlayerState>();
-			const uint32 EntityTeamId = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->GetTeamId();
+			const uint32 EntityTeamId = GetOwner<AWpEntity>()->GetBelligerentComponent()->GetTeamId();
 			const uint32 LocalPlayerTeamId = LocalPlayerState->GetTeamId();
 			const bool bBelongsToLocalPlayerTeam = (EntityTeamId == LocalPlayerTeamId);
 			bIsVisibleIntelVolumeOnClient &= bBelongsToLocalPlayerTeam;
 
-			const UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
+			const UWpEnduranceComponent* const EnduranceComponent = GetOwner<AWpEntity>()->GetEnduranceComponent();
 			const bool bEntityIsOperational = (EnduranceComponent->GetEntityState() == EWpEntityState::Operational);
 			bIsVisibleIntelVolumeOnClient &= bEntityIsOperational;
 		}

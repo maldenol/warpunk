@@ -8,9 +8,9 @@
 
 #include "WpProductionComponent.generated.h"
 
+class AWpEntity;
 enum class EWpEntityState : uint8;
 struct FWpOrder;
-class IWpEntityInterface;
 
 class AAIController;
 
@@ -30,7 +30,7 @@ class UWpProductionComponent final : public UActorComponent, public IWpPooledObj
 	};
 
 public:
-	DECLARE_EVENT_OneParam(FWpProduction, FRepairFinishedEvent, IWpEntityInterface*);
+	DECLARE_EVENT_OneParam(FWpProduction, FRepairFinishedEvent, AWpEntity*);
 
 	DECLARE_EVENT(FWpProduction, FReclaimFinishedEvent);
 
@@ -44,22 +44,22 @@ public:
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
 	void StartProduce(const uint32 EntityConfigId, const FVector& Location);
-	void StartRepair(IWpEntityInterface* const Entity);
-	void StartReclaim(IWpEntityInterface* const Entity);
+	void StartRepair(AWpEntity* const Entity);
+	void StartReclaim(AWpEntity* const Entity);
 	void Stop();
 
 	bool CanReach(const FVector& Location) const;
-	bool CanReach(const IWpEntityInterface* const Entity) const;
-	bool CanRepair(const IWpEntityInterface* const Entity) const;
-	bool CanReachAndRepair(const IWpEntityInterface* const Entity) const;
+	bool CanReach(const AWpEntity* const Entity) const;
+	bool CanRepair(const AWpEntity* const Entity) const;
+	bool CanReachAndRepair(const AWpEntity* const Entity) const;
 
 	void ReceiveProxyOrder(const FWpOrder& Order, const bool bOverride);
 
 	float GetRange() const;
 	void SetShouldSupport(const bool bInShouldSupport);
 	bool ShouldSupport() const;
-	IWpEntityInterface* GetCurrentTargetEntity() const;
-	void SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity);
+	AWpEntity* GetCurrentTargetEntity() const;
+	void SetPriorityTargetEntity(AWpEntity* const InPriorityTargetEntity);
 	void EnableInfiniteProduction(const bool bInInfiniteProductionEnabled);
 	bool IsInfiniteProductionEnabled() const;
 
@@ -71,11 +71,11 @@ private:
 	void Repair(const float DeltaTime);
 	void Reclaim(const float DeltaTime);
 
-	void SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity);
+	void SetCurrentTargetEntity(AWpEntity* const NewTargetEntity);
 
 	void UpdateCurrentTargetEntity();
 
-	void OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
+	void OnCurrentTargetEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState);
 	void OnOrderReceived(const FWpOrder& InOrder);
 
 	UPROPERTY(VisibleInstanceOnly)
@@ -97,8 +97,8 @@ private:
 	FVector EntityToProduceLocation = FVector::ZeroVector;
 	bool bInfiniteProductionEnabled = false;
 	TArray<FWpOrder> ProxyOrderQueue = {};
-	IWpEntityInterface* CurrentTargetEntity = nullptr;
-	IWpEntityInterface* PriorityTargetEntity = nullptr;
+	AWpEntity* CurrentTargetEntity = nullptr;
+	AWpEntity* PriorityTargetEntity = nullptr;
 
 	float LastUpdateCurrentTargetEntityTime = 0.0f;
 	const float UpdateCurrentTargetEntityCooldown = 0.25f;

@@ -12,9 +12,9 @@
 
 #define WP_ENTITY_MAX_WEAPON 4
 
+class AWpEntity;
 enum class EWpEntityState : uint8;
 struct FWpOrder;
-class IWpEntityInterface;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class UWpWeaponComponent final : public UStaticMeshComponent, public IWpPooledObjectInterface
@@ -34,7 +34,7 @@ public:
 	FWpWeapon* GetWeapon(const uint32 Index);
 	const FWpWeapon* GetWeapon(const uint32 Index) const;
 
-	const TSet<IWpEntityInterface*>& GetEntitiesInReach() const;
+	const TSet<AWpEntity*>& GetEntitiesInReach() const;
 
 private:
 	UFUNCTION()
@@ -44,14 +44,15 @@ private:
 
 	void InitializeMesh();
 
-	void OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
+	void OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState);
 	void OnOrderReceived(const FWpOrder& InOrder);
 
 	TStaticArray<FWpWeaponWrapper, WP_ENTITY_MAX_WEAPON> Weapons = {};
 
 	bool bManualControlOnly = false;
 
-	TSet<IWpEntityInterface*> EntitiesInReach = {};
+	TSet<AWpEntity*> EntitiesInReach = {};
 
+public:
 	static const FName MeshCollisionProfileName;
 };

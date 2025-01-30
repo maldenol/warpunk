@@ -2,33 +2,29 @@
 
 #include "CoreMinimal.h"
 
+#include "Warpunk/Game/Entity/WpEntityType.h"
 #include "Warpunk/Game/Order/WpOrder.h"
 #include "Warpunk/Game/Weapon/WpWeaponWrapper.h"
 
 #include "WpEntityConfig.generated.h"
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
-struct FWpEntityMeshConfig final
+struct FWpMeshConfig final
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
 	FTransform Transform = FTransform::Identity;
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<USkeletalMesh> Mesh = nullptr;
+	TObjectPtr<UStaticMesh> Mesh = nullptr;
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UMaterialInterface> Material = nullptr;
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UAnimInstance> Animation = nullptr;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
-struct FWpUnitMovementConfig final
+struct FWpMovementConfig final
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	float Speed = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -121,11 +117,11 @@ struct FWpEntityConfig final : public FTableRowBase
 	FString Description = TEXT("");
 
 	UPROPERTY(EditAnywhere)
-	TSubclassOf<AActor> EntityClass = nullptr;
+	EWpEntityType Type = EWpEntityType::Undefined;
 	UPROPERTY(EditAnywhere)
-	FWpEntityMeshConfig EntityMeshConfig = {};
-	UPROPERTY(EditAnywhere)
-	FWpUnitMovementConfig UnitMovementConfig = {};
+	FWpMeshConfig MeshConfig = {};
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityType::Unit", EditConditionHides))
+	FWpMovementConfig MovementConfig = {};
 	UPROPERTY(EditAnywhere)
 	FWpEnduranceConfig EnduranceConfig = {};
 	UPROPERTY(EditAnywhere)

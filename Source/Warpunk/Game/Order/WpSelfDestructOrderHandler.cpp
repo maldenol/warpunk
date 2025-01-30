@@ -1,7 +1,7 @@
 #include "WpSelfDestructOrderHandler.h"
 
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 
 void FWpSelfDestructOrderHandler::Execute(const FWpOrder& InOrder)
 {

@@ -1,8 +1,8 @@
 #include "WpOrderReceiverComponent.h"
 
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
@@ -52,7 +52,7 @@ void UWpOrderReceiverComponent::TickComponent(const float DeltaTime, const ELeve
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
+	if (GetOwner<AWpEntity>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
 	{
 		return;
 	}
@@ -148,7 +148,7 @@ void UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool b
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Wreck)
+	if (GetOwner<AWpEntity>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Wreck)
 	{
 		return;
 	}
@@ -176,7 +176,7 @@ void UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool b
 		return;
 	}
 
-	if (Order.TargetEntityActor == GetOwner())
+	if (Order.TargetEntity == GetOwner<AWpEntity>())
 	{
 		if (!bIsProxyOrder)
 		{
@@ -324,9 +324,9 @@ void UWpOrderReceiverComponent::ActivateOrder(const FWpOrder& Order)
 	ensureAlways(GetOwner()->HasAuthority());
 
 	FWpOrderHandler* const OrderHandler = CurrentOrderHandler.Set(Order.Type);
-	OrderHandler->Initialize(GetOwner<IWpEntityInterface>());
+	OrderHandler->Initialize(GetOwner<AWpEntity>());
 	OrderHandler->SetOrder(Order);
-	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Operational)
+	if (GetOwner<AWpEntity>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Operational)
 	{
 		OrderHandler->Reactivate();
 	}
@@ -338,7 +338,7 @@ void UWpOrderReceiverComponent::ReactivateOrder(FWpOrderHandler* const OrderHand
 	ensureAlways(GetOwner()->HasAuthority());
 
 	OrderHandler->SetOrder(Order);
-	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Operational)
+	if (GetOwner<AWpEntity>()->GetEnduranceComponent()->GetEntityState() == EWpEntityState::Operational)
 	{
 		OrderHandler->Reactivate();
 	}
@@ -363,7 +363,7 @@ void UWpOrderReceiverComponent::ExecuteOrder(const EWpOrderType OrderType, const
 
 	FWpOrderHandlerWrapper ImmediateOrderHandler;
 	FWpOrderHandler* const OrderHandler = ImmediateOrderHandler.Set(OrderType);
-	OrderHandler->Initialize(GetOwner<IWpEntityInterface>());
+	OrderHandler->Initialize(GetOwner<AWpEntity>());
 	OrderHandler->Execute(Order);
 }
 

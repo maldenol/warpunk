@@ -37,6 +37,7 @@ private:
 
 	uint32 UnitConfigId = 0;
 
+public:
 	static const FName CancelUnitInputKeyName;
 };
 

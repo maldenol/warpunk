@@ -1,7 +1,7 @@
 #include "WpProjectileWeapon.h"
 
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
@@ -36,7 +36,7 @@ void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquire
 bool FWpProjectileWeapon::CanReach(const FVector& Location) const
 {
 	ensureAlways(GetOwnerEntity()->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(GetOwnerEntity())->HasAuthority());
+	ensureAlways(GetOwnerEntity()->HasAuthority());
 
 	const FVector& TargetLocation = Location;
 
@@ -66,9 +66,9 @@ bool FWpProjectileWeapon::CanReach(const FVector& Location) const
 	return true;
 }
 
-void FWpProjectileWeapon::OnProjectileHit(IWpEntityInterface* const Entity)
+void FWpProjectileWeapon::OnProjectileHit(AWpEntity* const Entity)
 {
-	ensureAlways(Cast<AActor>(GetOwnerEntity())->HasAuthority());
+	ensureAlways(GetOwnerEntity()->HasAuthority());
 
 	if (!GetOwnerEntity()->GetWeaponComponent()->IsActive())
 	{
@@ -129,8 +129,7 @@ float FWpProjectileWeapon::CalcElevationAngle(const FVector& ProjectileLocation,
 
 void FWpProjectileWeapon::CalcAzimuthVectorAndProjectileLocation(const FVector& TargetLocation, FVector& OutAzimuthVector, FVector& OutProjectileLocation) const
 {
-	const AActor* const OwnerActor = Cast<AActor>(GetOwnerEntity());
-	const FVector OwnerActorLocation = OwnerActor->GetActorLocation();
+	const FVector OwnerActorLocation = GetOwnerEntity()->GetActorLocation();
 
 	OutAzimuthVector = FVector{(FVector2D{TargetLocation} - FVector2D{OwnerActorLocation}).GetSafeNormal(), 0.0};
 
@@ -163,5 +162,5 @@ float FWpProjectileWeapon::CalcDiscriminantMinRange(const float HorizontalDelta,
 
 float FWpProjectileWeapon::GetGravityZ() const
 {
-	return -Cast<AActor>(GetOwnerEntity())->GetWorld()->GetGravityZ();
+	return -GetOwnerEntity()->GetWorld()->GetGravityZ();
 }

@@ -4,7 +4,7 @@
 
 #include "Warpunk/Game/Order/WpOrder.h"
 
-class IWpEntityInterface;
+class AWpEntity;
 
 class FWpOrderHandler
 {
@@ -13,7 +13,7 @@ public:
 	{
 	}
 
-	virtual void Initialize(IWpEntityInterface* const InEntity);
+	virtual void Initialize(AWpEntity* const InEntity);
 
 	virtual void Execute(const FWpOrder& InOrder);
 
@@ -32,13 +32,13 @@ public:
 protected:
 	void Finish();
 
-	IWpEntityInterface* GetEntity();
-	const IWpEntityInterface* GetEntity() const;
+	AWpEntity* GetEntity();
+	const AWpEntity* GetEntity() const;
 
 	void SetTickCooldown(const float InTickCooldown);
 
 private:
-	IWpEntityInterface* Entity = nullptr;
+	AWpEntity* Entity = nullptr;
 
 	FWpOrder Order = {};
 

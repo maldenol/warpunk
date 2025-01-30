@@ -1,6 +1,6 @@
 #include "WpAttackOrderHandler.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Weapon/WpWeapon.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
@@ -12,11 +12,11 @@ FWpAttackOrderHandler::FWpAttackOrderHandler()
 	SetTickCooldown(0.25f);
 }
 
-void FWpAttackOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpAttackOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = Cast<APawn>(GetEntity())->GetController<AAIController>();
+	AIController = GetEntity()->GetController<AAIController>();
 	ensureAlways(AIController);
 
 	WeaponComponent = GetEntity()->GetWeaponComponent();
@@ -42,7 +42,7 @@ void FWpAttackOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	if (!GetOrder().TargetEntityActor)
+	if (!GetOrder().TargetEntity)
 	{
 		Finish();
 		return;
@@ -52,7 +52,7 @@ void FWpAttackOrderHandler::Reactivate()
 	{
 		if (FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index))
 		{
-			Weapon->SetPriorityTargetEntity(GetOrder().GetTargetEntity());
+			Weapon->SetPriorityTargetEntity(GetOrder().TargetEntity);
 		}
 		else
 		{
@@ -65,17 +65,17 @@ void FWpAttackOrderHandler::Tick(const float CurrentTime)
 {
 	FWpOrderHandler::Tick(CurrentTime);
 
-	if (!GetOrder().TargetEntityActor)
+	if (!GetOrder().TargetEntity)
 	{
 		Finish();
 		return;
 	}
 
-	const bool bEveryWeaponIsInReach = ShortestRangeWeapon->CanReach(GetOrder().TargetEntityActor->GetActorLocation());
+	const bool bEveryWeaponIsInReach = ShortestRangeWeapon->CanReach(GetOrder().TargetEntity->GetActorLocation());
 	const bool bIsMoving = AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle;
 	if (!bEveryWeaponIsInReach && !bIsMoving)
 	{
-		AIController->MoveToActor(GetOrder().TargetEntityActor, ShortestRangeWeapon->GetRange(), false, true, false, nullptr, false);
+		AIController->MoveToActor(GetOrder().TargetEntity, ShortestRangeWeapon->GetRange(), false, true, false, nullptr, false);
 	}
 }
 

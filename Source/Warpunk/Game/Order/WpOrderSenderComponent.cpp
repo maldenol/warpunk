@@ -2,11 +2,9 @@
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
-#include "Warpunk/Game/Entity/WpBuilding.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/Entity/WpUnit.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
@@ -18,13 +16,13 @@ const FName UWpOrderSenderComponent::OverrideInputKeyName = TEXT("LeftShift");
 
 bool FWpSelectedEntityCategory::operator==(const FWpSelectedEntityCategory& Other) const
 {
-	return (DefaultOrders == Other.DefaultOrders) && (EntityClass == Other.EntityClass);
+	return (DefaultOrders == Other.DefaultOrders) && (EntityType == Other.EntityType);
 }
 
 uint32 GetTypeHash(const FWpSelectedEntityCategory& Other)
 {
 	uint32 Hash = GetTypeHash(Other.DefaultOrders);
-	Hash = HashCombine(Hash, GetTypeHash(Other.EntityClass));
+	Hash = HashCombine(Hash, GetTypeHash(Other.EntityType));
 	return Hash;
 }
 
@@ -92,7 +90,7 @@ void UWpOrderSenderComponent::AddUnitToProduce(const uint32 UnitConfigId)
 
 	PopulateUnitToProduceConfigIdNumbersPerProducer();
 
-	for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	for (const AWpEntity* const SelectedEntity : SelectedEntities)
 	{
 		if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[SelectedEntity].Find(UnitConfigId))
 		{
@@ -122,7 +120,7 @@ void UWpOrderSenderComponent::RemoveUnitToProduce(const uint32 UnitConfigId)
 
 	PopulateUnitToProduceConfigIdNumbersPerProducer();
 
-	for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	for (const AWpEntity* const SelectedEntity : SelectedEntities)
 	{
 		if (uint32* const UnitToProduceNumber = UnitToProduceConfigIdNumbersPerProducer[SelectedEntity].Find(UnitConfigId))
 		{
@@ -152,7 +150,7 @@ TMap<uint32, uint32> UWpOrderSenderComponent::GetUnitsToProduce()
 	PopulateUnitToProduceConfigIdNumbersPerProducer();
 
 	TMap<uint32, uint32> UnitToProduceClassNumbersTotal;
-	for (const TPair<const IWpEntityInterface*, TMap<uint32, uint32>>& KeyValue : UnitToProduceConfigIdNumbersPerProducer)
+	for (const TPair<const AWpEntity*, TMap<uint32, uint32>>& KeyValue : UnitToProduceConfigIdNumbersPerProducer)
 	{
 		const TMap<uint32, uint32>& UnitToProduceConfigIdNumbers = KeyValue.Value;
 		for (const TPair<uint32, uint32>& UnitToProduceConfigIdNumber : UnitToProduceConfigIdNumbers)
@@ -237,9 +235,6 @@ void UWpOrderSenderComponent::OnRMBStarted()
 		OrderSenderState = EWpOrderSenderState::DefaultOrder;
 		SelectedOrderType = EWpOrderType::Undefined;
 		break;
-	case EWpOrderSenderState::ProduceBuildingOrder:
-		SelectBuildingToProduce(0);
-		break;
 	default:
 		break;
 	}
@@ -263,6 +258,9 @@ void UWpOrderSenderComponent::OnRMBCompleted()
 	{
 	case EWpOrderSenderState::DefaultOrder:
 		SendOrders(SelectedOrderType);
+	case EWpOrderSenderState::ProduceBuildingOrder:
+		SelectBuildingToProduce(0);
+		break;
 	default:
 		break;
 	}
@@ -277,9 +275,7 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 {
 	for (const FWpNetOrder& NetOrder : NetOrders)
 	{
-		IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(NetOrder.EntityActor);
-
-		const bool bEntityBelongsToSameBelligerentAsPlayer = Entity->GetBelligerentComponent()->BelongsToSameBelligerent(GetBelligerentId());
+		const bool bEntityBelongsToSameBelligerentAsPlayer = NetOrder.Entity->GetBelligerentComponent()->BelongsToSameBelligerent(GetBelligerentId());
 		if (!bEntityBelongsToSameBelligerentAsPlayer)
 		{
 			continue;
@@ -287,15 +283,9 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 
 		const FWpOrder& Order = NetOrder.Order;
 
-		if (Order.TargetEntityActor)
+		if (Order.TargetEntity)
 		{
-			const bool bTargetEntityIsPooledObject = Order.TargetEntityActor->Implements<UWpPooledObjectInterface>();
-			if (!bTargetEntityIsPooledObject)
-			{
-				continue;
-			}
-
-			const bool bTargetEntityIsVisibleToPlayer = AWpPooledActorVisibilityManager::IsVisibleForTeam(GetTeamId(), Order.TargetEntityActor);
+			const bool bTargetEntityIsVisibleToPlayer = AWpPooledActorVisibilityManager::IsVisibleForTeam(GetTeamId(), Order.TargetEntity);
 			if (!bTargetEntityIsVisibleToPlayer)
 			{
 				continue;
@@ -307,7 +297,7 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 			continue;
 		}
 
-		Entity->GetOrderReceiverComponent()->ReceiveOrder(Order, bOverride);
+		NetOrder.Entity->GetOrderReceiverComponent()->ReceiveOrder(Order, bOverride);
 	}
 }
 
@@ -322,8 +312,8 @@ void UWpOrderSenderComponent::SetSelectEntitiesStartLocation()
 
 void UWpOrderSenderComponent::SelectEntities()
 {
-	const TSet<IWpEntityInterface*> PreviouslySelectedEntities = SelectedEntities;
-	for (IWpEntityInterface* const SelectedEntity : PreviouslySelectedEntities)
+	const TSet<AWpEntity*> PreviouslySelectedEntities = SelectedEntities;
+	for (AWpEntity* const SelectedEntity : PreviouslySelectedEntities)
 	{
 		SelectEntity(SelectedEntity, false);
 	}
@@ -347,13 +337,15 @@ void UWpOrderSenderComponent::SelectEntities()
 	DrawDebugBox(GetWorld(), BoxLocation, BoxExtent, FColor::Yellow);
 
 	TArray<AActor*> SelectedActors;
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel2));
-	UKismetSystemLibrary::BoxOverlapActors(GetWorld(), BoxLocation, BoxExtent, ObjectTypes, AActor::StaticClass(), {}, SelectedActors);
+	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes =
+	{
+		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel2)
+	};
+	UKismetSystemLibrary::BoxOverlapActors(GetWorld(), BoxLocation, BoxExtent, ObjectTypes, AWpEntity::StaticClass(), {}, SelectedActors);
 
 	for (AActor* const SelectedActor : SelectedActors)
 	{
-		if (IWpEntityInterface* const SelectedEntity = Cast<IWpEntityInterface>(SelectedActor))
+		if (AWpEntity* const SelectedEntity = Cast<AWpEntity>(SelectedActor))
 		{
 			const UWpBelligerentComponent* const BelligerentComponent = SelectedEntity->GetBelligerentComponent();
 			if (!BelligerentComponent->BelongsToSameBelligerent(GetBelligerentId()))
@@ -368,14 +360,15 @@ void UWpOrderSenderComponent::SelectEntities()
 			}
 
 			const EWpEntityState EntityState = SelectedEntity->GetEnduranceComponent()->GetEntityState();
-			if ((EntityState == EWpEntityState::Wreck) || (SelectedActor->IsA<AWpUnit>() && (EntityState != EWpEntityState::Operational)))
+			if ((EntityState == EWpEntityState::Wreck)
+				|| ((SelectedEntity->GetEntityType() == EWpEntityType::Unit) && (EntityState != EWpEntityState::Operational)))
 			{
 				continue;
 			}
 
 			const FWpDefaultOrders& DefaultOrders = OrderReceiverComponent->GetDefaultOrders();
-			const UClass* const EntityClass = Cast<AActor>(SelectedEntity)->GetClass();
-			const FWpSelectedEntityCategory Category = {DefaultOrders, EntityClass};
+			const EWpEntityType EntityType = SelectedEntity->GetEntityType();
+			const FWpSelectedEntityCategory Category = {DefaultOrders, EntityType};
 
 			if (!SelectedEntitiesPerCategory.Contains(Category))
 			{
@@ -385,14 +378,14 @@ void UWpOrderSenderComponent::SelectEntities()
 		}
 	}
 
-	if (const TArray<IWpEntityInterface*>* const NewSelectedEntities = GetSelectedEntitiesWithDefaultOrders(&SelectedEntitiesDefaultOrders))
+	if (const TArray<AWpEntity*>* const NewSelectedEntities = GetSelectedEntitiesWithDefaultOrders(&SelectedEntitiesDefaultOrders))
 	{
-		for (IWpEntityInterface* const SelectedEntity : *NewSelectedEntities)
+		for (AWpEntity* const SelectedEntity : *NewSelectedEntities)
 		{
 			SelectEntity(SelectedEntity, true);
 		}
 
-		for (TPair<FWpSelectedEntityCategory, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerCategory)
+		for (TPair<FWpSelectedEntityCategory, TArray<AWpEntity*>>& KeyValue : SelectedEntitiesPerCategory)
 		{
 			KeyValue.Value.Empty(KeyValue.Value.Num());
 		}
@@ -401,11 +394,11 @@ void UWpOrderSenderComponent::SelectEntities()
 	UpdateAvailableOrderTypes();
 }
 
-const TArray<IWpEntityInterface*>* UWpOrderSenderComponent::GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const
+const TArray<AWpEntity*>* UWpOrderSenderComponent::GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const
 {
-	const TArray<IWpEntityInterface*>* MaxNumEntities = nullptr;
+	const TArray<AWpEntity*>* MaxNumEntities = nullptr;
 	uint32 MaxNum = 0;
-	for (const TPair<FWpSelectedEntityCategory, TArray<IWpEntityInterface*>>& KeyValue : SelectedEntitiesPerCategory)
+	for (const TPair<FWpSelectedEntityCategory, TArray<AWpEntity*>>& KeyValue : SelectedEntitiesPerCategory)
 	{
 		const uint32 Num = KeyValue.Value.Num();
 		if (MaxNum < Num)
@@ -433,7 +426,7 @@ const TArray<IWpEntityInterface*>* UWpOrderSenderComponent::GetSelectedEntitiesW
 	return nullptr;
 }
 
-void UWpOrderSenderComponent::SelectEntity(IWpEntityInterface* const Entity, const bool bSelected)
+void UWpOrderSenderComponent::SelectEntity(AWpEntity* const Entity, const bool bSelected)
 {
 	UWpOrderReceiverComponent* const OrderReceiverComponent = Entity->GetOrderReceiverComponent();
 	OrderReceiverComponent->Select(bSelected);
@@ -458,7 +451,7 @@ void UWpOrderSenderComponent::UpdateAvailableOrderTypes()
 {
 	SelectedEntitiesAvailableOrderTypes.Empty(SelectedEntitiesAvailableOrderTypes.Num());
 
-	for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	for (const AWpEntity* const SelectedEntity : SelectedEntities)
 	{
 		const UWpOrderReceiverComponent* const OrderReceiverComponent = SelectedEntity->GetOrderReceiverComponent();
 		SelectedEntitiesAvailableOrderTypes.Append(OrderReceiverComponent->GetSupportedOrders());
@@ -523,9 +516,9 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 		DrawDebugCircle(GetWorld(), Order.TargetLocation, Order.Radius, 64, FColor::Green, false, 3.0f, 0, 0, FVector{0.0, 1.0, 0.0}, FVector{1.0, 0.0, 0.0});
 	}
 
-	if (Cast<IWpEntityInterface>(Hit.GetActor()))
+	if (AWpEntity* const TargetEntity = Cast<AWpEntity>(Hit.GetActor()))
 	{
-		Order.TargetEntityActor = Hit.GetActor();
+		Order.TargetEntity = TargetEntity;
 	}
 
 	if (OrderSenderState == EWpOrderSenderState::ProduceBuildingOrder)
@@ -542,7 +535,7 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 
 	TArray<FWpNetOrder> NetOrders;
 	NetOrders.Reserve(SelectedEntities.Num());
-	for (IWpEntityInterface* const SelectedEntity : SelectedEntities)
+	for (AWpEntity* const SelectedEntity : SelectedEntities)
 	{
 		if (OrderSenderState == EWpOrderSenderState::ProduceUnitOrder)
 		{
@@ -550,7 +543,7 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 		}
 
 		FWpNetOrder NetOrder;
-		NetOrder.EntityActor = Cast<AActor>(SelectedEntity);
+		NetOrder.Entity = SelectedEntity;
 		NetOrder.Order = Order;
 		NetOrders.Add(NetOrder);
 	}
@@ -574,7 +567,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 	{
 		if (Hit.bBlockingHit)
 		{
-			BuildingToProduce = GetWorld()->SpawnActor<AWpBuilding>();
+			BuildingToProduce = GetWorld()->SpawnActor<AWpEntity>();
 			BuildingToProduce->SetReplicates(false);
 
 			const UDataTable* const EntityConfigs = GetWorld()->GetGameInstance<UWpGameInstance>()->EntityConfigs;
@@ -601,7 +594,7 @@ void UWpOrderSenderComponent::PopulateUnitToProduceConfigIdNumbersPerProducer()
 	{
 		UnitToProduceConfigIdNumbersPerProducer.Empty(SelectedEntities.Num());
 
-		for (const IWpEntityInterface* const SelectedEntity : SelectedEntities)
+		for (const AWpEntity* const SelectedEntity : SelectedEntities)
 		{
 			UnitToProduceConfigIdNumbersPerProducer.Emplace(
 				SelectedEntity,
@@ -635,7 +628,7 @@ uint32 UWpOrderSenderComponent::GetTeamId() const
 	return PlayerState->GetTeamId();
 }
 
-void UWpOrderSenderComponent::OnSelectedEntityStateChanged(IWpEntityInterface* const SelectedEntity, const EWpEntityState EntityState)
+void UWpOrderSenderComponent::OnSelectedEntityStateChanged(AWpEntity* const SelectedEntity, const EWpEntityState EntityState)
 {
 	if (EntityState == EWpEntityState::Wreck)
 	{

@@ -36,5 +36,6 @@ private:
 
 	TArray<int32> PlayerIds = {};
 
+public:
 	static const FName LoadingScreenName;
 };

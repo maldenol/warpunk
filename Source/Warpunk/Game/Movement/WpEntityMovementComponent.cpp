@@ -1,11 +1,11 @@
-#include "WpUnitMovementComponent.h"
+#include "WpEntityMovementComponent.h"
 
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 
 #include "Net/UnrealNetwork.h"
 
-UWpUnitMovementComponent::UWpUnitMovementComponent()
+UWpEntityMovementComponent::UWpEntityMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
@@ -13,7 +13,7 @@ UWpUnitMovementComponent::UWpUnitMovementComponent()
 
 	SetIsReplicatedByDefault(true);
 
-	NetworkNoSmoothUpdateDistance = 100.0f;
+	// NetworkNoSmoothUpdateDistance = 100.0f; todo
 
 	FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
 	NavAgentProperties.bCanCrouch = false;
@@ -23,39 +23,41 @@ UWpUnitMovementComponent::UWpUnitMovementComponent()
 	NavAgentProperties.bCanWalk = true;
 }
 
-void UWpUnitMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void UWpEntityMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(UWpUnitMovementComponent, Speed);
 }
 
-void UWpUnitMovementComponent::OnRep_IsActive()
+void UWpEntityMovementComponent::OnRep_IsActive()
 {
 	// Override to not enable tick
 }
 
-void UWpUnitMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
+void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
 	if (bIsAcquired)
 	{
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
-		const FWpUnitMovementConfig& UnitMovementConfig = PooledEntityData.EntityConfig->UnitMovementConfig;
 
-		ensureAlways(!FMath::IsNearlyZero(UnitMovementConfig.Speed));
+		if (PooledEntityData.EntityConfig->Type == EWpEntityType::Unit)
+		{
+			const FWpMovementConfig& MovementConfig = PooledEntityData.EntityConfig->MovementConfig;
 
-		SetSpeed(UnitMovementConfig.Speed);
-
-		SetIsFirstPersonControlled(false);
+			SetIsFirstPersonControlled(false);
+		}
+		else
+		{
+			bIsAcquired = false;
+		}
 	}
 
 	SetActive(bIsAcquired);
 	SetComponentTickEnabled(bIsAcquired);
 }
 
-void UWpUnitMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+void UWpEntityMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
 	if (!GetOwner()->HasAuthority())
 	{
@@ -63,32 +65,14 @@ void UWpUnitMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsVis
 	}
 }
 
-void UWpUnitMovementComponent::SetIsFirstPersonControlled(const bool bIsFirstPersonControlled)
+void UWpEntityMovementComponent::SetIsFirstPersonControlled(const bool bIsFirstPersonControlled)
 {
-	bOrientRotationToMovement = !bIsFirstPersonControlled;
-
-	APawn* const OwnerPawn = GetOwner<APawn>();
-
-	OwnerPawn->bUseControllerRotationYaw = bIsFirstPersonControlled;
-
 	if (bIsFirstPersonControlled)
 	{
+		const APawn* const OwnerPawn = GetOwner<APawn>();
 		if (AController* const OwnerController = (OwnerPawn->GetLocalRole() == ROLE_SimulatedProxy) ? GetWorld()->GetFirstPlayerController() : OwnerPawn->GetController())
 		{
 			OwnerController->SetControlRotation(OwnerPawn->GetActorRotation());
 		}
 	}
-}
-
-void UWpUnitMovementComponent::SetSpeed(const float InSpeed)
-{
-	ensureAlways(GetOwner()->HasAuthority());
-
-	Speed = InSpeed;
-	OnRep_Speed();
-}
-
-void UWpUnitMovementComponent::OnRep_Speed()
-{
-	MaxWalkSpeed = Speed;
 }

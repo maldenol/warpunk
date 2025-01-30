@@ -8,8 +8,8 @@
 
 #include "WpIntelComponent.generated.h"
 
+class AWpEntity;
 enum class EWpEntityState : uint8;
-class IWpEntityInterface;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class UWpIntelComponent final : public UStaticMeshComponent, public IWpPooledObjectInterface
@@ -28,7 +28,7 @@ public:
 
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 
-	const TSet<IWpEntityInterface*>& GetVisibleEntities() const;
+	const TSet<AWpEntity*>& GetVisibleEntities() const;
 
 private:
 	UFUNCTION()
@@ -43,13 +43,13 @@ private:
 
 	void InitializeMesh();
 
-	void OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState);
+	void OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState);
 	void OnLoaded();
 
 	void SetMeshIsVisibile(const bool bInMeshIsVisible);
 	void UpdateMeshVisibilityBasedOnTeam();
 
-	TSet<IWpEntityInterface*> VisibleEntities = {};
+	TSet<AWpEntity*> VisibleEntities = {};
 
 	bool bCanCheckTeam = false;
 	UPROPERTY(ReplicatedUsing=OnRep_bMeshIsVisible)
@@ -59,5 +59,6 @@ private:
 
 	FDelegateHandle OnPlayerStateReplicatedDelegateHandle = {};
 
+public:
 	static const FName MeshCollisionProfileName;
 };

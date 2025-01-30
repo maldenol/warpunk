@@ -2,19 +2,15 @@
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
-#include "Warpunk/Game/Entity/WpBuilding.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/Entity/WpUnit.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "AIController.h"
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
 
@@ -33,12 +29,9 @@ void UWpProductionComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
-		if (const APawn* const Pawn = GetOwner<APawn>())
-		{
-			AIController = Pawn->GetController<AAIController>();
-		}
+		AIController = GetOwner<AWpEntity>()->GetController<AAIController>();
 
-		UWpOrderReceiverComponent* const OrderReceiverComponent = Cast<IWpEntityInterface>(GetOwner())->GetOrderReceiverComponent();
+		UWpOrderReceiverComponent* const OrderReceiverComponent = GetOwner<AWpEntity>()->GetOrderReceiverComponent();
 		OrderReceiverComponent->OnOrderReceived().AddUObject(this, &UWpProductionComponent::OnOrderReceived);
 	}
 }
@@ -50,7 +43,7 @@ void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTi
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
+	if (GetOwner<AWpEntity>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
 	{
 		return;
 	}
@@ -162,7 +155,7 @@ void UWpProductionComponent::StartProduce(const uint32 EntityConfigId, const FVe
 	EntityToProduceLocation = Location;
 }
 
-void UWpProductionComponent::StartRepair(IWpEntityInterface* const Entity)
+void UWpProductionComponent::StartRepair(AWpEntity* const Entity)
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -173,7 +166,7 @@ void UWpProductionComponent::StartRepair(IWpEntityInterface* const Entity)
 	SetCurrentTargetEntity(Entity);
 }
 
-void UWpProductionComponent::StartReclaim(IWpEntityInterface* const Entity)
+void UWpProductionComponent::StartReclaim(AWpEntity* const Entity)
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -207,25 +200,25 @@ bool UWpProductionComponent::CanReach(const FVector& Location) const
 	return Distance2 <= FMath::Square(Range);
 }
 
-bool UWpProductionComponent::CanReach(const IWpEntityInterface* const Entity) const
+bool UWpProductionComponent::CanReach(const AWpEntity* const Entity) const
 {
 	if (!Entity)
 	{
 		return false;
 	}
 
-	const FVector Location = Cast<AActor>(Entity)->GetActorLocation();
+	const FVector Location = Entity->GetActorLocation();
 	return CanReach(Location);
 }
 
-bool UWpProductionComponent::CanRepair(const IWpEntityInterface* const Entity) const
+bool UWpProductionComponent::CanRepair(const AWpEntity* const Entity) const
 {
 	ensureAlways(IsActive());
 
 	return Entity->GetEnduranceComponent()->CanBeRepaired(bCanProduce);
 }
 
-bool UWpProductionComponent::CanReachAndRepair(const IWpEntityInterface* const Entity) const
+bool UWpProductionComponent::CanReachAndRepair(const AWpEntity* const Entity) const
 {
 	return CanReach(Entity) && CanRepair(Entity);
 }
@@ -267,7 +260,7 @@ bool UWpProductionComponent::ShouldSupport() const
 	return bShouldSupport;
 }
 
-IWpEntityInterface* UWpProductionComponent::GetCurrentTargetEntity() const
+AWpEntity* UWpProductionComponent::GetCurrentTargetEntity() const
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -275,16 +268,19 @@ IWpEntityInterface* UWpProductionComponent::GetCurrentTargetEntity() const
 	return CurrentTargetEntity;
 }
 
-void UWpProductionComponent::SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity)
+void UWpProductionComponent::SetPriorityTargetEntity(AWpEntity* const InPriorityTargetEntity)
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	const UWpBelligerentComponent* const BelligerentComponent = Cast<IWpEntityInterface>(GetOwner())->GetBelligerentComponent();
-	const bool bPriorityTargetBelongsToSameTeam = BelligerentComponent->BelongsToSameTeam(InPriorityTargetEntity->GetBelligerentComponent());
-	if (!bPriorityTargetBelongsToSameTeam)
+	if (InPriorityTargetEntity)
 	{
-		return;
+		const UWpBelligerentComponent* const BelligerentComponent = GetOwner<AWpEntity>()->GetBelligerentComponent();
+		const bool bPriorityTargetBelongsToSameTeam = BelligerentComponent->BelongsToSameTeam(InPriorityTargetEntity->GetBelligerentComponent());
+		if (!bPriorityTargetBelongsToSameTeam)
+		{
+			return;
+		}
 	}
 
 	PriorityTargetEntity = InPriorityTargetEntity;
@@ -336,27 +332,15 @@ void UWpProductionComponent::Produce()
 	const FName RowName = FName{FString::FromInt(EntityToProduceConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
-	EWpProductionState NewProductionState;
-	if (EntityConfig.EntityClass->GetDefaultObject()->IsA<AWpBuilding>())
+	if (!ensureAlways(EntityConfig.Type != EWpEntityType::Undefined))
 	{
-		NewProductionState = EWpProductionState::ProducingBuilding;
+		return;
 	}
-	else
-	{
-		NewProductionState = EWpProductionState::ProducingUnit;
-	}
+	const bool bIsBuilding = (EntityConfig.Type == EWpEntityType::Building);
 
-	const USceneComponent* BoundsComponent;
-	if (NewProductionState == EWpProductionState::ProducingBuilding)
-	{
-		BoundsComponent = AWpBuilding::StaticClass()->GetDefaultObject<AActor>()->GetComponentByClass<UBoxComponent>();
-	}
-	else
-	{
-		BoundsComponent = AWpUnit::StaticClass()->GetDefaultObject<AActor>()->GetComponentByClass<UCapsuleComponent>();
-	}
-	const FBoxSphereBounds ActorBounds = BoundsComponent->GetLocalBounds();
-	const FVector SpawnLocation = EntityToProduceLocation + ActorBounds.BoxExtent * 0.5f * FVector::UpVector;
+	const FBoxSphereBounds EntityMeshBounds = EntityConfig.MeshConfig.Mesh->GetBounds();
+	const FVector EntityMeshExtent = EntityMeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
+	const FVector SpawnLocation = EntityToProduceLocation + EntityMeshExtent * 0.5f * FVector::UpVector + 1.0f * FVector::UpVector;
 
 	TArray<AActor*> Actors;
 	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes =
@@ -364,17 +348,15 @@ void UWpProductionComponent::Produce()
 		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel1),
 		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel5),
 	};
-	UKismetSystemLibrary::BoxOverlapActors(GetWorld(), SpawnLocation, ActorBounds.BoxExtent, ObjectTypes, AActor::StaticClass(), {}, Actors);
-	UKismetSystemLibrary::DrawDebugBox(GetWorld(), SpawnLocation, ActorBounds.BoxExtent, FColor::Red);
+	UKismetSystemLibrary::BoxOverlapActors(GetWorld(), SpawnLocation, EntityMeshExtent, ObjectTypes, AActor::StaticClass(), {}, Actors);
+	UKismetSystemLibrary::DrawDebugBox(GetWorld(), SpawnLocation, EntityMeshExtent, FColor::Red);
 	const bool bHasSpaceToProduce = Actors.IsEmpty();
 
-	IWpEntityInterface* Entity;
+	AWpEntity* Entity;
 
 	if (bHasSpaceToProduce)
 	{
-		const TSubclassOf<AActor>& ActorClass = (NewProductionState == EWpProductionState::ProducingBuilding) ? AWpBuilding::StaticClass() : AWpUnit::StaticClass();
-
-		const UWpBelligerentComponent* const BelligerentComponent = GetOwner<IWpEntityInterface>()->GetBelligerentComponent();
+		const UWpBelligerentComponent* const BelligerentComponent = GetOwner<AWpEntity>()->GetBelligerentComponent();
 
 		FWpPooledEntityData PooledEntityData;
 		PooledEntityData.EntityConfig = &EntityConfig;
@@ -382,37 +364,38 @@ void UWpProductionComponent::Produce()
 		PooledEntityData.BelligerentId = BelligerentComponent->GetBelligerentId();
 		PooledEntityData.TeamId = BelligerentComponent->GetTeamId();
 
-		AActor* const Actor = AWpActorPool::Acquire(ActorClass, SpawnLocation, FRotator::ZeroRotator, PooledEntityData);
-
-		Entity = Cast<IWpEntityInterface>(Actor);
-	}
-	else
-	{
-		if (NewProductionState != EWpProductionState::ProducingBuilding)
+		Entity = AWpActorPool::Acquire<AWpEntity>(SpawnLocation, FRotator::ZeroRotator, PooledEntityData);
+		if (!Entity)
 		{
 			return;
 		}
-
+	}
+	else if (bIsBuilding)
+	{
 		FHitResult Hit;
 		const FVector SmallDelta = FVector::UpVector;
 		const FVector TraceStart = SpawnLocation - SmallDelta;
 		const FVector TraceEnd = SpawnLocation + SmallDelta;
 		GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Camera);
-		Entity = Cast<IWpEntityInterface>(Hit.GetActor());
+		Entity = Cast<AWpEntity>(Hit.GetActor());
 		if (!Entity)
 		{
 			return;
 		}
 
-		const bool bHasSameEntityConfigId = Entity->GetConfigId() == EntityToProduceConfigId;
-		const bool bBelongsToSameBelligerent = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->BelongsToSameBelligerent(Entity->GetBelligerentComponent());
+		const bool bHasSameEntityConfigId = Entity->GetEntityConfigId() == EntityToProduceConfigId;
+		const bool bBelongsToSameBelligerent = GetOwner<AWpEntity>()->GetBelligerentComponent()->BelongsToSameBelligerent(Entity->GetBelligerentComponent());
 		if (!bHasSameEntityConfigId || !bBelongsToSameBelligerent)
 		{
 			return;
 		}
 	}
+	else
+	{
+		return;
+	}
 
-	ProductionState = NewProductionState;
+	ProductionState = bIsBuilding ? EWpProductionState::ProducingBuilding : EWpProductionState::ProducingUnit;
 	SetCurrentTargetEntity(Entity);
 }
 
@@ -437,7 +420,7 @@ void UWpProductionComponent::Repair(const float DeltaTime)
 			}
 		}
 
-		IWpEntityInterface* const LastTargetEntity = CurrentTargetEntity;
+		AWpEntity* const LastTargetEntity = CurrentTargetEntity;
 
 		Stop();
 
@@ -480,7 +463,7 @@ void UWpProductionComponent::Reclaim(const float DeltaTime)
 	CurrentTargetEntity->GetEnduranceComponent()->ReceiveReclaim(DeltaTime * MatterConsumption);
 }
 
-void UWpProductionComponent::SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity)
+void UWpProductionComponent::SetCurrentTargetEntity(AWpEntity* const NewTargetEntity)
 {
 	if (NewTargetEntity)
 	{
@@ -533,8 +516,8 @@ void UWpProductionComponent::UpdateCurrentTargetEntity()
 		return;
 	}
 
-	const UWpIntelComponent* const IntelComponent = GetOwner<IWpEntityInterface>()->GetIntelComponent();
-	const TSet<IWpEntityInterface*>& VisibleEntities = IntelComponent->GetVisibleEntities();
+	const UWpIntelComponent* const IntelComponent = GetOwner<AWpEntity>()->GetIntelComponent();
+	const TSet<AWpEntity*>& VisibleEntities = IntelComponent->GetVisibleEntities();
 
 	if (PriorityTargetEntity && VisibleEntities.Contains(PriorityTargetEntity))
 	{
@@ -551,7 +534,7 @@ void UWpProductionComponent::UpdateCurrentTargetEntity()
 		return;
 	}
 
-	for (IWpEntityInterface* const CandidateEntity : VisibleEntities)
+	for (AWpEntity* const CandidateEntity : VisibleEntities)
 	{
 		const bool bCanReachAndRepairCandidate = CanReachAndRepair(CandidateEntity);
 		if (!bCanReachAndRepairCandidate)
@@ -559,7 +542,7 @@ void UWpProductionComponent::UpdateCurrentTargetEntity()
 			continue;
 		}
 
-		const bool bCandidateBelongsToSameTeam = GetOwner<IWpEntityInterface>()->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
+		const bool bCandidateBelongsToSameTeam = GetOwner<AWpEntity>()->GetBelligerentComponent()->BelongsToSameTeam(CandidateEntity->GetBelligerentComponent());
 		if (!bCandidateBelongsToSameTeam)
 		{
 			continue;
@@ -570,11 +553,11 @@ void UWpProductionComponent::UpdateCurrentTargetEntity()
 	}
 }
 
-void UWpProductionComponent::OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
+void UWpProductionComponent::OnCurrentTargetEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState)
 {
 	if (EntityState == EWpEntityState::Wreck)
 	{
-		IWpEntityInterface* const LastTargetEntity = CurrentTargetEntity;
+		AWpEntity* const LastTargetEntity = CurrentTargetEntity;
 
 		Stop();
 
@@ -586,7 +569,7 @@ void UWpProductionComponent::OnOrderReceived(const FWpOrder& InOrder)
 {
 	if (InOrder.Type == EWpOrderType::Stop)
 	{
-		IWpEntityInterface* const LastTargetEntity = CurrentTargetEntity;
+		AWpEntity* const LastTargetEntity = CurrentTargetEntity;
 
 		Stop();
 

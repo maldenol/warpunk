@@ -14,7 +14,7 @@ class FWpAttackOrderHandler final : public FWpOrderHandler
 public:
 	FWpAttackOrderHandler();
 
-	virtual void Initialize(IWpEntityInterface* const InEntity) override;
+	virtual void Initialize(AWpEntity* const InEntity) override;
 
 	virtual void Reactivate() override;
 	virtual void Tick(const float CurrentTime) override;

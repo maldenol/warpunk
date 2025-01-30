@@ -2,8 +2,8 @@
 
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpCommander.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpFogOfWarManager.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
@@ -35,11 +35,11 @@ void UWpWeaponComponent::BeginPlay()
 		OnComponentBeginOverlap.AddDynamic(this, &UWpWeaponComponent::OnBeginOverlap);
 		OnComponentEndOverlap.AddDynamic(this, &UWpWeaponComponent::OnEndOverlap);
 
-		UWpEnduranceComponent* const EnduranceComponent = GetOwner<IWpEntityInterface>()->GetEnduranceComponent();
+		UWpEnduranceComponent* const EnduranceComponent = GetOwner<AWpEntity>()->GetEnduranceComponent();
 		EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpWeaponComponent::OnEntityStateChanged);
-		OnEntityStateChanged(Cast<IWpEntityInterface>(GetOwner()), EnduranceComponent->GetEntityState());
+		OnEntityStateChanged(GetOwner<AWpEntity>(), EnduranceComponent->GetEntityState());
 
-		UWpOrderReceiverComponent* const OrderReceiverComponent = Cast<IWpEntityInterface>(GetOwner())->GetOrderReceiverComponent();
+		UWpOrderReceiverComponent* const OrderReceiverComponent = GetOwner<AWpEntity>()->GetOrderReceiverComponent();
 		OrderReceiverComponent->OnOrderReceived().AddUObject(this, &UWpWeaponComponent::OnOrderReceived);
 	}
 }
@@ -51,7 +51,7 @@ void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick T
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (GetOwner<IWpEntityInterface>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
+	if (GetOwner<AWpEntity>()->GetEnduranceComponent()->GetEntityState() != EWpEntityState::Operational)
 	{
 		return;
 	}
@@ -99,7 +99,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 				const FWpWeaponConfig& WeaponConfig = WeaponConfigs[Index];
 
 				FWpWeapon* const Weapon = Weapons[Index].Set(WeaponConfig.Type);
-				Weapon->Initialize(GetOwner<IWpEntityInterface>());
+				Weapon->Initialize(GetOwner<AWpEntity>());
 
 				FWpPooledWeaponData PooledWeaponData;
 				PooledWeaponData.WeaponConfig = &WeaponConfig;
@@ -174,7 +174,7 @@ const FWpWeapon* UWpWeaponComponent::GetWeapon(const uint32 Index) const
 	return Weapons[Index].Get();
 }
 
-const TSet<IWpEntityInterface*>& UWpWeaponComponent::GetEntitiesInReach() const
+const TSet<AWpEntity*>& UWpWeaponComponent::GetEntitiesInReach() const
 {
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
@@ -191,7 +191,7 @@ void UWpWeaponComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedCom
 		return;
 	}
 
-	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
+	if (AWpEntity* const OtherEntity = Cast<AWpEntity>(OtherActor))
 	{
 		ensureAlways(!EntitiesInReach.Contains(OtherEntity));
 
@@ -208,7 +208,7 @@ void UWpWeaponComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompo
 		return;
 	}
 
-	if (IWpEntityInterface* const OtherEntity = Cast<IWpEntityInterface>(OtherActor))
+	if (AWpEntity* const OtherEntity = Cast<AWpEntity>(OtherActor))
 	{
 		ensureAlways(EntitiesInReach.Contains(OtherEntity));
 
@@ -228,7 +228,7 @@ void UWpWeaponComponent::InitializeMesh()
 	SetStaticMesh(IntelMesh);
 }
 
-void UWpWeaponComponent::OnEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
+void UWpWeaponComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState)
 {
 	ensureAlways(GetOwner()->HasAuthority());
 

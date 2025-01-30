@@ -1,7 +1,7 @@
 #include "WpCommander.h"
 
-#include "Warpunk/Game/Movement/WpUnitMovementComponent.h"
-#include "Warpunk/Game/Navigation/WpUnitAIController.h"
+#include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
+#include "Warpunk/Game/Navigation/WpEntityAIController.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -16,14 +16,13 @@ void AWpCommander::PossessedBy(AController* const NewController)
 
 	if (!AIController)
 	{
-		AIController = GetController<AWpUnitAIController>();
+		AIController = GetController<AWpEntityAIController>();
 		ensureAlways(AIController);
 	}
 
 	const bool bPossessedByPlayer = Cast<APlayerController>(NewController) != nullptr;
 	if (bPossessedByPlayer)
 	{
-		UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
 		MovementComponent->SetIsFirstPersonControlled(true);
 
 		ClientPossessed();
@@ -35,7 +34,6 @@ void AWpCommander::UnPossessed()
 	const bool bUnPossessedByPlayer = GetController<APlayerController>() != nullptr;
 	if (bUnPossessedByPlayer)
 	{
-		UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
 		MovementComponent->SetIsFirstPersonControlled(false);
 
 		ClientUnPossessed();
@@ -76,7 +74,6 @@ void AWpCommander::ClientPossessed_Implementation()
 	LocalPlayerController->SetInputMode(FInputModeGameOnly{});
 	LocalPlayerController->SetShowMouseCursor(false);
 
-	UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
 	MovementComponent->SetIsFirstPersonControlled(true);
 }
 
@@ -89,7 +86,6 @@ void AWpCommander::ClientUnPossessed_Implementation()
 		EnhancedInputSystem->RemoveMappingContext(TacticalViewImc);
 	}
 
-	UWpUnitMovementComponent* const MovementComponent = Cast<UWpUnitMovementComponent>(GetMovementComponent());
 	MovementComponent->SetIsFirstPersonControlled(false);
 }
 

@@ -99,7 +99,7 @@ void UWpLoadingScreenWidget::UpdateFadeOut(const float DeltaTime)
 	const float HalfFadeOutTime = FadeOutTime / 2.0f;
 	if (CurrentFadeOutTime < HalfFadeOutTime)
 	{
-		const float& DarkTime = CurrentFadeOutTime;
+		const float DarkTime = CurrentFadeOutTime;
 		const float DarkImageOpacity = DarkTime / HalfFadeOutTime;
 		DarkImage->SetRenderOpacity(DarkImageOpacity);
 	}

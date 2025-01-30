@@ -1,6 +1,6 @@
 #include "WpHitScanWeapon.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -24,11 +24,10 @@ void FWpHitScanWeapon::Fire(const FVector& Location)
 
 FHitResult FWpHitScanWeapon::HitScan(const FVector& Location) const
 {
-	const AActor* const OwnerActor = Cast<AActor>(GetOwnerEntity());
-	const FVector TraceStart = OwnerActor->GetActorLocation() + OwnerActor->GetActorRotation().RotateVector(GetFireLocation());
+	const FVector TraceStart = GetOwnerEntity()->GetActorLocation() + GetOwnerEntity()->GetActorRotation().RotateVector(GetFireLocation());
 	const FVector TraceEnd = TraceStart + GetDirection(Location).Vector() * GetRange();
 
 	FHitResult Hit;
-	OwnerActor->GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Camera);
+	GetOwnerEntity()->GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Camera);
 	return Hit;
 }

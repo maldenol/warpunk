@@ -4,17 +4,17 @@
 
 #include "AIController.h"
 
-#include "WpUnitAIController.generated.h"
+#include "WpEntityAIController.generated.h"
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
-class AWpUnitAIController final : public AAIController
+class AWpEntityAIController final : public AAIController
 {
 	GENERATED_BODY()
 
 public:
-	DECLARE_EVENT(AWpUnitAIController, FMovementCompletedEvent);
+	DECLARE_EVENT(AWpEntityAIController, FMovementCompletedEvent);
 
-	AWpUnitAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	AWpEntityAIController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void OnMoveCompleted(const FAIRequestID RequestId, const EPathFollowingResult::Type Result) override;
 

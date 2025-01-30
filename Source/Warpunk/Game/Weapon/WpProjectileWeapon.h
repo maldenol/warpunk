@@ -5,7 +5,7 @@
 #include "Warpunk/Game/Weapon/WpProjectileConfig.h"
 #include "Warpunk/Game/Weapon/WpWeapon.h"
 
-class IWpEntityInterface;
+class AWpEntity;
 
 class FWpProjectileWeapon final : public FWpWeapon
 {
@@ -14,7 +14,7 @@ public:
 
 	virtual bool CanReach(const FVector& Location) const override;
 
-	void OnProjectileHit(IWpEntityInterface* const Entity);
+	void OnProjectileHit(AWpEntity* const Entity);
 
 private:
 	virtual void Fire(const FVector& Location) override;

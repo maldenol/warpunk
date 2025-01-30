@@ -4,12 +4,12 @@
 
 #include "Warpunk/Game/Order/WpOrderHandler.h"
 
-class AWpUnitAIController;
+class AWpEntityAIController;
 
 class FWpMoveOrderHandler final : public FWpOrderHandler
 {
 public:
-	virtual void Initialize(IWpEntityInterface* const InEntity) override;
+	virtual void Initialize(AWpEntity* const InEntity) override;
 
 	virtual void Reactivate() override;
 	virtual void Deactivate() override;
@@ -17,7 +17,7 @@ public:
 private:
 	void OnMovementCompleted();
 
-	AWpUnitAIController* AIController = nullptr;
+	AWpEntityAIController* AIController = nullptr;
 
 	FDelegateHandle OnMovementCompletedDelegateHandle = {};
 };

@@ -1,15 +1,15 @@
 #include "WpProduceBuildingOrderHandler.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 
 #include "AIController.h"
 
-void FWpProduceBuildingOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpProduceBuildingOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = Cast<APawn>(GetEntity())->GetController<AAIController>();
+	AIController = GetEntity()->GetController<AAIController>();
 	ensureAlways(AIController);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
@@ -49,7 +49,7 @@ void FWpProduceBuildingOrderHandler::Deactivate()
 	FWpOrderHandler::Deactivate();
 }
 
-void FWpProduceBuildingOrderHandler::OnRepairFinished(IWpEntityInterface* const InEntity)
+void FWpProduceBuildingOrderHandler::OnRepairFinished(AWpEntity* const InEntity)
 {
 	Finish();
 }

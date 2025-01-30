@@ -1,6 +1,6 @@
 #include "WpRepairOrderHandler.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 
 #include "AIController.h"
@@ -11,11 +11,11 @@ FWpRepairOrderHandler::FWpRepairOrderHandler()
 	SetTickCooldown(0.25f);
 }
 
-void FWpRepairOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpRepairOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = Cast<APawn>(GetEntity())->GetController<AAIController>();
+	AIController = GetEntity()->GetController<AAIController>();
 	ensureAlways(AIController);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
@@ -26,7 +26,7 @@ void FWpRepairOrderHandler::Reactivate()
 {
 	FWpOrderHandler::Reactivate();
 
-	if (!GetOrder().TargetEntityActor)
+	if (!GetOrder().TargetEntity)
 	{
 		Finish();
 		return;
@@ -37,7 +37,7 @@ void FWpRepairOrderHandler::Reactivate()
 		ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
 	}
 
-	ProductionComponent->SetPriorityTargetEntity(GetOrder().GetTargetEntity());
+	ProductionComponent->SetPriorityTargetEntity(GetOrder().TargetEntity);
 
 	OnRepairFinishedDelegateHandle = ProductionComponent->OnRepairFinished().AddRaw(this, &FWpRepairOrderHandler::OnRepairFinished);
 }
@@ -46,11 +46,11 @@ void FWpRepairOrderHandler::Tick(const float CurrentTime)
 {
 	FWpOrderHandler::Tick(CurrentTime);
 
-	const bool bCanReach = ProductionComponent->CanReach(GetOrder().GetTargetEntity());
+	const bool bCanReach = ProductionComponent->CanReach(GetOrder().TargetEntity);
 	const bool bIsMoving = AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle;
 	if (!bCanReach && !bIsMoving)
 	{
-		AIController->MoveToActor(GetOrder().TargetEntityActor, ProductionComponent->GetRange(), false, true, false, nullptr, false);
+		AIController->MoveToActor(GetOrder().TargetEntity, ProductionComponent->GetRange(), false, true, false, nullptr, false);
 	}
 }
 
@@ -68,7 +68,7 @@ void FWpRepairOrderHandler::Deactivate()
 	FWpOrderHandler::Deactivate();
 }
 
-void FWpRepairOrderHandler::OnRepairFinished(IWpEntityInterface* const InEntity)
+void FWpRepairOrderHandler::OnRepairFinished(AWpEntity* const InEntity)
 {
 	Finish();
 }

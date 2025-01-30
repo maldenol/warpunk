@@ -1,6 +1,6 @@
 #include "WpOrderHandler.h"
 
-void FWpOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	Entity = InEntity;
 }
@@ -58,12 +58,12 @@ void FWpOrderHandler::Finish()
 	bHasFinished = true;
 }
 
-IWpEntityInterface* FWpOrderHandler::GetEntity()
+AWpEntity* FWpOrderHandler::GetEntity()
 {
 	return Entity;
 }
 
-const IWpEntityInterface* FWpOrderHandler::GetEntity() const
+const AWpEntity* FWpOrderHandler::GetEntity() const
 {
 	return Entity;
 }

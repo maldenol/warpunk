@@ -63,6 +63,7 @@ private:
 
 	bool bHasNotifiedObjectLoaded = false;
 
+public:
 	static const FName MovementComponentName;
 	static const FName OrderSenderComponentName;
 };

@@ -1,7 +1,7 @@
 #include "WpOrder.h"
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 
 bool FWpConfigIdNumber::operator==(const FWpConfigIdNumber& Other) const
 {
@@ -38,14 +38,10 @@ TMap<uint32, uint32> FWpConfigIdNumber::ToMap(const TArray<FWpConfigIdNumber>& A
 	return Map;
 }
 
-IWpEntityInterface* FWpOrder::GetTargetEntity() const
-{
-	return Cast<IWpEntityInterface>(TargetEntityActor);
-}
-
 EWpOrderType FWpDefaultOrders::Get(const uint32 BelligerentId, const AActor* const Actor) const
 {
-	const IWpEntityInterface* const Entity = Cast<IWpEntityInterface>(Actor);
+	const AWpEntity* const Entity = Cast<AWpEntity>(Actor);
+
 	if (!Entity)
 	{
 		return Location;

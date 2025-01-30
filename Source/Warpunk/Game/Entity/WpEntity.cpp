@@ -1,0 +1,253 @@
+#include "WpEntity.h"
+
+#include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
+#include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpPooledEntityData.h"
+#include "Warpunk/Game/Intel/WpIntelComponent.h"
+#include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
+#include "Warpunk/Game/Navigation/WpEntityAIController.h"
+#include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
+#include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
+#include "Warpunk/Game/Production/WpProductionComponent.h"
+#include "Warpunk/Game/Weapon/WpWeaponComponent.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
+
+#include "Components/BoxComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Net/UnrealNetwork.h"
+
+const FName AWpEntity::BelligerentComponentName = TEXT("BelligerentComponent");
+const FName AWpEntity::EnduranceComponentName = TEXT("EnduranceComponent");
+const FName AWpEntity::IntelComponentName = TEXT("IntelComponent");
+const FName AWpEntity::OrderReceiverComponentName = TEXT("OrderReceiverComponent");
+const FName AWpEntity::ProductionComponentName = TEXT("ProductionComponent");
+const FName AWpEntity::WeaponComponentName = TEXT("WeaponComponent");
+
+const FName AWpEntity::BoxComponentName = TEXT("BoxComponent");
+const FName AWpEntity::MeshComponentName = TEXT("MeshComponent");
+const FName AWpEntity::MovementComponentName = TEXT("MovementComponent");
+
+const FName AWpEntity::BoxComponentCollisionProfileName = TEXT("WpEntitySimple");
+const FName AWpEntity::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
+
+AWpEntity::AWpEntity()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
+	Super::SetReplicateMovement(true);
+	bAlwaysRelevant = true;
+	SetNetDormancy(DORM_DormantPartial);
+	NetUpdateFrequency = 60.0f;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIControllerClass = AWpEntityAIController::StaticClass();
+
+	BoxComponent = CreateDefaultSubobject<UBoxComponent>(BoxComponentName);
+	BoxComponent->SetCollisionProfileName(BoxComponentCollisionProfileName);
+	BoxComponent->SetNotifyRigidBodyCollision(true);
+	BoxComponent->SetGenerateOverlapEvents(true);
+	RootComponent = BoxComponent;
+
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
+	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
+	MeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
+	MeshComponent->SetGenerateOverlapEvents(false);
+	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	MovementComponent = CreateDefaultSubobject<UWpEntityMovementComponent>(MovementComponentName);
+	MovementComponent->SetUpdatedComponent(RootComponent);
+
+	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
+	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
+	IntelComponent = CreateDefaultSubobject<UWpIntelComponent>(IntelComponentName);
+	OrderReceiverComponent = CreateDefaultSubobject<UWpOrderReceiverComponent>(OrderReceiverComponentName);
+	ProductionComponent = CreateDefaultSubobject<UWpProductionComponent>(ProductionComponentName);
+	WeaponComponent = CreateDefaultSubobject<UWpWeaponComponent>(WeaponComponentName);
+
+	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	SetPooledObjectVisibility(false);
+}
+
+void AWpEntity::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UWpLoadingScreen* const LoadingScreen = GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
+	if (!LoadingScreen->IsLoaded())
+	{
+		LoadingScreen->NotifyObjectLoaded();
+	}
+}
+
+void AWpEntity::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWpEntity, EntityConfigId);
+	DOREPLIFETIME(AWpEntity, EntityType);
+}
+
+bool AWpEntity::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
+{
+	const APlayerController* const ViewerPlayerController = Cast<APlayerController>(Viewer);
+	const AWpGamePlayerState* const ViewerPlayerState = ViewerPlayerController->GetPlayerState<AWpGamePlayerState>();
+	const uint32 ViewerTeamId = ViewerPlayerState->GetTeamId();
+	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
+}
+
+void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
+{
+	ensureAlways(HasAuthority());
+
+	if (bIsAcquired)
+	{
+		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
+
+		ensureAlways(PooledEntityData.EntityConfigId > 0);
+
+		EntityConfigId = PooledEntityData.EntityConfigId;
+		OnRep_EntityConfigId();
+	}
+
+	SetActorEnableCollision(bIsAcquired);
+	SetActorHiddenInGame(!bIsAcquired);
+
+	if (AAIController* const AIController = GetController<AAIController>())
+	{
+		AIController->SetActorTickEnabled(bIsAcquired);
+		AIController->SetActorHiddenInGame(!bIsAcquired);
+	}
+}
+
+void AWpEntity::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!HasAuthority() && !bIsVisible)
+	{
+		SetActorLocation(FVector::ZeroVector);
+	}
+
+	MeshComponent->SetHiddenInGame(!bIsVisible);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
+
+	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
+	{
+		WidgetComponent->SetHiddenInGame(!bIsVisible);
+	}
+}
+
+TArray<IWpPooledObjectInterface*> AWpEntity::GetInnerPooledObjects()
+{
+	return
+	{
+		Cast<IWpPooledObjectInterface>(BelligerentComponent),
+		Cast<IWpPooledObjectInterface>(EnduranceComponent),
+		Cast<IWpPooledObjectInterface>(IntelComponent),
+		Cast<IWpPooledObjectInterface>(MovementComponent),
+		Cast<IWpPooledObjectInterface>(OrderReceiverComponent),
+		Cast<IWpPooledObjectInterface>(ProductionComponent),
+		Cast<IWpPooledObjectInterface>(WeaponComponent),
+	};
+}
+
+UWpBelligerentComponent* AWpEntity::GetBelligerentComponent()
+{
+	return BelligerentComponent;
+}
+
+const UWpBelligerentComponent* AWpEntity::GetBelligerentComponent() const
+{
+	return BelligerentComponent;
+}
+
+UWpEnduranceComponent* AWpEntity::GetEnduranceComponent()
+{
+	return EnduranceComponent;
+}
+
+const UWpEnduranceComponent* AWpEntity::GetEnduranceComponent() const
+{
+	return EnduranceComponent;
+}
+
+UWpIntelComponent* AWpEntity::GetIntelComponent()
+{
+	return IntelComponent;
+}
+
+const UWpIntelComponent* AWpEntity::GetIntelComponent() const
+{
+	return IntelComponent;
+}
+
+UWpOrderReceiverComponent* AWpEntity::GetOrderReceiverComponent()
+{
+	return OrderReceiverComponent;
+}
+
+const UWpOrderReceiverComponent* AWpEntity::GetOrderReceiverComponent() const
+{
+	return OrderReceiverComponent;
+}
+
+UWpProductionComponent* AWpEntity::GetProductionComponent()
+{
+	return ProductionComponent;
+}
+
+const UWpProductionComponent* AWpEntity::GetProductionComponent() const
+{
+	return ProductionComponent;
+}
+
+UWpWeaponComponent* AWpEntity::GetWeaponComponent()
+{
+	return WeaponComponent;
+}
+
+const UWpWeaponComponent* AWpEntity::GetWeaponComponent() const
+{
+	return WeaponComponent;
+}
+
+uint32 AWpEntity::GetEntityConfigId() const
+{
+	return EntityConfigId;
+}
+
+EWpEntityType AWpEntity::GetEntityType() const
+{
+	return EntityType;
+}
+
+void AWpEntity::OnRep_EntityConfigId()
+{
+	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
+	const FName RowName = FName{FString::FromInt(EntityConfigId)};
+	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+
+	ensureAlways(EntityConfig.Type != EWpEntityType::Undefined);
+	ensureAlways(EntityConfig.MeshConfig.Mesh);
+	ensureAlways(EntityConfig.MeshConfig.Material);
+
+	EntityType = EntityConfig.Type;
+
+	MeshComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
+	MeshComponent->SetStaticMesh(EntityConfig.MeshConfig.Mesh);
+	MeshComponent->SetMaterial(0, EntityConfig.MeshConfig.Material);
+
+	const FBoxSphereBounds MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
+
+	const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.MeshConfig.Transform.GetScale3D();
+	MeshComponent->SetRelativeLocation(-MeshOrigin);
+
+	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
+	BoxComponent->SetBoxExtent(MeshExtent);
+
+	// CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation()); todo
+}

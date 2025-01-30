@@ -2,15 +2,16 @@
 
 #include "CoreMinimal.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntityType.h"
 #include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
-#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 
-#include "WpBuilding.generated.h"
+#include "WpEntity.generated.h"
 
 class UWpBelligerentComponent;
 class UWpEnduranceComponent;
+class UWpEntityMovementComponent;
 class UWpIntelComponent;
 class UWpOrderReceiverComponent;
 class UWpProductionComponent;
@@ -19,50 +20,50 @@ class UWpWeaponComponent;
 class UBoxComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
-class AWpBuilding final : public AActor, public IWpEntityInterface, public IWpPooledObjectInterface
+class AWpEntity : public APawn, public IWpPooledObjectInterface
 {
 	GENERATED_BODY()
 
 public:
-	AWpBuilding();
+	AWpEntity();
 
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth) override;
 
-	virtual UWpBelligerentComponent* GetBelligerentComponent() override;
-	virtual const UWpBelligerentComponent* GetBelligerentComponent() const override;
-
-	virtual UWpEnduranceComponent* GetEnduranceComponent() override;
-	virtual const UWpEnduranceComponent* GetEnduranceComponent() const override;
-
-	virtual UWpIntelComponent* GetIntelComponent() override;
-	virtual const UWpIntelComponent* GetIntelComponent() const override;
-
-	virtual UWpOrderReceiverComponent* GetOrderReceiverComponent() override;
-	virtual const UWpOrderReceiverComponent* GetOrderReceiverComponent() const override;
-
-	virtual UWpProductionComponent* GetProductionComponent() override;
-	virtual const UWpProductionComponent* GetProductionComponent() const override;
-
-	virtual UWpWeaponComponent* GetWeaponComponent() override;
-	virtual const UWpWeaponComponent* GetWeaponComponent() const override;
-
-	virtual uint32 GetConfigId() const override;
-
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
 
-private:
-	UFUNCTION()
-	void OnRep_ConfigId();
+	UWpBelligerentComponent* GetBelligerentComponent();
+	const UWpBelligerentComponent* GetBelligerentComponent() const;
 
+	UWpEnduranceComponent* GetEnduranceComponent();
+	const UWpEnduranceComponent* GetEnduranceComponent() const;
+
+	UWpIntelComponent* GetIntelComponent();
+	const UWpIntelComponent* GetIntelComponent() const;
+
+	UWpOrderReceiverComponent* GetOrderReceiverComponent();
+	const UWpOrderReceiverComponent* GetOrderReceiverComponent() const;
+
+	UWpProductionComponent* GetProductionComponent();
+	const UWpProductionComponent* GetProductionComponent() const;
+
+	UWpWeaponComponent* GetWeaponComponent();
+	const UWpWeaponComponent* GetWeaponComponent() const;
+
+	uint32 GetEntityConfigId() const;
+	EWpEntityType GetEntityType() const;
+
+protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USkeletalMeshComponent> MeshComponent = nullptr;
+	TObjectPtr<UStaticMeshComponent> MeshComponent = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UWpEntityMovementComponent> MovementComponent = nullptr;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpBelligerentComponent> BelligerentComponent = nullptr;
@@ -77,17 +78,26 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpWeaponComponent> WeaponComponent = nullptr;
 
-	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing=OnRep_ConfigId)
-	uint32 ConfigId = 0;
+private:
+	UFUNCTION()
+	void OnRep_EntityConfigId();
 
-	static const FName BoxComponentName;
-	static const FName MeshComponentName;
+	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing=OnRep_EntityConfigId)
+	uint32 EntityConfigId = 0;
+	UPROPERTY(VisibleInstanceOnly, Replicated)
+	EWpEntityType EntityType = EWpEntityType::Undefined;
+
+public:
 	static const FName BelligerentComponentName;
 	static const FName EnduranceComponentName;
 	static const FName IntelComponentName;
 	static const FName OrderReceiverComponentName;
 	static const FName ProductionComponentName;
 	static const FName WeaponComponentName;
+
+	static const FName BoxComponentName;
+	static const FName MeshComponentName;
+	static const FName MovementComponentName;
 
 	static const FName BoxComponentCollisionProfileName;
 	static const FName MeshComponentCollisionProfileName;

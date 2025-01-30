@@ -2,13 +2,13 @@
 
 #include "CoreMinimal.h"
 
+#include "Warpunk/Game/Entity/WpEntityType.h"
 #include "Warpunk/Game/Order/WpOrder.h"
 
 #include "Components/ActorComponent.h"
 
 #include "WpOrderSenderComponent.generated.h"
 
-class AWpBuilding;
 enum class EWpEntityState : uint8;
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -17,7 +17,7 @@ struct FWpNetOrder
 	GENERATED_BODY()
 
 	UPROPERTY()
-	AActor* EntityActor = nullptr;
+	AWpEntity* Entity = nullptr;
 	UPROPERTY()
 	FWpOrder Order = {};
 };
@@ -25,7 +25,7 @@ struct FWpNetOrder
 struct FWpSelectedEntityCategory
 {
 	FWpDefaultOrders DefaultOrders = {};
-	const UClass* EntityClass = nullptr;
+	EWpEntityType EntityType = EWpEntityType::Undefined;
 
 	bool operator==(const FWpSelectedEntityCategory& Other) const;
 	friend uint32 GetTypeHash(const FWpSelectedEntityCategory& Other);
@@ -74,9 +74,9 @@ private:
 
 	void SetSelectEntitiesStartLocation();
 	void SelectEntities();
-	const TArray<IWpEntityInterface*>* GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const;
+	const TArray<AWpEntity*>* GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const;
 
-	void SelectEntity(IWpEntityInterface* const Entity, const bool bSelected);
+	void SelectEntity(AWpEntity* const Entity, const bool bSelected);
 	void UpdateAvailableOrderTypes();
 
 	void SetOrderStartLocation();
@@ -92,14 +92,14 @@ private:
 	uint32 GetBelligerentId() const;
 	uint32 GetTeamId() const;
 
-	void OnSelectedEntityStateChanged(IWpEntityInterface* const SelectedEntity, const EWpEntityState EntityState);
+	void OnSelectedEntityStateChanged(AWpEntity* const SelectedEntity, const EWpEntityState EntityState);
 
 	EWpOrderSenderState OrderSenderState = EWpOrderSenderState::DefaultOrder;
 
 	FVector SelectEntitiesStartLocation = FVector::ZeroVector;
-	TMap<FWpSelectedEntityCategory, TArray<IWpEntityInterface*>> SelectedEntitiesPerCategory = {};
+	TMap<FWpSelectedEntityCategory, TArray<AWpEntity*>> SelectedEntitiesPerCategory = {};
 
-	TSet<IWpEntityInterface*> SelectedEntities = {};
+	TSet<AWpEntity*> SelectedEntities = {};
 	TSet<EWpOrderType> SelectedEntitiesAvailableOrderTypes = {};
 	FWpDefaultOrders SelectedEntitiesDefaultOrders = {};
 
@@ -107,11 +107,12 @@ private:
 	FVector OrderStartLocation = FVector::ZeroVector;
 
 	uint32 BuildingToProduceConfigId = 0;
-	TObjectPtr<AWpBuilding> BuildingToProduce = nullptr;
+	TObjectPtr<AWpEntity> BuildingToProduce = nullptr;
 
-	TMap<const IWpEntityInterface*, TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
+	TMap<const AWpEntity*, TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
 
 	FAvailableOrdersChangedEvent AvailableOrdersChangedEvent = {};
 
+public:
 	static const FName OverrideInputKeyName;
 };

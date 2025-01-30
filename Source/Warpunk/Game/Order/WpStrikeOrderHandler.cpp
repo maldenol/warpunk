@@ -1,6 +1,6 @@
 #include "WpStrikeOrderHandler.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Weapon/WpWeapon.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
@@ -34,9 +34,9 @@ void FWpStrikeOrderHandler::Tick(const float CurrentTime)
 
 		FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index);
 
-		if (GetOrder().TargetEntityActor)
+		if (GetOrder().TargetEntity)
 		{
-			if (Weapon->TryFire(GetOrder().GetTargetEntity()))
+			if (Weapon->TryFire(GetOrder().TargetEntity))
 			{
 				WaitingWeapons[Index] = false;
 			}

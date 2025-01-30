@@ -34,6 +34,7 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneCaptureComponent2D> SceneCaptureComponent = nullptr;
 
+public:
 	static const FName RootComponentName;
 	static const FName SceneCaptureComponentName;
 };

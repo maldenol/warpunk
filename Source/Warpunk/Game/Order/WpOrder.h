@@ -4,7 +4,7 @@
 
 #include "WpOrder.generated.h"
 
-class IWpEntityInterface;
+class AWpEntity;
 
 UENUM(NotBlueprintable, NotBlueprintType)
 enum class EWpOrderType : uint8
@@ -55,15 +55,13 @@ struct FWpOrder final
 	UPROPERTY()
 	float Radius = 0.0f;
 	UPROPERTY()
-	AActor* TargetEntityActor = nullptr;
+	AWpEntity* TargetEntity = nullptr;
 	UPROPERTY()
 	uint32 BuildingToProduceConfigId = 0;
 	UPROPERTY()
 	TArray<FWpConfigIdNumber> UnitToProduceConfigIdNumbers = {};
 	UPROPERTY()
 	bool bOverride = false;
-
-	IWpEntityInterface* GetTargetEntity() const;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)

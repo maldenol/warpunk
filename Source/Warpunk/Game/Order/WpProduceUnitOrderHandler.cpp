@@ -1,11 +1,11 @@
 #include "WpProduceUnitOrderHandler.h"
 
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 
-void FWpProduceUnitOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpProduceUnitOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
 
@@ -20,21 +20,6 @@ void FWpProduceUnitOrderHandler::Reactivate()
 	if (OnRepairFinishedDelegateHandle.IsValid())
 	{
 		ProductionComponent->OnRepairFinished().Remove(OnRepairFinishedDelegateHandle);
-	}
-
-	if (GetOrder().UnitToProduceConfigIdNumbers.IsEmpty())
-	{
-		IWpEntityInterface* const CurrentTargetEntity = ProductionComponent->GetCurrentTargetEntity();
-
-		ProductionComponent->Stop();
-
-		if (CurrentTargetEntity)
-		{
-			CurrentTargetEntity->GetEnduranceComponent()->Destruct();
-		}
-
-		Finish();
-		return;
 	}
 
 	TMap<uint32, uint32> UnitToProduceConfigIdNumbers = FWpConfigIdNumber::ToMap(GetOrder().UnitToProduceConfigIdNumbers);
@@ -74,16 +59,19 @@ void FWpProduceUnitOrderHandler::Reactivate()
 	}
 	UnitQueueIndex = 0;
 
-	if (IWpEntityInterface* const CurrentTargetEntity = ProductionComponent->GetCurrentTargetEntity())
+	if (AWpEntity* const CurrentTargetEntity = ProductionComponent->GetCurrentTargetEntity())
 	{
-		const uint32 CurrentTargetEntityConfigId = CurrentTargetEntity->GetConfigId();
+		const uint32 CurrentTargetEntityConfigId = CurrentTargetEntity->GetEntityConfigId();
 		if (!GetOrder().UnitToProduceConfigIdNumbers.Contains(CurrentTargetEntityConfigId))
 		{
 			ProductionComponent->Stop();
 
 			CurrentTargetEntity->GetEnduranceComponent()->Destruct();
 
-			BeginProduceUnit();
+			if (!UnitQueue.IsEmpty())
+			{
+				BeginProduceUnit();
+			}
 		}
 		else
 		{
@@ -91,9 +79,14 @@ void FWpProduceUnitOrderHandler::Reactivate()
 			UnitQueue.Insert(CurrentTargetEntityConfigId, 0);
 		}
 	}
-	else
+	else if (!UnitQueue.IsEmpty())
 	{
 		BeginProduceUnit();
+	}
+	else
+	{
+		Finish();
+		return;
 	}
 
 	bWasInfiniteProductionEnabled = ProductionComponent->IsInfiniteProductionEnabled();
@@ -123,13 +116,13 @@ void FWpProduceUnitOrderHandler::SetOrder(const FWpOrder& InOrder)
 void FWpProduceUnitOrderHandler::BeginProduceUnit()
 {
 	static constexpr float OffsetZ = 100.0f;
-	const FVector UnitLocation = Cast<AActor>(GetEntity())->GetActorLocation() + FVector::UpVector * OffsetZ;
+	const FVector UnitLocation = GetEntity()->GetActorLocation() + FVector::UpVector * OffsetZ;
 	ProductionComponent->StartProduce(UnitQueue[UnitQueueIndex], UnitLocation);
 }
 
-void FWpProduceUnitOrderHandler::OnRepairFinished(IWpEntityInterface* const InEntity)
+void FWpProduceUnitOrderHandler::OnRepairFinished(AWpEntity* const InEntity)
 {
-	const uint32 ProducedUnitConfigId = InEntity->GetConfigId();
+	const uint32 ProducedUnitConfigId = InEntity->GetEntityConfigId();
 	if (ProductionComponent->IsInfiniteProductionEnabled())
 	{
 		if (uint32* const ProducedUnitNumber = ProducedUnits.Find(ProducedUnitConfigId))

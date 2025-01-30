@@ -72,6 +72,7 @@ private:
 
 	FOrderReceivedEvent OrderReceivedEvent = {};
 
+public:
 	static const FName SelectionWidgetComponentName;
 
 	static const TSet<EWpOrderType> ImmediateOrders;

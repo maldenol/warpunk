@@ -1,11 +1,9 @@
 #include "WpGameGameMode.h"
 
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
-#include "Warpunk/Game/Entity/WpBuilding.h"
 #include "Warpunk/Game/Entity/WpCommander.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
-#include "Warpunk/Game/Entity/WpUnit.h"
 #include "Warpunk/Game/GameMode/WpGameGameState.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
@@ -19,9 +17,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 
-static constexpr uint32 UnitPoolSize = 50;
-static constexpr uint32 BuildingPoolSize = 50;
-static constexpr uint32 ProjectilePoolSize = 10;
+static constexpr uint32 EntityPoolSize = 100;
+static constexpr uint32 ProjectilePoolSize = 100;
 
 AWpGameGameMode::AWpGameGameMode()
 {
@@ -82,11 +79,8 @@ void AWpGameGameMode::InitializeActorPools() const
 	const uint32 PlayerNum = GetGameInstance<UWpGameInstance>()->GetPlayerIds().Num();
 	CommanderPool->Reserve(CommanderClass, PlayerNum);
 
-	AWpActorPool* const UnitPool = GetWorld()->SpawnActor<AWpActorPool>();
-	UnitPool->Reserve(AWpUnit::StaticClass(), UnitPoolSize);
-
-	AWpActorPool* const BuildingPool = GetWorld()->SpawnActor<AWpActorPool>();
-	BuildingPool->Reserve(AWpBuilding::StaticClass(), BuildingPoolSize);
+	AWpActorPool* const EntityPool = GetWorld()->SpawnActor<AWpActorPool>();
+	EntityPool->Reserve(AWpEntity::StaticClass(), EntityPoolSize);
 
 	AWpActorPool* const ProjectilePool = GetWorld()->SpawnActor<AWpActorPool>();
 	ProjectilePool->Reserve(AWpProjectile::StaticClass(), ProjectilePoolSize);
@@ -144,6 +138,6 @@ void AWpGameGameMode::SetExpectedLoadedObjectNum(AWpGamePlayerController* const 
 		+ 1 // PlayerState field of local player controller
 		+ 1 // Local strategic view pawn possession
 		+ 2 * PlayerNum // For each player: player state and commander
-		+ (UnitPoolSize + BuildingPoolSize + ProjectilePoolSize); // Pooled actors
+		+ (EntityPoolSize + ProjectilePoolSize); // Pooled actors
 	PlayerController->ClientSetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
 }

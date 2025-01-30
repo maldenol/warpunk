@@ -2,15 +2,15 @@
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
 void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	if (bIsAcquired)
 	{
@@ -34,17 +34,17 @@ void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 	}
 }
 
-void FWpWeapon::Initialize(IWpEntityInterface* const InOwnerEntity)
+void FWpWeapon::Initialize(AWpEntity* const InOwnerEntity)
 {
 	OwnerEntity = InOwnerEntity;
 
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 }
 
 void FWpWeapon::Tick(const float DeltaTime)
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	UpdateCurrentTargetEntity();
 
@@ -54,18 +54,18 @@ void FWpWeapon::Tick(const float DeltaTime)
 	}
 }
 
-bool FWpWeapon::TryFire(const IWpEntityInterface* const Entity)
+bool FWpWeapon::TryFire(const AWpEntity* const Entity)
 {
-	const FVector Location = Cast<AActor>(Entity)->GetActorLocation();
+	const FVector Location = Entity->GetActorLocation();
 	return TryFire(Location);
 }
 
 bool FWpWeapon::TryFire(const FVector& Location)
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
-	const float CurrentTime = Cast<AActor>(OwnerEntity)->GetWorld()->GetTimeSeconds();
+	const float CurrentTime = OwnerEntity->GetWorld()->GetTimeSeconds();
 	if (CurrentTime >= LastFireTime + Cooldown && CanReach(Location))
 	{
 		LastFireTime = CurrentTime;
@@ -78,66 +78,69 @@ bool FWpWeapon::TryFire(const FVector& Location)
 	return false;
 }
 
-bool FWpWeapon::CanReach(const IWpEntityInterface* const Entity) const
+bool FWpWeapon::CanReach(const AWpEntity* const Entity) const
 {
 	if (!Entity)
 	{
 		return false;
 	}
 
-	const FVector Location = Cast<AActor>(Entity)->GetActorLocation();
+	const FVector Location = Entity->GetActorLocation();
 	return CanReach(Location);
 }
 
 bool FWpWeapon::CanReach(const FVector& Location) const
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
-	const FVector OwnerLocation = Cast<AActor>(OwnerEntity)->GetActorLocation();
+	const FVector OwnerLocation = OwnerEntity->GetActorLocation();
 	const float Distance2 = FVector::DistSquared2D(OwnerLocation, Location);
 	return (Distance2 <= FMath::Square(Range)) && (Distance2 >= FMath::Square(MinRange));
 }
 
 float FWpWeapon::GetRange() const
 {
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return Range;
 }
 
 float FWpWeapon::GetMinRange() const
 {
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return MinRange;
 }
 
 void FWpWeapon::ClearCurrentTargetEntity()
 {
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	SetCurrentTargetEntity(nullptr);
 }
 
-IWpEntityInterface* FWpWeapon::GetCurrentTargetEntity() const
+AWpEntity* FWpWeapon::GetCurrentTargetEntity() const
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return CurrentTargetEntity;
 }
 
-void FWpWeapon::SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTargetEntity)
+void FWpWeapon::SetPriorityTargetEntity(AWpEntity* const InPriorityTargetEntity)
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
-	const UWpBelligerentComponent* const BelligerentComponent = OwnerEntity->GetBelligerentComponent();
-	const bool bPriorityTargetBelongsToSameTeam = BelligerentComponent->BelongsToSameTeam(InPriorityTargetEntity->GetBelligerentComponent());
-	if (bPriorityTargetBelongsToSameTeam)
+	if (InPriorityTargetEntity)
 	{
-		return;
+		const UWpBelligerentComponent* const BelligerentComponent = OwnerEntity->GetBelligerentComponent();
+		const bool bPriorityTargetBelongsToSameTeam = BelligerentComponent->BelongsToSameTeam(InPriorityTargetEntity->GetBelligerentComponent());
+		if (bPriorityTargetBelongsToSameTeam)
+		{
+			return;
+		}
 	}
 
 	PriorityTargetEntity = InPriorityTargetEntity;
@@ -146,19 +149,19 @@ void FWpWeapon::SetPriorityTargetEntity(IWpEntityInterface* const InPriorityTarg
 void FWpWeapon::Fire(const FVector& Location)
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 }
 
 FRotator FWpWeapon::GetDirection(const FVector& Location) const
 {
-	const FVector OwnerLocation = Cast<AActor>(OwnerEntity)->GetActorLocation();
+	const FVector OwnerLocation = OwnerEntity->GetActorLocation();
 	return FRotator::MakeFromEuler(Location - OwnerLocation);
 }
 
 float FWpWeapon::GetDamage() const
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return Damage;
 }
@@ -166,32 +169,32 @@ float FWpWeapon::GetDamage() const
 const FVector& FWpWeapon::GetFireLocation() const
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return FireLocation;
 }
 
-IWpEntityInterface* FWpWeapon::GetOwnerEntity()
+AWpEntity* FWpWeapon::GetOwnerEntity()
 {
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return OwnerEntity;
 }
 
-const IWpEntityInterface* FWpWeapon::GetOwnerEntity() const
+const AWpEntity* FWpWeapon::GetOwnerEntity() const
 {
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	return OwnerEntity;
 }
 
-void FWpWeapon::SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity)
+void FWpWeapon::SetCurrentTargetEntity(AWpEntity* const NewTargetEntity)
 {
 	if (NewTargetEntity)
 	{
 		ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
 	}
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
 	if (CurrentTargetEntity)
 	{
@@ -211,9 +214,9 @@ void FWpWeapon::SetCurrentTargetEntity(IWpEntityInterface* const NewTargetEntity
 void FWpWeapon::UpdateCurrentTargetEntity()
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
-	ensureAlways(Cast<AActor>(OwnerEntity)->HasAuthority());
+	ensureAlways(OwnerEntity->HasAuthority());
 
-	const float CurrentTime = Cast<AActor>(OwnerEntity)->GetWorld()->GetTimeSeconds();
+	const float CurrentTime = OwnerEntity->GetWorld()->GetTimeSeconds();
 	if (CurrentTime >= LastUpdateCurrentTargetEntityTime + UpdateCurrentTargetEntityCooldown)
 	{
 		LastUpdateCurrentTargetEntityTime = CurrentTime;
@@ -226,13 +229,11 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 	const uint32 EntityTeamId = OwnerEntity->GetBelligerentComponent()->GetTeamId();
 
 	const UWpWeaponComponent* const WeaponComponent = OwnerEntity->GetWeaponComponent();
-	const TSet<IWpEntityInterface*>& EntitiesInReach = WeaponComponent->GetEntitiesInReach();
+	const TSet<AWpEntity*>& EntitiesInReach = WeaponComponent->GetEntitiesInReach();
 
 	if (CurrentTargetEntity)
 	{
-		const AActor* const CurrentTargetActor = Cast<AActor>(CurrentTargetEntity);
-
-		const bool bCurrentTargetIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CurrentTargetActor);
+		const bool bCurrentTargetIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CurrentTargetEntity);
 		if (!bCurrentTargetIsVisible)
 		{
 			SetCurrentTargetEntity(nullptr);
@@ -255,7 +256,7 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 
 	if (PriorityTargetEntity && EntitiesInReach.Contains(PriorityTargetEntity))
 	{
-		const bool bPriorityTargetIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, Cast<AActor>(PriorityTargetEntity));
+		const bool bPriorityTargetIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, PriorityTargetEntity);
 		if (bPriorityTargetIsVisible)
 		{
 			SetCurrentTargetEntity(PriorityTargetEntity);
@@ -268,7 +269,7 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 		return;
 	}
 
-	for (IWpEntityInterface* const CandidateEntity : EntitiesInReach)
+	for (AWpEntity* const CandidateEntity : EntitiesInReach)
 	{
 		const bool bCandidateIsCurrentTarget = (CurrentTargetEntity == CandidateEntity);
 		if (bCandidateIsCurrentTarget)
@@ -276,9 +277,7 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 			continue;
 		}
 
-		const AActor* const CandidateActor = Cast<AActor>(CandidateEntity);
-
-		const bool bCandidateIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CandidateActor);
+		const bool bCandidateIsVisible = AWpPooledActorVisibilityManager::IsVisibleForTeam(EntityTeamId, CandidateEntity);
 		if (!bCandidateIsVisible)
 		{
 			continue;
@@ -290,7 +289,7 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 			continue;
 		}
 
-		const bool bCanReachCandidate = CanReach(CandidateActor->GetActorLocation());
+		const bool bCanReachCandidate = CanReach(CandidateEntity->GetActorLocation());
 		if (!bCanReachCandidate)
 		{
 			continue;
@@ -301,7 +300,7 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 	}
 }
 
-void FWpWeapon::OnCurrentTargetEntityStateChanged(IWpEntityInterface* const Entity, const EWpEntityState EntityState)
+void FWpWeapon::OnCurrentTargetEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState)
 {
 	if (EntityState == EWpEntityState::Wreck)
 	{

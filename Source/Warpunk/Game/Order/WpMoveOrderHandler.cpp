@@ -1,13 +1,13 @@
 #include "WpMoveOrderHandler.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/Navigation/WpUnitAIController.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
+#include "Warpunk/Game/Navigation/WpEntityAIController.h"
 
-void FWpMoveOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpMoveOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = Cast<APawn>(GetEntity())->GetController<AWpUnitAIController>();
+	AIController = GetEntity()->GetController<AWpEntityAIController>();
 	ensureAlways(AIController);
 }
 

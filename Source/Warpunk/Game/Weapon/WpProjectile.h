@@ -52,6 +52,7 @@ private:
 	float Damage = 0.0f;
 	FWpProjectileWeapon* Weapon = nullptr;
 
+public:
 	static const FName SphereComponentName;
 	static const FName MeshComponentName;
 	static const FName MovementComponentName;

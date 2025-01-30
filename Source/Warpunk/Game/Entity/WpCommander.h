@@ -2,18 +2,18 @@
 
 #include "CoreMinimal.h"
 
-#include "Warpunk/Game/Entity/WpUnit.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
 
 #include "WpCommander.generated.h"
 
-class AWpUnitAIController;
+class AWpEntityAIController;
 
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
 
 UCLASS(MinimalAPI, Abstract, Blueprintable, NotBlueprintType)
-class AWpCommander final : public AWpUnit
+class AWpCommander final : public AWpEntity
 {
 	GENERATED_BODY()
 
@@ -46,5 +46,5 @@ private:
 	TObjectPtr<UInputAction> FireIa = nullptr;
 
 	UPROPERTY(VisibleInstanceOnly)
-	TObjectPtr<AWpUnitAIController> AIController = nullptr;
+	TObjectPtr<AWpEntityAIController> AIController = nullptr;
 };

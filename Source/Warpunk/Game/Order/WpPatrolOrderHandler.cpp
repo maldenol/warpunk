@@ -1,17 +1,17 @@
 #include "WpPatrolOrderHandler.h"
 
-#include "Warpunk/Game/Entity/WpEntityInterface.h"
-#include "Warpunk/Game/Navigation/WpUnitAIController.h"
+#include "Warpunk/Game/Entity/WpEntity.h"
+#include "Warpunk/Game/Navigation/WpEntityAIController.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 
 #include "NavigationSystem.h"
 #include "AI/NavigationSystemBase.h"
 
-void FWpPatrolOrderHandler::Initialize(IWpEntityInterface* const InEntity)
+void FWpPatrolOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
 
-	AIController = Cast<APawn>(GetEntity())->GetController<AWpUnitAIController>();
+	AIController = GetEntity()->GetController<AWpEntityAIController>();
 	ensureAlways(AIController);
 
 	ProductionComponent = GetEntity()->GetProductionComponent();
@@ -65,7 +65,7 @@ void FWpPatrolOrderHandler::Deactivate()
 void FWpPatrolOrderHandler::MoveToNextLocation()
 {
 	FNavLocation RandomLocation;
-	UNavigationSystemV1* const NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(Cast<AActor>(GetEntity())->GetWorld());
+	UNavigationSystemV1* const NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetEntity()->GetWorld());
 	if (GetOrder().Radius > 0.001f)
 	{
 		NavigationSystem->GetRandomReachablePointInRadius(GetOrder().TargetLocation, GetOrder().Radius, RandomLocation);
