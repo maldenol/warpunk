@@ -33,6 +33,7 @@ private:
 
 	void OnMoveTriggered(const FInputActionValue& ActionValue);
 	void OnLookTriggered(const FInputActionValue& ActionValue);
+
 	UFUNCTION(Server, Reliable)
 	void ServerOnFireTriggered(const FInputActionValue& ActionValue);
 

@@ -6,6 +6,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "WpGamePlayerController.h"
 #include "GameFramework/FloatingPawnMovement.h"
 
 const FName AWpStrategicViewPawn::MovementComponentName = TEXT("FloatingPawnMovement");
@@ -17,7 +18,7 @@ AWpStrategicViewPawn::AWpStrategicViewPawn()
 
 	bReplicates = true;
 	Super::SetReplicateMovement(true);
-	bOnlyRelevantToOwner = true;
+	NetUpdateFrequency = 60.0f;
 
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
@@ -26,9 +27,19 @@ AWpStrategicViewPawn::AWpStrategicViewPawn()
 	OrderSenderComponent = CreateDefaultSubobject<UWpOrderSenderComponent>(OrderSenderComponentName);
 }
 
+bool AWpStrategicViewPawn::IsNetRelevantFor(const AActor* const RealViewer, const AActor* const ViewTarget, const FVector& SrcLocation) const
+{
+	return OwningPlayerController && (Cast<AActor>(OwningPlayerController) == RealViewer);
+}
+
 void AWpStrategicViewPawn::PossessedBy(AController* const NewController)
 {
 	Super::PossessedBy(NewController);
+
+	if (!OwningPlayerController && NewController->IsA<AWpGamePlayerController>())
+	{
+		OwningPlayerController = NewController;
+	}
 
 	ClientPossessed();
 }

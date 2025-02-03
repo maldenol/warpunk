@@ -21,6 +21,8 @@ class AWpStrategicViewPawn final : public APawn
 public:
 	AWpStrategicViewPawn();
 
+	virtual bool IsNetRelevantFor(const AActor* const RealViewer, const AActor* const ViewTarget, const FVector& SrcLocation) const override;
+
 	virtual void PossessedBy(AController* const NewController) override;
 	virtual void UnPossessed() override;
 
@@ -60,6 +62,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpOrderSenderComponent> OrderSenderComponent = nullptr;
+
+	const AController* OwningPlayerController = nullptr;
 
 	bool bHasNotifiedObjectLoaded = false;
 

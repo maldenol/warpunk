@@ -17,8 +17,11 @@ public:
 	UWpProjectileMovementComponent();
 
 	virtual void BeginPlay() override;
+	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction) override;
 
 	virtual void OnRep_IsActive() override;
+
+	virtual void UpdateTickRegistration() override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;

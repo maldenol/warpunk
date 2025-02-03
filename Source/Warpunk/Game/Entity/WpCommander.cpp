@@ -2,6 +2,7 @@
 
 #include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpEntityAIController.h"
+#include "Warpunk/Game/Player/WpGamePlayerController.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -19,6 +20,8 @@ void AWpCommander::PossessedBy(AController* const NewController)
 		AIController = GetController<AWpEntityAIController>();
 		ensureAlways(AIController);
 	}
+
+	SetAutonomousProxy(false);
 
 	const bool bPossessedByPlayer = Cast<APlayerController>(NewController) != nullptr;
 	if (bPossessedByPlayer)
@@ -91,8 +94,14 @@ void AWpCommander::ClientUnPossessed_Implementation()
 
 void AWpCommander::OnMoveTriggered(const FInputActionValue& ActionValue)
 {
-	AddMovementInput(GetActorRightVector(), ActionValue[0]);
-	AddMovementInput(GetActorForwardVector(), ActionValue[1]);
+	if (HasAuthority())
+	{
+		MovementComponent->AddMovementInput(ActionValue[1], ActionValue[0]);
+	}
+	else
+	{
+		GetController<AWpGamePlayerController>()->ServerAddCommanderMovementInput(ActionValue[1], ActionValue[0]);
+	}
 }
 
 void AWpCommander::OnLookTriggered(const FInputActionValue& ActionValue)

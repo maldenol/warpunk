@@ -1,6 +1,7 @@
 #include "WpGamePlayerController.h"
 
 #include "Warpunk/Game/Entity/WpCommander.h"
+#include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
@@ -62,6 +63,14 @@ void AWpGamePlayerController::ClientSetExpectedLoadedObjectNum_Implementation(co
 	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->SetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
 }
 
+void AWpGamePlayerController::ServerAddCommanderMovementInput_Implementation(const float Forward, const float Right)
+{
+	if (Commander && GetPawn<AWpCommander>() == Commander)
+	{
+		Cast<UWpEntityMovementComponent>(Commander->GetMovementComponent())->AddMovementInput(Forward, Right);
+	}
+}
+
 void AWpGamePlayerController::ServerToggleView_Implementation()
 {
 	if (!StrategicViewPawn || !Commander)
@@ -69,7 +78,7 @@ void AWpGamePlayerController::ServerToggleView_Implementation()
 		return;
 	}
 
-	const bool bStrategicView = (GetPawn() == StrategicViewPawn);
+	const bool bStrategicView = (GetPawn<AWpStrategicViewPawn>() == StrategicViewPawn);
 
 	SetView(!bStrategicView);
 }

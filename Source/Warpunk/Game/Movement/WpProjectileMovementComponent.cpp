@@ -27,7 +27,24 @@ void UWpProjectileMovementComponent::BeginPlay()
 	bInterpRotation = !bHasAuthority;
 }
 
+void UWpProjectileMovementComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!IsActive())
+	{
+		return; // todo
+	}
+
+	ensureAlways(IsActive());
+}
+
 void UWpProjectileMovementComponent::OnRep_IsActive()
+{
+	// Override to not enable tick
+}
+
+void UWpProjectileMovementComponent::UpdateTickRegistration()
 {
 	// Override to not enable tick
 }

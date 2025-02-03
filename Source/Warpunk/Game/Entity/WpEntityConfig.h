@@ -25,6 +25,29 @@ USTRUCT(NotBlueprintable, NotBlueprintType)
 struct FWpMovementConfig final
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	float MaxSpeed = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxAcceleration = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxInertDeceleration = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxBrakingDeceleration = 0.0f;
+
+	UPROPERTY(EditAnywhere)
+	float MaxRotationSpeed = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxRotationAcceleration = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxRotationInertDeceleration = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxRotationBrakingDeceleration = 0.0f;
+
+	UPROPERTY(EditAnywhere)
+	float MaxInclineAngle = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxStepUpHeight = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)

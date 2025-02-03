@@ -17,7 +17,7 @@ class UWpOrderReceiverComponent;
 class UWpProductionComponent;
 class UWpWeaponComponent;
 
-class UBoxComponent;
+class UCapsuleComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class AWpEntity : public APawn, public IWpPooledObjectInterface
@@ -59,7 +59,7 @@ public:
 
 protected:
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UBoxComponent> BoxComponent = nullptr;
+	TObjectPtr<UCapsuleComponent> CollisionComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> MeshComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
@@ -95,10 +95,10 @@ public:
 	static const FName ProductionComponentName;
 	static const FName WeaponComponentName;
 
-	static const FName BoxComponentName;
+	static const FName CollisionComponentName;
 	static const FName MeshComponentName;
 	static const FName MovementComponentName;
 
-	static const FName BoxComponentCollisionProfileName;
+	static const FName CollisionComponentCollisionProfileName;
 	static const FName MeshComponentCollisionProfileName;
 };

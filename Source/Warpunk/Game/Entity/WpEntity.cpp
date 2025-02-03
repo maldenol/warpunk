@@ -15,7 +15,7 @@
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
-#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -26,11 +26,11 @@ const FName AWpEntity::OrderReceiverComponentName = TEXT("OrderReceiverComponent
 const FName AWpEntity::ProductionComponentName = TEXT("ProductionComponent");
 const FName AWpEntity::WeaponComponentName = TEXT("WeaponComponent");
 
-const FName AWpEntity::BoxComponentName = TEXT("BoxComponent");
+const FName AWpEntity::CollisionComponentName = TEXT("CollisionComponent");
 const FName AWpEntity::MeshComponentName = TEXT("MeshComponent");
 const FName AWpEntity::MovementComponentName = TEXT("MovementComponent");
 
-const FName AWpEntity::BoxComponentCollisionProfileName = TEXT("WpEntitySimple");
+const FName AWpEntity::CollisionComponentCollisionProfileName = TEXT("WpEntitySimple");
 const FName AWpEntity::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
 
 AWpEntity::AWpEntity()
@@ -46,11 +46,11 @@ AWpEntity::AWpEntity()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AWpEntityAIController::StaticClass();
 
-	BoxComponent = CreateDefaultSubobject<UBoxComponent>(BoxComponentName);
-	BoxComponent->SetCollisionProfileName(BoxComponentCollisionProfileName);
-	BoxComponent->SetNotifyRigidBodyCollision(true);
-	BoxComponent->SetGenerateOverlapEvents(true);
-	RootComponent = BoxComponent;
+	CollisionComponent = CreateDefaultSubobject<UCapsuleComponent>(CollisionComponentName);
+	CollisionComponent->SetCollisionProfileName(CollisionComponentCollisionProfileName);
+	CollisionComponent->SetNotifyRigidBodyCollision(true);
+	CollisionComponent->SetGenerateOverlapEvents(true);
+	RootComponent = CollisionComponent;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
 	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
@@ -247,7 +247,9 @@ void AWpEntity::OnRep_EntityConfigId()
 	MeshComponent->SetRelativeLocation(-MeshOrigin);
 
 	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
-	BoxComponent->SetBoxExtent(MeshExtent);
+	const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
+	const float HalfHeight = MeshExtent.Z;
+	CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
 
 	// CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation()); todo
 }
