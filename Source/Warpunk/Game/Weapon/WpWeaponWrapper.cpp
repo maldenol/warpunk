@@ -20,7 +20,7 @@ FWpWeapon* FWpWeaponWrapper::Set(const EWpWeaponType InWeaponType)
 		break;
 	}
 
-	WeaponType = Weapon ? InWeaponType : EWpWeaponType::None;
+	WeaponType = Weapon ? InWeaponType : EWpWeaponType::Undefined;
 
 	return Weapon;
 }
@@ -52,5 +52,5 @@ const FWpWeapon* FWpWeaponWrapper::Get() const
 void FWpWeaponWrapper::Reset()
 {
 	WeaponVariant.Emplace<std::monostate>();
-	WeaponType = EWpWeaponType::None;
+	WeaponType = EWpWeaponType::Undefined;
 }

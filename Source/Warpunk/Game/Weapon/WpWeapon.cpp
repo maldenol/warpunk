@@ -17,6 +17,7 @@ void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		const FWpPooledWeaponData& PooledWeaponData = static_cast<const FWpPooledWeaponData&>(PooledObjectData);
 		const FWpWeaponConfig& WeaponConfig = *PooledWeaponData.WeaponConfig;
 
+		ensureAlways(WeaponConfig.Type != EWpWeaponType::Undefined);
 		ensureAlways(!FMath::IsNearlyZero(WeaponConfig.Range));
 		ensureAlways(!FMath::IsNearlyZero(WeaponConfig.Damage));
 		ensureAlways(!WeaponConfig.FireLocation.IsNearlyZero());

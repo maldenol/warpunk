@@ -10,7 +10,7 @@
 UENUM(NotBlueprintable, NotBlueprintType)
 enum class EWpWeaponType : uint8
 {
-	None UMETA(Hidden),
+	Undefined UMETA(Hidden),
 	HitScan,
 	Projectile,
 };
@@ -32,5 +32,5 @@ public:
 
 private:
 	FWpWeaponVariant WeaponVariant = {};
-	EWpWeaponType WeaponType = EWpWeaponType::None;
+	EWpWeaponType WeaponType = EWpWeaponType::Undefined;
 };

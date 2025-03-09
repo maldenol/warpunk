@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 #include "Warpunk/Game/Entity/WpEntityType.h"
+#include "Warpunk/Game/Movement/WpEntityMovementType.h"
 #include "Warpunk/Game/Order/WpOrder.h"
 #include "Warpunk/Game/Weapon/WpWeaponWrapper.h"
 
@@ -27,6 +28,9 @@ struct FWpMovementConfig final
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
+	EWpEntityMovementType Type = EWpEntityMovementType::Undefined;
+
+	UPROPERTY(EditAnywhere)
 	float MaxSpeed = 0.0f;
 	UPROPERTY(EditAnywhere)
 	float MaxAcceleration = 0.0f;
@@ -35,19 +39,27 @@ struct FWpMovementConfig final
 	UPROPERTY(EditAnywhere)
 	float MaxBrakingDeceleration = 0.0f;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
 	float MaxRotationSpeed = 0.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
 	float MaxRotationAcceleration = 0.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
 	float MaxRotationInertDeceleration = 0.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
 	float MaxRotationBrakingDeceleration = 0.0f;
+
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	float MaxWheelRotationAngle = 0.0f;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	float MaxWheelRotationSpeed = 0.0f;
 
 	UPROPERTY(EditAnywhere)
 	float MaxInclineAngle = 0.0f;
 	UPROPERTY(EditAnywhere)
 	float MaxStepUpHeight = 0.0f;
+
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Tracks || Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	float MaxGroundFriction = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -112,7 +124,7 @@ struct FWpWeaponConfig final
 	UPROPERTY(EditAnywhere)
 	float FireRate = 0.0f;
 	UPROPERTY(EditAnywhere)
-	EWpWeaponType Type = EWpWeaponType::None;
+	EWpWeaponType Type = EWpWeaponType::Undefined;
 	UPROPERTY(EditAnywhere)
 	float Damage = 0.0f;
 	UPROPERTY(EditAnywhere)

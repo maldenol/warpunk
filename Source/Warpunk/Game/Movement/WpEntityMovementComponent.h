@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 
+#include "Warpunk/Game/Movement/WpEntityMovementType.h"
 #include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
 #include "GameFramework/PawnMovementComponent.h"
@@ -23,6 +24,8 @@ public:
 	virtual void SetUpdatedComponent(USceneComponent* const NewUpdatedComponent) override;
 	virtual void UpdateTickRegistration() override;
 
+	virtual FVector ConsumeInputVector() override;
+
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 
@@ -31,31 +34,47 @@ public:
 	void SetIsFirstPersonControlled(const bool bIsFirstPersonControlled);
 
 private:
+	void UpdateWheelRotation(const float DeltaTime, const FVector& InputVector);
+
 	void UpdateAcceleration(const float DeltaTime, const FVector& InputVector);
+	void ApplyInputAcceleration(const float Input, const FVector& Direction);
+	void ApplyForces();
+
 	void UpdateRotationAcceleration(const float DeltaTime, const FVector& InputVector);
+	void ApplyRotationAccelerationLegs(const float DeltaTime);
+	void ApplyRotationAccelerationTracks(const float DeltaTime, const FVector& InputVector);
+	void ApplyRotationAccelerationWheels(const float DeltaTime, const FVector& InputVector);
 
 	void UpdateSpeed(const float DeltaTime);
 	void UpdateRotationSpeed(const float DeltaTime);
 
+	float CalcNewWheelRotationAngle(const float DeltaTime, const float WheelRotationSpeed) const;
 	FVector CalcNewSpeed(const float DeltaTime) const;
 	float CalcNewRotationSpeed(const float DeltaTime) const;
 
-	void Rotate(const float DeltaTime);
 	void Move(const float DeltaTime);
+	void Rotate(const float DeltaTime);
 
 	void UpdateGround(const float DeltaTime);
 
 	bool StepUp(const float DeltaTime);
 
-	void ProcessWallImpact();
+	void SweepUnder(FHitResult& OutHit, const float Distance) const;
+
+	void ProcessWallImpact(const FVector& ImpactNormal);
 
 	FVector CalcDeltaLocation(const float DeltaTime, const FVector& GroundNormal) const;
-
 	FVector CalcInclineUpSpeed(const FVector& GroundNormal) const;
 	FVector CalcInclineDownSpeed(const FVector& GroundNormal) const;
 	FVector CalcInclineSideSpeed(const FVector& GroundNormal) const;
 
 	void RevertLocationTo(const FVector& OldLocation);
+
+	FVector GetControllerDirectionForward() const;
+	FVector GetControllerDirectionRight() const;
+
+	UPROPERTY(VisibleInstanceOnly)
+	EWpEntityMovementType MovementType = EWpEntityMovementType::Undefined;
 
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxSpeed = 0.0f;
@@ -76,9 +95,17 @@ private:
 	float MaxRotationBrakingDeceleration = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly)
+	float MaxWheelRotationAngle = 0.0f;
+	UPROPERTY(VisibleInstanceOnly)
+	float MaxWheelRotationSpeed = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly)
 	float MaxInclineAngle = 0.0f;
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxStepUpHeight = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly)
+	float MaxGroundFriction = 0.0f;
 
 	FVector Speed = FVector::ZeroVector;
 	FVector Acceleration = FVector::ZeroVector;
@@ -86,10 +113,16 @@ private:
 	float RotationSpeed = 0.0f;
 	float RotationAcceleration = 0.0f;
 
+	float WheelRotationAngle = 0.0f;
+
 	bool bOnGround = true;
 	FVector CurrentGroundNormal = FVector::UpVector;
 
 public:
+	static const uint32 MaxMoveIterationNum;
+
 	static const float IdealGroundDistance;
 	static const float MaxGroundDistance;
+
+	static const float WallBumpIntensity;
 };
