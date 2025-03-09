@@ -41,7 +41,7 @@ void UWpLoadingScreenWidget::NativeDestruct()
 
 void UWpLoadingScreenWidget::EnableLoadingScreen(const bool bEnabled)
 {
-	const bool bWasEnabled = (GetVisibility() == ESlateVisibility::Visible);
+	const bool bWasEnabled = GetVisibility() == ESlateVisibility::Visible;
 	if (bEnabled == bWasEnabled)
 	{
 		return;

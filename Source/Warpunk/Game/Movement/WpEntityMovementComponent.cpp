@@ -190,9 +190,9 @@ void UWpEntityMovementComponent::UpdateWheelRotation(const float DeltaTime, cons
 	}
 	else if (!FMath::IsNearlyZero(WheelRotationAngle))
 	{
-		WheelRotationSpeed = MaxWheelRotationSpeed * (WheelRotationAngle > 0.0f ? -1.0f : 1.0f);
+		WheelRotationSpeed = MaxWheelRotationSpeed * ((WheelRotationAngle > 0.0f) ? -1.0f : 1.0f);
 
-		const bool bAngleWillBeZero = ((CalcNewWheelRotationAngle(DeltaTime, WheelRotationSpeed) > 0.0f) != (WheelRotationAngle > 0.0f));
+		const bool bAngleWillBeZero = (CalcNewWheelRotationAngle(DeltaTime, WheelRotationSpeed) > 0.0f) != (WheelRotationAngle > 0.0f);
 		if (bAngleWillBeZero)
 		{
 			WheelRotationAngle = 0.0f;
@@ -203,6 +203,155 @@ void UWpEntityMovementComponent::UpdateWheelRotation(const float DeltaTime, cons
 	if (!FMath::IsNearlyZero(WheelRotationSpeed))
 	{
 		WheelRotationAngle = CalcNewWheelRotationAngle(DeltaTime, WheelRotationSpeed);
+	}
+}
+
+float UWpEntityMovementComponent::CalcNewWheelRotationAngle(const float DeltaTime, const float WheelRotationSpeed) const
+{
+	return FMath::Clamp(WheelRotationAngle + WheelRotationSpeed * DeltaTime, -MaxWheelRotationAngle, MaxWheelRotationAngle);
+}
+
+void UWpEntityMovementComponent::UpdateRotationAcceleration(const float DeltaTime, const FVector& InputVector)
+{
+	RotationAcceleration = 0.0f;
+
+	if (!bOnGround)
+	{
+		return;
+	}
+
+	switch (MovementType)
+	{
+	case EWpEntityMovementType::Legs:
+		ApplyRotationAccelerationLegs(DeltaTime);
+		break;
+	case EWpEntityMovementType::Tracks:
+		ApplyRotationAccelerationTracks(DeltaTime, InputVector);
+		break;
+	case EWpEntityMovementType::Wheels:
+		ApplyRotationAccelerationWheels(DeltaTime);
+		break;
+	default:
+		ensureAlways(false);
+		break;
+	}
+}
+
+void UWpEntityMovementComponent::ApplyRotationAccelerationLegs(const float DeltaTime)
+{
+	ensureAlways(bOnGround);
+
+	const FVector EntityDirectionForward = UpdatedComponent->GetForwardVector();
+	const FVector MovementDirection = Speed.GetSafeNormal2D();
+	const float DeltaYaw = FQuat::FindBetweenNormals(EntityDirectionForward, MovementDirection).Rotator().Yaw;
+
+	if (FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(DeltaYaw, 0.5f))
+	{
+		return;
+	}
+
+	const float StoppingYaw = FMath::Square(RotationSpeed) / (2.0f * MaxRotationBrakingDeceleration);
+
+	if (FMath::Abs(DeltaYaw) > StoppingYaw)
+	{
+		RotationAcceleration += MaxRotationAcceleration * ((DeltaYaw > 0.0f) ? 1.0f : -1.0f);
+	}
+	else
+	{
+		RotationAcceleration += MaxRotationBrakingDeceleration * ((RotationSpeed > 0.0f) ? -1.0f : 1.0f);
+
+		if (!FMath::IsNearlyZero(RotationSpeed))
+		{
+			const bool bSpeedWillBeZero = (CalcNewRotationSpeed(DeltaTime) > 0.0f) != (RotationSpeed > 0.0f);
+			if (bSpeedWillBeZero)
+			{
+				RotationSpeed = 0.0f;
+				RotationAcceleration = 0.0f;
+
+				if (!Speed.IsNearlyZero())
+				{
+					UpdatedComponent->SetRelativeRotation(Speed.GetSafeNormal2D().Rotation());
+				}
+			}
+		}
+	}
+}
+
+void UWpEntityMovementComponent::ApplyRotationAccelerationTracks(const float DeltaTime, const FVector& InputVector)
+{
+	ensureAlways(bOnGround);
+
+	const float InputRotationAcceleration = InputVector.Y;
+
+	if (!FMath::IsNearlyZero(InputRotationAcceleration))
+	{
+		const bool bAcceleratesInCurrentDirection = (InputRotationAcceleration > 0.0f) == (RotationSpeed > 0.0f);
+		RotationAcceleration += InputRotationAcceleration * (bAcceleratesInCurrentDirection ? MaxRotationAcceleration : MaxRotationBrakingDeceleration);
+	}
+	else if (!FMath::IsNearlyZero(RotationSpeed))
+	{
+		RotationAcceleration += MaxRotationInertDeceleration * ((RotationSpeed > 0.0f) ? -1.0f : 1.0f);
+	}
+
+	if (!FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(InputRotationAcceleration))
+	{
+		const bool bSpeedWillBeZero = (CalcNewRotationSpeed(DeltaTime) > 0.0f) != (RotationSpeed > 0.0f);
+		if (bSpeedWillBeZero)
+		{
+			RotationSpeed = 0.0f;
+			RotationAcceleration = 0.0f;
+		}
+	}
+}
+
+void UWpEntityMovementComponent::ApplyRotationAccelerationWheels(const float DeltaTime)
+{
+	ensureAlways(bOnGround);
+
+	RotationSpeed = 0.0f;
+
+	if (!Speed.IsNearlyZero() && !FMath::IsNearlyZero(WheelRotationAngle))
+	{
+		const float RotationSpeedDirection = (Speed.Dot(UpdatedComponent->GetForwardVector()) > 0.0f) ? 1.0f : -1.0f;
+		const float NewRotationSpeed = Speed.Size2D() * FMath::Tan(FMath::DegreesToRadians(WheelRotationAngle)) * RotationSpeedDirection;
+		RotationAcceleration += NewRotationSpeed / DeltaTime;
+	}
+}
+
+void UWpEntityMovementComponent::UpdateRotationSpeed(const float DeltaTime)
+{
+	RotationSpeed = CalcNewRotationSpeed(DeltaTime);
+}
+
+float UWpEntityMovementComponent::CalcNewRotationSpeed(const float DeltaTime) const
+{
+	float NewRotationSpeed = RotationSpeed + RotationAcceleration * DeltaTime;
+	if (MovementType != EWpEntityMovementType::Wheels)
+	{
+		NewRotationSpeed = FMath::Clamp(NewRotationSpeed, -MaxRotationSpeed, MaxRotationSpeed);
+	}
+	return NewRotationSpeed;
+}
+
+void UWpEntityMovementComponent::Rotate(const float DeltaTime)
+{
+	const float DeltaAngle = RotationSpeed * DeltaTime;
+	if (FMath::IsNearlyZero(DeltaAngle))
+	{
+		return;
+	}
+
+	const FRotator OldRotation = UpdatedComponent->GetComponentRotation();
+	const FRotator NewRotation = OldRotation.Vector().RotateAngleAxis(DeltaAngle, FVector::UpVector).Rotation();
+
+	UpdatedComponent->MoveComponent(FVector::ZeroVector, NewRotation, false);
+
+	if (MovementType == EWpEntityMovementType::Wheels)
+	{
+		const FVector OldForwardSpeed = Speed.ProjectOnToNormal(UpdatedComponent->GetForwardVector());
+		const FVector NewForwardSpeed = OldForwardSpeed.RotateAngleAxis(DeltaAngle, FVector::UpVector);
+		const FVector DeltaForwardSpeed = NewForwardSpeed - OldForwardSpeed;
+		Speed += DeltaForwardSpeed;
 	}
 }
 
@@ -234,7 +383,7 @@ void UWpEntityMovementComponent::UpdateAcceleration(const float DeltaTime, const
 
 	if (!Speed.IsNearlyZero() && InputVector.IsNearlyZero())
 	{
-		const bool bSpeedWillBeZero = (Speed.Dot(CalcNewSpeed(DeltaTime)) <= 0.0);
+		const bool bSpeedWillBeZero = Speed.Dot(CalcNewSpeed(DeltaTime)) <= 0.0;
 		if (bSpeedWillBeZero)
 		{
 			Speed = FVector::ZeroVector;
@@ -252,7 +401,7 @@ void UWpEntityMovementComponent::ApplyInputAcceleration(const float Input, const
 
 	if (!InputAcceleration.IsNearlyZero())
 	{
-		const bool bAcceleratesInCurrentDirection = (InputAcceleration.Dot(SpeedInDirection) >= 0.0);
+		const bool bAcceleratesInCurrentDirection = InputAcceleration.Dot(SpeedInDirection) >= 0.0;
 		Acceleration += InputAcceleration * (bAcceleratesInCurrentDirection ? MaxAcceleration : MaxBrakingDeceleration);
 	}
 	else if (!SpeedInDirection.IsNearlyZero())
@@ -287,141 +436,14 @@ void UWpEntityMovementComponent::ApplyForces()
 	}
 }
 
-void UWpEntityMovementComponent::UpdateRotationAcceleration(const float DeltaTime, const FVector& InputVector)
-{
-	RotationAcceleration = 0.0f;
-
-	if (!bOnGround)
-	{
-		return;
-	}
-
-	switch (MovementType)
-	{
-	case EWpEntityMovementType::Legs:
-		ApplyRotationAccelerationLegs(DeltaTime);
-		break;
-	case EWpEntityMovementType::Tracks:
-		ApplyRotationAccelerationTracks(DeltaTime, InputVector);
-		break;
-	case EWpEntityMovementType::Wheels:
-		ApplyRotationAccelerationWheels(DeltaTime, InputVector);
-		break;
-	default:
-		ensureAlways(false);
-		break;
-	}
-}
-
-void UWpEntityMovementComponent::ApplyRotationAccelerationLegs(const float DeltaTime)
-{
-	ensureAlways(bOnGround);
-
-	const FVector EntityDirectionForward = UpdatedComponent->GetForwardVector();
-	const FVector MovementDirection = Speed.GetSafeNormal2D();
-	const float DeltaYaw = FQuat::FindBetweenNormals(EntityDirectionForward, MovementDirection).Rotator().Yaw;
-
-	if (FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(DeltaYaw, 0.5f))
-	{
-		return;
-	}
-
-	const float StoppingYaw = FMath::Square(RotationSpeed) / (2.0f * MaxRotationBrakingDeceleration);
-
-	if (FMath::Abs(DeltaYaw) > StoppingYaw)
-	{
-		RotationAcceleration += MaxRotationAcceleration * ((DeltaYaw > 0.0f) ? 1.0f : -1.0f);
-	}
-	else
-	{
-		RotationAcceleration += MaxRotationBrakingDeceleration * ((RotationSpeed > 0.0f) ? -1.0f : 1.0f);
-
-		if (!FMath::IsNearlyZero(RotationSpeed))
-		{
-			const bool bSpeedWillBeZero = ((CalcNewRotationSpeed(DeltaTime) > 0.0f) != (RotationSpeed > 0.0f));
-			if (bSpeedWillBeZero)
-			{
-				RotationSpeed = 0.0f;
-				RotationAcceleration = 0.0f;
-
-				if (!Speed.IsNearlyZero())
-				{
-					UpdatedComponent->SetRelativeRotation(Speed.GetSafeNormal2D().Rotation());
-				}
-			}
-		}
-	}
-}
-
-void UWpEntityMovementComponent::ApplyRotationAccelerationTracks(const float DeltaTime, const FVector& InputVector)
-{
-	ensureAlways(bOnGround);
-
-	const float InputRotationAcceleration = InputVector.Y;
-
-	if (!FMath::IsNearlyZero(InputRotationAcceleration))
-	{
-		const bool bAcceleratesInCurrentDirection = ((InputRotationAcceleration > 0.0f) == (RotationSpeed > 0.0f));
-		RotationAcceleration += InputRotationAcceleration * (bAcceleratesInCurrentDirection ? MaxRotationAcceleration : MaxRotationBrakingDeceleration);
-	}
-	else if (!FMath::IsNearlyZero(RotationSpeed))
-	{
-		RotationAcceleration += MaxRotationInertDeceleration * ((RotationSpeed > 0.0f) ? -1.0f : 1.0f);
-	}
-
-	if (!FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(InputRotationAcceleration))
-	{
-		const bool bSpeedWillBeZero = ((CalcNewRotationSpeed(DeltaTime) > 0.0f) != (RotationSpeed > 0.0f));
-		if (bSpeedWillBeZero)
-		{
-			RotationSpeed = 0.0f;
-			RotationAcceleration = 0.0f;
-		}
-	}
-}
-
-void UWpEntityMovementComponent::ApplyRotationAccelerationWheels(const float DeltaTime, const FVector& InputVector)
-{
-	ensureAlways(bOnGround);
-
-	RotationSpeed = 0.0f;
-
-	if (!Speed.IsNearlyZero() && !FMath::IsNearlyZero(WheelRotationAngle))
-	{
-		const float RotationSpeedDirection = ((Speed.Dot(UpdatedComponent->GetForwardVector()) > 0.0f) ? 1.0f : -1.0f);
-		const float NewRotationSpeed = Speed.Size2D() * FMath::Tan(FMath::DegreesToRadians(WheelRotationAngle)) * RotationSpeedDirection;
-		RotationAcceleration += NewRotationSpeed / DeltaTime;
-	}
-}
-
 void UWpEntityMovementComponent::UpdateSpeed(const float DeltaTime)
 {
 	Speed = CalcNewSpeed(DeltaTime);
 }
 
-void UWpEntityMovementComponent::UpdateRotationSpeed(const float DeltaTime)
-{
-	RotationSpeed = CalcNewRotationSpeed(DeltaTime);
-}
-
-float UWpEntityMovementComponent::CalcNewWheelRotationAngle(const float DeltaTime, const float WheelRotationSpeed) const
-{
-	return FMath::Clamp(WheelRotationAngle + WheelRotationSpeed * DeltaTime, -MaxWheelRotationAngle, MaxWheelRotationAngle);
-}
-
 FVector UWpEntityMovementComponent::CalcNewSpeed(const float DeltaTime) const
 {
 	return (Speed + Acceleration * DeltaTime).GetClampedToMaxSize2D(MaxSpeed);
-}
-
-float UWpEntityMovementComponent::CalcNewRotationSpeed(const float DeltaTime) const
-{
-	float NewRotationSpeed = RotationSpeed + RotationAcceleration * DeltaTime;
-	if (MovementType != EWpEntityMovementType::Wheels)
-	{
-		NewRotationSpeed = FMath::Clamp(NewRotationSpeed, -MaxRotationSpeed, MaxRotationSpeed);
-	}
-	return NewRotationSpeed;
 }
 
 void UWpEntityMovementComponent::Move(const float DeltaTime)
@@ -477,26 +499,57 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 	}
 }
 
-void UWpEntityMovementComponent::Rotate(const float DeltaTime)
+FVector UWpEntityMovementComponent::CalcDeltaLocation(const float DeltaTime, const FVector& GroundNormal) const
 {
-	const float DeltaAngle = RotationSpeed * DeltaTime;
-	if (FMath::IsNearlyZero(DeltaAngle))
+	if (GroundNormal.Equals(FVector::UpVector))
 	{
-		return;
+		return Speed * DeltaTime;
 	}
 
-	const FRotator OldRotation = UpdatedComponent->GetComponentRotation();
-	const FRotator NewRotation = OldRotation.Vector().RotateAngleAxis(DeltaAngle, FVector::UpVector).Rotation();
-
-	UpdatedComponent->MoveComponent(FVector::ZeroVector, NewRotation, false);
-
-	if (MovementType == EWpEntityMovementType::Wheels)
+	if (!bOnGround)
 	{
-		const FVector OldForwardSpeed = Speed.ProjectOnToNormal(UpdatedComponent->GetForwardVector());
-		const FVector NewForwardSpeed = OldForwardSpeed.RotateAngleAxis(DeltaAngle, FVector::UpVector);
-		const FVector DeltaForwardSpeed = NewForwardSpeed - OldForwardSpeed;
-		Speed += DeltaForwardSpeed;
+		return (CalcInclineDownSpeed(GroundNormal) + CalcInclineSideSpeed(GroundNormal)) * DeltaTime;
 	}
+
+	return (CalcInclineUpSpeed(GroundNormal) + CalcInclineSideSpeed(GroundNormal)) * DeltaTime;
+}
+
+FVector UWpEntityMovementComponent::CalcInclineUpSpeed(const FVector& GroundNormal) const
+{
+	ensureAlways(!GroundNormal.Equals(FVector::UpVector));
+	ensureAlways(bOnGround);
+
+	const float InclineAngle = FMath::RadiansToDegrees(FMath::Acos(GroundNormal.Dot(FVector::UpVector)));
+	ensureAlways(InclineAngle < MaxInclineAngle);
+
+	const FVector HorizontalGroundNormal = GroundNormal.GetSafeNormal2D();
+	const FVector HorizontalInclineUpSpeed = Speed.ProjectOnToNormal(-HorizontalGroundNormal);
+	const FVector InclineSideDirection = HorizontalGroundNormal.Cross(FVector::UpVector);
+	const FVector InclineUpSpeed = HorizontalInclineUpSpeed.RotateAngleAxis(-InclineAngle, InclineSideDirection);
+
+	return InclineUpSpeed;
+}
+
+FVector UWpEntityMovementComponent::CalcInclineDownSpeed(const FVector& GroundNormal) const
+{
+	ensureAlways(!GroundNormal.Equals(FVector::UpVector));
+	ensureAlways(!bOnGround);
+
+	const FVector DownSpeed = Speed * FVector::UpVector;
+	const FVector InclineDownSpeed = FVector::VectorPlaneProject(DownSpeed, GroundNormal);
+
+	return InclineDownSpeed;
+}
+
+FVector UWpEntityMovementComponent::CalcInclineSideSpeed(const FVector& GroundNormal) const
+{
+	ensureAlways(!GroundNormal.Equals(FVector::UpVector));
+
+	const FVector HorizontalGroundNormal = GroundNormal.GetSafeNormal2D();
+	const FVector InclineSideDirection = HorizontalGroundNormal.Cross(FVector::UpVector);
+	const FVector InclineSideSpeed = Speed.ProjectOnToNormal(InclineSideDirection);
+
+	return InclineSideSpeed;
 }
 
 void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
@@ -513,7 +566,7 @@ void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 		else
 		{
 			const float InclineAngle = FMath::RadiansToDegrees(FMath::Acos(Hit.ImpactNormal.Dot(FVector::UpVector)));
-			bOnGround = (InclineAngle < MaxInclineAngle);
+			bOnGround = InclineAngle < MaxInclineAngle;
 		}
 	}
 	else
@@ -615,6 +668,17 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime)
 	return true;
 }
 
+void UWpEntityMovementComponent::ProcessWallImpact(const FVector& ImpactNormal)
+{
+	const FVector HorizontalImpactNormal = ImpactNormal.GetUnsafeNormal2D();
+	const FVector OldSpeedIntoWall = Speed.ProjectOnToNormal(HorizontalImpactNormal);
+	const FVector NewSpeedIntoWall = OldSpeedIntoWall * -WallBumpIntensity;
+	const FVector DeltaSpeedIntoWall = NewSpeedIntoWall - OldSpeedIntoWall;
+	Speed += DeltaSpeedIntoWall;
+
+	RotationSpeed = 0.0f;
+}
+
 void UWpEntityMovementComponent::SweepUnder(FHitResult& OutHit, const float Distance) const
 {
 	const FVector StartLocation = UpdatedComponent->GetComponentLocation();
@@ -628,70 +692,6 @@ void UWpEntityMovementComponent::SweepUnder(FHitResult& OutHit, const float Dist
 	CollisionQueryParams.AddIgnoredActor(GetOwner());
 
 	GetWorld()->SweepSingleByProfile(OutHit, StartLocation, EndLocation, Rotation, CollisionProfile, CollisionShape, CollisionQueryParams);
-}
-
-void UWpEntityMovementComponent::ProcessWallImpact(const FVector& ImpactNormal)
-{
-	const FVector HorizontalImpactNormal = ImpactNormal.GetUnsafeNormal2D();
-	const FVector OldSpeedIntoWall = Speed.ProjectOnToNormal(HorizontalImpactNormal);
-	const FVector NewSpeedIntoWall = OldSpeedIntoWall * -WallBumpIntensity;
-	const FVector DeltaSpeedIntoWall = NewSpeedIntoWall - OldSpeedIntoWall;
-	Speed += DeltaSpeedIntoWall;
-
-	RotationSpeed = 0.0f;
-}
-
-FVector UWpEntityMovementComponent::CalcDeltaLocation(const float DeltaTime, const FVector& GroundNormal) const
-{
-	if (GroundNormal.Equals(FVector::UpVector))
-	{
-		return Speed * DeltaTime;
-	}
-
-	if (!bOnGround)
-	{
-		return (CalcInclineDownSpeed(GroundNormal) + CalcInclineSideSpeed(GroundNormal)) * DeltaTime;
-	}
-
-	return (CalcInclineUpSpeed(GroundNormal) + CalcInclineSideSpeed(GroundNormal)) * DeltaTime;
-}
-
-FVector UWpEntityMovementComponent::CalcInclineUpSpeed(const FVector& GroundNormal) const
-{
-	ensureAlways(!GroundNormal.Equals(FVector::UpVector));
-	ensureAlways(bOnGround);
-
-	const float InclineAngle = FMath::RadiansToDegrees(FMath::Acos(GroundNormal.Dot(FVector::UpVector)));
-	ensureAlways(InclineAngle < MaxInclineAngle);
-
-	const FVector HorizontalGroundNormal = GroundNormal.GetSafeNormal2D();
-	const FVector HorizontalInclineUpSpeed = Speed.ProjectOnToNormal(-HorizontalGroundNormal);
-	const FVector InclineSideDirection = HorizontalGroundNormal.Cross(FVector::UpVector);
-	const FVector InclineUpSpeed = HorizontalInclineUpSpeed.RotateAngleAxis(-InclineAngle, InclineSideDirection);
-
-	return InclineUpSpeed;
-}
-
-FVector UWpEntityMovementComponent::CalcInclineDownSpeed(const FVector& GroundNormal) const
-{
-	ensureAlways(!GroundNormal.Equals(FVector::UpVector));
-	ensureAlways(!bOnGround);
-
-	const FVector DownSpeed = Speed * FVector::UpVector;
-	const FVector InclineDownSpeed = FVector::VectorPlaneProject(DownSpeed, GroundNormal);
-
-	return InclineDownSpeed;
-}
-
-FVector UWpEntityMovementComponent::CalcInclineSideSpeed(const FVector& GroundNormal) const
-{
-	ensureAlways(!GroundNormal.Equals(FVector::UpVector));
-
-	const FVector HorizontalGroundNormal = GroundNormal.GetSafeNormal2D();
-	const FVector InclineSideDirection = HorizontalGroundNormal.Cross(FVector::UpVector);
-	const FVector InclineSideSpeed = Speed.ProjectOnToNormal(InclineSideDirection);
-
-	return InclineSideSpeed;
 }
 
 void UWpEntityMovementComponent::RevertLocationTo(const FVector& OldLocation)

@@ -51,17 +51,17 @@ void FWpWeapon::Tick(const float DeltaTime)
 
 	if (CurrentTargetEntity)
 	{
-		TryFire(CurrentTargetEntity);
+		MaybeFire(CurrentTargetEntity);
 	}
 }
 
-bool FWpWeapon::TryFire(const AWpEntity* const Entity)
+bool FWpWeapon::MaybeFire(const AWpEntity* const Entity)
 {
 	const FVector Location = Entity->GetActorLocation();
-	return TryFire(Location);
+	return MaybeFire(Location);
 }
 
-bool FWpWeapon::TryFire(const FVector& Location)
+bool FWpWeapon::MaybeFire(const FVector& Location)
 {
 	ensureAlways(OwnerEntity->GetWeaponComponent()->IsActive());
 	ensureAlways(OwnerEntity->HasAuthority());
@@ -272,7 +272,7 @@ void FWpWeapon::UpdateCurrentTargetEntity()
 
 	for (AWpEntity* const CandidateEntity : EntitiesInReach)
 	{
-		const bool bCandidateIsCurrentTarget = (CurrentTargetEntity == CandidateEntity);
+		const bool bCandidateIsCurrentTarget = CurrentTargetEntity == CandidateEntity;
 		if (bCandidateIsCurrentTarget)
 		{
 			continue;

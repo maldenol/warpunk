@@ -232,7 +232,7 @@ void UWpWeaponComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWp
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	const bool bIsOperational = (EntityState == EWpEntityState::Operational);
+	const bool bIsOperational = EntityState == EWpEntityState::Operational;
 	SetGenerateOverlapEvents(bIsOperational);
 	if (bIsOperational)
 	{

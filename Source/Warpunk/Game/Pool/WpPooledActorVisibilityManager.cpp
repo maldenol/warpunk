@@ -181,7 +181,7 @@ void AWpPooledActorVisibilityManager::UpdateActorVisibility(AActor* const Actor,
 		*ObserverNumber += bGainedSight ? 1 : -1;
 
 		bBecameVisible = bGainedSight && (*ObserverNumber == 1);
-		bBecameHidden = (*ObserverNumber == 0);
+		bBecameHidden = *ObserverNumber == 0;
 	}
 	else
 	{
@@ -295,7 +295,7 @@ void AWpPooledActorVisibilityManager::InitializeActorVisibility(const uint32 Tea
 	for (const TPair<uint32, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
 	{
 		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = TeamPooledActorVisibilityManager.Value;
-		const bool bIsVisible = (PooledActorVisibilityManager->GetTeamId() == TeamId);
+		const bool bIsVisible = PooledActorVisibilityManager->GetTeamId() == TeamId;
 		PooledActorVisibilityManager->InitializeActorVisibility(Actor, bIsVisible);
 	}
 }

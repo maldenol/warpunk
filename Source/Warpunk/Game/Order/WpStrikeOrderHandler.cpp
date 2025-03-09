@@ -13,7 +13,7 @@ void FWpStrikeOrderHandler::Reactivate()
 
 	for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 	{
-		WaitingWeapons[Index] = (WeaponComponent->GetWeapon(Index) != nullptr);
+		WaitingWeapons[Index] = WeaponComponent->GetWeapon(Index) != nullptr;
 	}
 }
 
@@ -36,14 +36,14 @@ void FWpStrikeOrderHandler::Tick(const float CurrentTime)
 
 		if (GetOrder().TargetEntity)
 		{
-			if (Weapon->TryFire(GetOrder().TargetEntity))
+			if (Weapon->MaybeFire(GetOrder().TargetEntity))
 			{
 				WaitingWeapons[Index] = false;
 			}
 		}
 		else
 		{
-			if (Weapon->TryFire(GetOrder().TargetLocation))
+			if (Weapon->MaybeFire(GetOrder().TargetLocation))
 			{
 				WaitingWeapons[Index] = false;
 			}

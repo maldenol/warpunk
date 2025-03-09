@@ -126,7 +126,7 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 			bInfiniteProductionEnabled = false;
 		}
 
-		bIsAcquired = (ProductionConfig != nullptr);
+		bIsAcquired = ProductionConfig != nullptr;
 	}
 
 	if (!bIsAcquired)
@@ -336,7 +336,7 @@ void UWpProductionComponent::Produce()
 	{
 		return;
 	}
-	const bool bIsBuilding = (EntityConfig.Type == EWpEntityType::Building);
+	const bool bIsBuilding = EntityConfig.Type == EWpEntityType::Building;
 
 	const FBoxSphereBounds EntityMeshBounds = EntityConfig.MeshConfig.Mesh->GetBounds();
 	const FVector EntityMeshExtent = EntityMeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();

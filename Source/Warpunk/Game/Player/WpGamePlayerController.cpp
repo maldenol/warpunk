@@ -78,7 +78,7 @@ void AWpGamePlayerController::ServerToggleView_Implementation()
 		return;
 	}
 
-	const bool bStrategicView = (GetPawn<AWpStrategicViewPawn>() == StrategicViewPawn);
+	const bool bStrategicView = GetPawn<AWpStrategicViewPawn>() == StrategicViewPawn;
 
 	SetView(!bStrategicView);
 }

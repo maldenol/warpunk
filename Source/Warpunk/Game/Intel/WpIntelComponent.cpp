@@ -107,7 +107,7 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 			MeshTransform = GetRelativeTransform();
 		}
 
-		bIsAcquired = (IntelConfig != nullptr);
+		bIsAcquired = IntelConfig != nullptr;
 	}
 
 	SetMeshIsVisibile(bIsAcquired);
@@ -236,11 +236,11 @@ void UWpIntelComponent::UpdateMeshVisibilityBasedOnTeam()
 			const AWpGamePlayerState* const LocalPlayerState = LocalPlayerController->GetPlayerState<AWpGamePlayerState>();
 			const uint32 EntityTeamId = GetOwner<AWpEntity>()->GetBelligerentComponent()->GetTeamId();
 			const uint32 LocalPlayerTeamId = LocalPlayerState->GetTeamId();
-			const bool bBelongsToLocalPlayerTeam = (EntityTeamId == LocalPlayerTeamId);
+			const bool bBelongsToLocalPlayerTeam = EntityTeamId == LocalPlayerTeamId;
 			bIsVisibleIntelVolumeOnClient &= bBelongsToLocalPlayerTeam;
 
 			const UWpEnduranceComponent* const EnduranceComponent = GetOwner<AWpEntity>()->GetEnduranceComponent();
-			const bool bEntityIsOperational = (EnduranceComponent->GetEntityState() == EWpEntityState::Operational);
+			const bool bEntityIsOperational = EnduranceComponent->GetEntityState() == EWpEntityState::Operational;
 			bIsVisibleIntelVolumeOnClient &= bEntityIsOperational;
 		}
 		else

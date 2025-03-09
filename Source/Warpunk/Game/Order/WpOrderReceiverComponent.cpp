@@ -122,7 +122,7 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 			bShouldProxyOrders = OrderReceiverConfig->bShouldProxyOrders;
 		}
 
-		bIsAcquired = (OrderReceiverConfig != nullptr);
+		bIsAcquired = OrderReceiverConfig != nullptr;
 	}
 
 	if (!bIsAcquired)

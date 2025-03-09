@@ -20,8 +20,8 @@ public:
 
 	void Tick(const float DeltaTime);
 
-	bool TryFire(const AWpEntity* const Entity);
-	bool TryFire(const FVector& Location);
+	bool MaybeFire(const AWpEntity* const Entity);
+	bool MaybeFire(const FVector& Location);
 
 	bool CanReach(const AWpEntity* const Entity) const;
 	virtual bool CanReach(const FVector& Location) const;

@@ -35,39 +35,39 @@ public:
 
 private:
 	void UpdateWheelRotation(const float DeltaTime, const FVector& InputVector);
+	float CalcNewWheelRotationAngle(const float DeltaTime, const float WheelRotationSpeed) const;
+
+	void UpdateRotationAcceleration(const float DeltaTime, const FVector& InputVector);
+	void ApplyRotationAccelerationLegs(const float DeltaTime);
+	void ApplyRotationAccelerationTracks(const float DeltaTime, const FVector& InputVector);
+	void ApplyRotationAccelerationWheels(const float DeltaTime);
+
+	void UpdateRotationSpeed(const float DeltaTime);
+	float CalcNewRotationSpeed(const float DeltaTime) const;
+
+	void Rotate(const float DeltaTime);
 
 	void UpdateAcceleration(const float DeltaTime, const FVector& InputVector);
 	void ApplyInputAcceleration(const float Input, const FVector& Direction);
 	void ApplyForces();
 
-	void UpdateRotationAcceleration(const float DeltaTime, const FVector& InputVector);
-	void ApplyRotationAccelerationLegs(const float DeltaTime);
-	void ApplyRotationAccelerationTracks(const float DeltaTime, const FVector& InputVector);
-	void ApplyRotationAccelerationWheels(const float DeltaTime, const FVector& InputVector);
-
 	void UpdateSpeed(const float DeltaTime);
-	void UpdateRotationSpeed(const float DeltaTime);
-
-	float CalcNewWheelRotationAngle(const float DeltaTime, const float WheelRotationSpeed) const;
 	FVector CalcNewSpeed(const float DeltaTime) const;
-	float CalcNewRotationSpeed(const float DeltaTime) const;
 
 	void Move(const float DeltaTime);
-	void Rotate(const float DeltaTime);
-
-	void UpdateGround(const float DeltaTime);
-
-	bool StepUp(const float DeltaTime);
-
-	void SweepUnder(FHitResult& OutHit, const float Distance) const;
-
-	void ProcessWallImpact(const FVector& ImpactNormal);
 
 	FVector CalcDeltaLocation(const float DeltaTime, const FVector& GroundNormal) const;
 	FVector CalcInclineUpSpeed(const FVector& GroundNormal) const;
 	FVector CalcInclineDownSpeed(const FVector& GroundNormal) const;
 	FVector CalcInclineSideSpeed(const FVector& GroundNormal) const;
 
+	void UpdateGround(const float DeltaTime);
+
+	bool StepUp(const float DeltaTime);
+
+	void ProcessWallImpact(const FVector& ImpactNormal);
+
+	void SweepUnder(FHitResult& OutHit, const float Distance) const;
 	void RevertLocationTo(const FVector& OldLocation);
 
 	FVector GetControllerDirectionForward() const;
