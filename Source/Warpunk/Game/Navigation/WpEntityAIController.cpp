@@ -1,9 +1,9 @@
 #include "WpEntityAIController.h"
 
-#include "Navigation/CrowdFollowingComponent.h"
+#include "Warpunk/Game/Navigation/WpCrowdFollowingComponent.h"
 
 AWpEntityAIController::AWpEntityAIController(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UWpCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
 	PrimaryActorTick.bCanEverTick = false;
 }

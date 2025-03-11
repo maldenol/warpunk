@@ -251,5 +251,7 @@ void AWpEntity::OnRep_EntityConfigId()
 	const float HalfHeight = MeshExtent.Z;
 	CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
 
+	MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
+
 	// CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation()); todo
 }

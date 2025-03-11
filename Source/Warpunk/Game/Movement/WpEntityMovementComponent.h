@@ -24,6 +24,10 @@ public:
 	virtual void SetUpdatedComponent(USceneComponent* const NewUpdatedComponent) override;
 	virtual void UpdateTickRegistration() override;
 
+	virtual float GetMaxSpeed() const override;
+
+	virtual void RequestPathMove(const FVector& MoveInput) override;
+
 	virtual FVector ConsumeInputVector() override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
@@ -31,7 +35,11 @@ public:
 
 	void AddMovementInput(const float Forward, const float Right);
 
-	void SetIsFirstPersonControlled(const bool bIsFirstPersonControlled);
+	void SetIsFirstPersonControlled(const bool bInIsFirstPersonControlled);
+
+	void SetCollisionSize(const float Radius, const float Height);
+
+	float GetBrakingDistance() const;
 
 private:
 	void UpdateWheelRotation(const float DeltaTime, const FVector& InputVector);
@@ -115,8 +123,10 @@ private:
 
 	float WheelRotationAngle = 0.0f;
 
-	bool bOnGround = true;
+	bool bOnGround = false;
 	FVector CurrentGroundNormal = FVector::UpVector;
+
+	bool bIsFirstPersonControlled = false;
 
 public:
 	static const uint32 MaxMoveIterationNum;
