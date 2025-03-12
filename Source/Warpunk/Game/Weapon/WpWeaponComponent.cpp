@@ -13,9 +13,9 @@ const FName UWpWeaponComponent::MeshCollisionProfileName = TEXT("WpIntel");
 
 UWpWeaponComponent::UWpWeaponComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(false);
 
@@ -155,7 +155,6 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 	}
 
 	SetActive(bIsAcquired);
-	SetComponentTickEnabled(bIsAcquired);
 }
 
 FWpWeapon* UWpWeaponComponent::GetWeapon(const uint32 Index)

@@ -17,7 +17,6 @@ public:
 	UWpProjectileMovementComponent();
 
 	virtual void BeginPlay() override;
-	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction) override;
 
 	virtual void OnRep_IsActive() override;
 

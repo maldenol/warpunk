@@ -20,6 +20,7 @@ const FName UWpIntelComponent::MeshCollisionProfileName = TEXT("WpIntel");
 
 UWpIntelComponent::UWpIntelComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);

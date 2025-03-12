@@ -28,7 +28,9 @@ uint32 GetTypeHash(const FWpSelectedEntityCategory& Other)
 
 UWpOrderSenderComponent::UWpOrderSenderComponent()
 {
+	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	SetIsReplicatedByDefault(false);
 }
@@ -613,7 +615,7 @@ FHitResult UWpOrderSenderComponent::LineTraceUnderCursor() const
 
 APlayerController* UWpOrderSenderComponent::GetPlayerController() const
 {
-	return GetOwner<APawn>()->GetController<APlayerController>();
+	return GetOwner<APlayerController>();
 }
 
 uint32 UWpOrderSenderComponent::GetBelligerentId() const

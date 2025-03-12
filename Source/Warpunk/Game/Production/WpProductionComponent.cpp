@@ -16,9 +16,9 @@
 
 UWpProductionComponent::UWpProductionComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(false);
 }
@@ -140,7 +140,6 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 	}
 
 	SetActive(bIsAcquired);
-	SetComponentTickEnabled(bIsAcquired);
 }
 
 void UWpProductionComponent::StartProduce(const uint32 EntityConfigId, const FVector& Location)

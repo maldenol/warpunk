@@ -31,9 +31,9 @@ const TSet<EWpOrderType> UWpOrderReceiverComponent::ProductionProxyOrders =
 
 UWpOrderReceiverComponent::UWpOrderReceiverComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(true);
 }
@@ -140,7 +140,6 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 	SelectionWidgetComponent->SetVisibility(false);
 
 	SetActive(bIsAcquired);
-	SetComponentTickEnabled(bIsAcquired);
 }
 
 void UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool bOverride)

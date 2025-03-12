@@ -14,6 +14,7 @@ const FName UWpEnduranceComponent::EnduranceWidgetComponentName = TEXT("Enduranc
 
 UWpEnduranceComponent::UWpEnduranceComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);

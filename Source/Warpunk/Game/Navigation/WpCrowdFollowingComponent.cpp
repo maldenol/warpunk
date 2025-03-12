@@ -4,7 +4,9 @@
 
 UWpCrowdFollowingComponent::UWpCrowdFollowingComponent()
 {
+	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	SetIsReplicatedByDefault(false);
 }

@@ -64,6 +64,19 @@ void AWpCommander::SetupPlayerInputComponent(UInputComponent* const PlayerInputC
 	EnhancedInputComponent->BindAction(FireIa, ETriggerEvent::Triggered, this, &AWpCommander::ServerOnFireTriggered);
 }
 
+void AWpCommander::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
+{
+	Super::OnPooledObjectAcquiredOrReleased(bIsAcquired, PooledObjectData);
+
+	if (!bIsAcquired)
+	{
+		if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+		{
+			PlayerController->NotifyCommanderDestroyed();
+		}
+	}
+}
+
 void AWpCommander::ClientPossessed_Implementation()
 {
 	const ULocalPlayer* const LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();

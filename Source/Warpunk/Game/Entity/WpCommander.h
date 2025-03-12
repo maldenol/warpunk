@@ -25,6 +25,8 @@ public:
 
 	virtual void SetupPlayerInputComponent(UInputComponent* const PlayerInputComponent) override;
 
+	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
+
 private:
 	UFUNCTION(Client, Reliable)
 	void ClientPossessed();

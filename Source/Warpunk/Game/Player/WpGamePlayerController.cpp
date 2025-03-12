@@ -2,6 +2,7 @@
 
 #include "Warpunk/Game/Entity/WpCommander.h"
 #include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
+#include "Warpunk/Game/Order/WpOrderSenderComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
@@ -9,11 +10,15 @@
 
 #include "EnhancedInputComponent.h"
 
+const FName AWpGamePlayerController::OrderSenderComponentName = TEXT("OrderSenderComponent");
+
 AWpGamePlayerController::AWpGamePlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+
+	OrderSenderComponent = CreateDefaultSubobject<UWpOrderSenderComponent>(OrderSenderComponentName);
 }
 
 void AWpGamePlayerController::BeginPlay()
@@ -21,6 +26,17 @@ void AWpGamePlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	if (HasAuthority() && IsLocalController())
+	{
+		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
+		bHasNotifiedObjectLoaded = true;
+	}
+}
+
+void AWpGamePlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if (!bHasNotifiedObjectLoaded && GetPlayerState<AWpGamePlayerState>())
 	{
 		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
 		bHasNotifiedObjectLoaded = true;
@@ -37,14 +53,13 @@ void AWpGamePlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(ToggleViewIa, ETriggerEvent::Triggered, this, &AWpGamePlayerController::ServerToggleView);
 }
 
-void AWpGamePlayerController::OnRep_PlayerState()
+void AWpGamePlayerController::SetControlRotation(const FRotator& NewRotation)
 {
-	Super::OnRep_PlayerState();
+	Super::SetControlRotation(NewRotation);
 
-	if (!bHasNotifiedObjectLoaded && GetPlayerState<AWpGamePlayerState>())
+	if (!HasAuthority())
 	{
-		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
-		bHasNotifiedObjectLoaded = true;
+		ServerSetControlRotation(NewRotation);
 	}
 }
 
@@ -58,6 +73,16 @@ void AWpGamePlayerController::SetCommander(AWpCommander* const InCommander)
 	Commander = InCommander;
 }
 
+UWpOrderSenderComponent* AWpGamePlayerController::GetOrderSenderComponent()
+{
+	return OrderSenderComponent;
+}
+
+const UWpOrderSenderComponent* AWpGamePlayerController::GetOrderSenderComponent() const
+{
+	return OrderSenderComponent;
+}
+
 void AWpGamePlayerController::ClientSetExpectedLoadedObjectNum_Implementation(const uint32 ExpectedLoadedObjectNum)
 {
 	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->SetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
@@ -67,8 +92,22 @@ void AWpGamePlayerController::ServerAddCommanderMovementInput_Implementation(con
 {
 	if (Commander && GetPawn<AWpCommander>() == Commander)
 	{
-		Cast<UWpEntityMovementComponent>(Commander->GetMovementComponent())->AddMovementInput(Forward, Right);
+		Commander->GetEntityMovementComponent()->AddMovementInput(Forward, Right);
 	}
+}
+
+void AWpGamePlayerController::NotifyCommanderDestroyed()
+{
+	const bool bFirstPersonView = GetPawn<AWpCommander>() == Commander;
+	if (bFirstPersonView)
+	{
+		ServerToggleView();
+	}
+}
+
+void AWpGamePlayerController::ServerSetControlRotation_Implementation(const FRotator& NewRotation)
+{
+	SetControlRotation(NewRotation);
 }
 
 void AWpGamePlayerController::ServerToggleView_Implementation()

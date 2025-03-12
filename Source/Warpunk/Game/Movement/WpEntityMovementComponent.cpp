@@ -14,9 +14,9 @@ const float UWpEntityMovementComponent::WallBumpIntensity = 0.1f;
 
 UWpEntityMovementComponent::UWpEntityMovementComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(false);
 
@@ -42,12 +42,13 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!IsActive() || !GetOwner()->HasAuthority())
+	ensureAlways(IsActive());
+
+	if (!GetOwner()->HasAuthority())
 	{
 		return; // todo
 	}
 
-	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
 	const FVector InputVector = ConsumeInputVector();
@@ -182,14 +183,13 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 	}
 
 	SetActive(bIsAcquired);
-	SetComponentTickEnabled(bIsAcquired);
 }
 
 void UWpEntityMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
 	if (!GetOwner()->HasAuthority())
 	{
-		// SetComponentTickEnabled(bIsVisible); todo
+		// SetActive(bIsVisible); // todo
 	}
 }
 

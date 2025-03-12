@@ -1,7 +1,7 @@
 #include "WpGameOrderSelectionListWidget.h"
 
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
-#include "Warpunk/Game/Player/WpStrategicViewPawn.h"
+#include "Warpunk/Game/Player/WpGamePlayerController.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -31,9 +31,8 @@ void UWpGameOrderSelectionListEntryWidget::SetOrderType(const EWpOrderType InOrd
 
 void UWpGameOrderSelectionListEntryWidget::OnPressed()
 {
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	OrderSenderComponent->SelectOrderType(OrderType);
 }
 
@@ -51,9 +50,8 @@ void UWpGameOrderSelectionListWidget::NativeConstruct()
 
 	SetVisibility(ESlateVisibility::Collapsed);
 
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	OrderSenderComponent->OnAvailableOrdersChanged().AddUObject(this, &UWpGameOrderSelectionListWidget::OnAvailableOrdersChanged);
 }
 

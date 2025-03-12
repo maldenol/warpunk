@@ -117,12 +117,6 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 
 	SetActorEnableCollision(bIsAcquired);
 	SetActorHiddenInGame(!bIsAcquired);
-
-	if (AAIController* const AIController = GetController<AAIController>())
-	{
-		AIController->SetActorTickEnabled(bIsAcquired);
-		AIController->SetActorHiddenInGame(!bIsAcquired);
-	}
 }
 
 void AWpEntity::OnPooledObjectVisibilityChanged(const bool bIsVisible)
@@ -153,6 +147,36 @@ TArray<IWpPooledObjectInterface*> AWpEntity::GetInnerPooledObjects()
 		Cast<IWpPooledObjectInterface>(ProductionComponent),
 		Cast<IWpPooledObjectInterface>(WeaponComponent),
 	};
+}
+
+UCapsuleComponent* AWpEntity::GetCollisionComponent()
+{
+	return CollisionComponent;
+}
+
+const UCapsuleComponent* AWpEntity::GetCollisionComponent() const
+{
+	return CollisionComponent;
+}
+
+UStaticMeshComponent* AWpEntity::GetMeshComponent()
+{
+	return MeshComponent;
+}
+
+const UStaticMeshComponent* AWpEntity::GetMeshComponent() const
+{
+	return MeshComponent;
+}
+
+UWpEntityMovementComponent* AWpEntity::GetEntityMovementComponent()
+{
+	return MovementComponent;
+}
+
+const UWpEntityMovementComponent* AWpEntity::GetEntityMovementComponent() const
+{
+	return MovementComponent;
 }
 
 UWpBelligerentComponent* AWpEntity::GetBelligerentComponent()

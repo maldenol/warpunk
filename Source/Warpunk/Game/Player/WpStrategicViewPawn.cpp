@@ -1,16 +1,15 @@
 #include "WpStrategicViewPawn.h"
 
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
+#include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "WpGamePlayerController.h"
 #include "GameFramework/FloatingPawnMovement.h"
 
 const FName AWpStrategicViewPawn::MovementComponentName = TEXT("FloatingPawnMovement");
-const FName AWpStrategicViewPawn::OrderSenderComponentName = TEXT("OrderSenderComponent");
 
 AWpStrategicViewPawn::AWpStrategicViewPawn()
 {
@@ -23,13 +22,11 @@ AWpStrategicViewPawn::AWpStrategicViewPawn()
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(MovementComponentName);
-
-	OrderSenderComponent = CreateDefaultSubobject<UWpOrderSenderComponent>(OrderSenderComponentName);
 }
 
 bool AWpStrategicViewPawn::IsNetRelevantFor(const AActor* const RealViewer, const AActor* const ViewTarget, const FVector& SrcLocation) const
 {
-	return OwningPlayerController && (Cast<AActor>(OwningPlayerController) == RealViewer);
+	return OwningPlayerController && (OwningPlayerController == RealViewer);
 }
 
 void AWpStrategicViewPawn::PossessedBy(AController* const NewController)
@@ -38,7 +35,7 @@ void AWpStrategicViewPawn::PossessedBy(AController* const NewController)
 
 	if (!OwningPlayerController && NewController->IsA<AWpGamePlayerController>())
 	{
-		OwningPlayerController = NewController;
+		OwningPlayerController = Cast<AActor>(NewController);
 	}
 
 	ClientPossessed();
@@ -67,16 +64,6 @@ void AWpStrategicViewPawn::SetupPlayerInputComponent(UInputComponent* const Play
 	EnhancedInputComponent->BindAction(RmbIa, ETriggerEvent::Started, this, &AWpStrategicViewPawn::OnRMBStarted);
 	EnhancedInputComponent->BindAction(RmbIa, ETriggerEvent::Triggered, this, &AWpStrategicViewPawn::OnRMBTriggered);
 	EnhancedInputComponent->BindAction(RmbIa, ETriggerEvent::Completed, this, &AWpStrategicViewPawn::OnRMBCompleted);
-}
-
-UWpOrderSenderComponent* AWpStrategicViewPawn::GetOrderSenderComponent()
-{
-	return OrderSenderComponent;
-}
-
-const UWpOrderSenderComponent* AWpStrategicViewPawn::GetOrderSenderComponent() const
-{
-	return OrderSenderComponent;
 }
 
 void AWpStrategicViewPawn::ClientPossessed_Implementation()
@@ -127,30 +114,30 @@ void AWpStrategicViewPawn::OnMoveTriggered(const FInputActionValue& ActionValue)
 
 void AWpStrategicViewPawn::OnLMBStarted()
 {
-	OrderSenderComponent->OnLMBStarted();
+	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnLMBStarted();
 }
 
 void AWpStrategicViewPawn::OnLMBTriggered()
 {
-	OrderSenderComponent->OnLMBTriggered();
+	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnLMBTriggered();
 }
 
 void AWpStrategicViewPawn::OnLMBCompleted()
 {
-	OrderSenderComponent->OnLMBCompleted();
+	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnLMBCompleted();
 }
 
 void AWpStrategicViewPawn::OnRMBStarted()
 {
-	OrderSenderComponent->OnRMBStarted();
+	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnRMBStarted();
 }
 
 void AWpStrategicViewPawn::OnRMBTriggered()
 {
-	OrderSenderComponent->OnRMBTriggered();
+	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnRMBTriggered();
 }
 
 void AWpStrategicViewPawn::OnRMBCompleted()
 {
-	OrderSenderComponent->OnRMBCompleted();
+	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnRMBCompleted();
 }

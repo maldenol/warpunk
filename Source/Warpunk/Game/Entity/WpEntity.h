@@ -36,6 +36,15 @@ public:
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
 
+	UCapsuleComponent* GetCollisionComponent();
+	const UCapsuleComponent* GetCollisionComponent() const;
+
+	UStaticMeshComponent* GetMeshComponent();
+	const UStaticMeshComponent* GetMeshComponent() const;
+
+	UWpEntityMovementComponent* GetEntityMovementComponent();
+	const UWpEntityMovementComponent* GetEntityMovementComponent() const;
+
 	UWpBelligerentComponent* GetBelligerentComponent();
 	const UWpBelligerentComponent* GetBelligerentComponent() const;
 

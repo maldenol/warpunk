@@ -7,6 +7,7 @@
 
 UWpBelligerentComponent::UWpBelligerentComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
@@ -54,6 +55,8 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 			}
 		}
 	}
+
+	SetActive(bIsAcquired);
 }
 
 bool UWpBelligerentComponent::BelongsToSameBelligerent(const uint32 OtherBelligerentId) const

@@ -6,8 +6,6 @@
 
 #include "WpStrategicViewPawn.generated.h"
 
-class UWpOrderSenderComponent;
-
 struct FInputActionValue;
 class UFloatingPawnMovement;
 class UInputAction;
@@ -27,9 +25,6 @@ public:
 	virtual void UnPossessed() override;
 
 	virtual void SetupPlayerInputComponent(UInputComponent* const PlayerInputComponent) override;
-
-	UWpOrderSenderComponent* GetOrderSenderComponent();
-	const UWpOrderSenderComponent* GetOrderSenderComponent() const;
 
 private:
 	UFUNCTION(Client, Reliable)
@@ -60,14 +55,10 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UFloatingPawnMovement> MovementComponent = nullptr;
 
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UWpOrderSenderComponent> OrderSenderComponent = nullptr;
-
-	const AController* OwningPlayerController = nullptr;
+	const AActor* OwningPlayerController = nullptr;
 
 	bool bHasNotifiedObjectLoaded = false;
 
 public:
 	static const FName MovementComponentName;
-	static const FName OrderSenderComponentName;
 };

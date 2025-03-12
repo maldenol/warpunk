@@ -2,7 +2,7 @@
 
 #include "Warpunk/Game/Order/WpOrder.h"
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
-#include "Warpunk/Game/Player/WpStrategicViewPawn.h"
+#include "Warpunk/Game/Player/WpGamePlayerController.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -19,9 +19,8 @@ void UWpGameUnitProductionTableEntryWidget::NativeTick(const FGeometry& MyGeomet
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	TMap<uint32, uint32> UnitToProduceConfigIds = OrderSenderComponent->GetUnitsToProduce();
 	if (const uint32* const UnitToProduceNumber = UnitToProduceConfigIds.Find(UnitConfigId))
 	{
@@ -47,9 +46,8 @@ void UWpGameUnitProductionTableEntryWidget::SetUnitConfigId(const uint32 InUnitC
 
 void UWpGameUnitProductionTableEntryWidget::OnPressed()
 {
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	if (PlayerController->IsInputKeyDown(CancelUnitInputKeyName))
 	{
 		OrderSenderComponent->RemoveUnitToProduce(UnitConfigId);
@@ -81,9 +79,8 @@ void UWpGameUnitProductionTableWidget::NativeConstruct()
 		Table->AddChildToHorizontalBox(Entry);
 	}
 
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	OrderSenderComponent->OnAvailableOrdersChanged().AddUObject(this, &UWpGameUnitProductionTableWidget::OnAvailableOrdersChanged);
 }
 

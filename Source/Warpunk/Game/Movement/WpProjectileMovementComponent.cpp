@@ -5,9 +5,9 @@
 
 UWpProjectileMovementComponent::UWpProjectileMovementComponent()
 {
+	bAutoActivate = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.SetTickFunctionEnable(false);
 
 	SetIsReplicatedByDefault(false);
 
@@ -25,18 +25,6 @@ void UWpProjectileMovementComponent::BeginPlay()
 	bSimulationEnabled = bHasAuthority;
 	bInterpMovement = !bHasAuthority;
 	bInterpRotation = !bHasAuthority;
-}
-
-void UWpProjectileMovementComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (!IsActive())
-	{
-		return; // todo
-	}
-
-	ensureAlways(IsActive());
 }
 
 void UWpProjectileMovementComponent::OnRep_IsActive()
@@ -63,13 +51,12 @@ void UWpProjectileMovementComponent::OnPooledObjectAcquiredOrReleased(const bool
 	}
 
 	SetActive(bIsAcquired);
-	SetComponentTickEnabled(bIsAcquired);
 }
 
 void UWpProjectileMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
 	if (!GetOwner()->HasAuthority())
 	{
-		SetComponentTickEnabled(bIsVisible);
+		SetActive(bIsVisible);
 	}
 }

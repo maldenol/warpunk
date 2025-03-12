@@ -2,7 +2,7 @@
 
 #include "Warpunk/Game/Order/WpOrder.h"
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
-#include "Warpunk/Game/Player/WpStrategicViewPawn.h"
+#include "Warpunk/Game/Player/WpGamePlayerController.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
@@ -26,9 +26,8 @@ void UWpGameBuildingProductionTableEntryWidget::SetBuildingConfigId(const uint32
 
 void UWpGameBuildingProductionTableEntryWidget::OnPressed()
 {
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	OrderSenderComponent->SelectBuildingToProduce(BuildingConfigId);
 }
 
@@ -53,9 +52,8 @@ void UWpGameBuildingProductionTableWidget::NativeConstruct()
 		Table->AddChildToHorizontalBox(Entry);
 	}
 
-	const APlayerController* const PlayerController = GetPlayerContext().GetPlayerController();
-	AWpStrategicViewPawn* const Pawn = PlayerController->GetPawn<AWpStrategicViewPawn>();
-	UWpOrderSenderComponent* const OrderSenderComponent = Pawn->GetOrderSenderComponent();
+	AWpGamePlayerController* const PlayerController = GetPlayerContext().GetPlayerController<AWpGamePlayerController>();
+	UWpOrderSenderComponent* const OrderSenderComponent = PlayerController->GetOrderSenderComponent();
 	OrderSenderComponent->OnAvailableOrdersChanged().AddUObject(this, &UWpGameBuildingProductionTableWidget::OnAvailableOrdersChanged);
 }
 

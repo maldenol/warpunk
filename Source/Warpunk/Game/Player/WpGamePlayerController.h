@@ -8,6 +8,7 @@
 
 class AWpCommander;
 class AWpStrategicViewPawn;
+class UWpOrderSenderComponent;
 
 class UInputAction;
 
@@ -21,12 +22,16 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void SetupInputComponent() override;
-
 	virtual void OnRep_PlayerState() override;
+
+	virtual void SetupInputComponent() override;
+	virtual void SetControlRotation(const FRotator& NewRotation) override;
 
 	void SetStrategicViewPawn(AWpStrategicViewPawn* const InStrategicViewPawn);
 	void SetCommander(AWpCommander* const InCommander);
+
+	UWpOrderSenderComponent* GetOrderSenderComponent();
+	const UWpOrderSenderComponent* GetOrderSenderComponent() const;
 
 	UFUNCTION(Client, Reliable)
 	void ClientSetExpectedLoadedObjectNum(const uint32 ExpectedLoadedObjectNum);
@@ -34,7 +39,12 @@ public:
 	UFUNCTION(Server, Unreliable)
 	void ServerAddCommanderMovementInput(const float Forward, const float Right);
 
+	void NotifyCommanderDestroyed();
+
 private:
+	UFUNCTION(Server, Unreliable)
+	void ServerSetControlRotation(const FRotator& NewRotation);
+
 	UFUNCTION(Server, Reliable)
 	void ServerToggleView();
 
@@ -48,5 +58,11 @@ private:
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpCommander> Commander = nullptr;
 
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UWpOrderSenderComponent> OrderSenderComponent = nullptr;
+
 	bool bHasNotifiedObjectLoaded = false;
+
+public:
+	static const FName OrderSenderComponentName;
 };
