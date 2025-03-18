@@ -41,9 +41,9 @@ void UWpCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVeloc
 		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 		const FVector EndLocation = Path->GetEndLocation();
 		const float DistanceSqrd = FVector::DistSquared(CurrentLocation, EndLocation);
-		const float BrakingDistanceSqrd = FMath::Square(EntityMovementComponent->GetBrakingDistance());
+		const float BrakingDistanceSqrd = FMath::Square(EntityMovementComponent->GetMinBrakingDistance());
 		const bool bShouldDecelerate = DistanceSqrd < BrakingDistanceSqrd;
-		const FVector MoveInput = NewVelocity * (bShouldDecelerate ? -1.0 : 1.0);
+		const FVector MoveInput = NewVelocity * (bShouldDecelerate ? 0.0 : 1.0);
 
 		MovementComp->RequestPathMove(MoveInput);
 	}

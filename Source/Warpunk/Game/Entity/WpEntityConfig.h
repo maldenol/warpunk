@@ -31,35 +31,35 @@ struct FWpMovementConfig final
 	EWpEntityMovementType Type = EWpEntityMovementType::Undefined;
 
 	UPROPERTY(EditAnywhere)
-	float MaxSpeed = 0.0f;
+	float MaxMoveSpeed = 0.0f;
 	UPROPERTY(EditAnywhere)
-	float MaxAcceleration = 0.0f;
+	float MaxMoveAccelerationTime = 0.0f;
 	UPROPERTY(EditAnywhere)
-	float MaxInertDeceleration = 0.0f;
+	float MaxMoveInclineAngle = 0.0f;
 	UPROPERTY(EditAnywhere)
-	float MaxBrakingDeceleration = 0.0f;
+	float MaxMoveBrakingTime = 0.0f;
+	UPROPERTY(EditAnywhere)
+	float MaxMoveInertiaTime = 0.0f;
 
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
+	UPROPERTY(EditAnywhere)
 	float MaxRotationSpeed = 0.0f;
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
-	float MaxRotationAcceleration = 0.0f;
+	float MaxRotationAccelerationTime = 0.0f;
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
-	float MaxRotationInertDeceleration = 0.0f;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
-	float MaxRotationBrakingDeceleration = 0.0f;
+	float MaxRotationBrakingTime = 0.0f;
 
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
-	float MaxWheelRotationAngle = 0.0f;
+	float MinTurningRadius = 0.0f;
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
-	float MaxWheelRotationSpeed = 0.0f;
+	float MaxWheelEdgeRotationTime = 0.0f;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	float MaxWheelCenterRotationTime = 0.0f;
 
 	UPROPERTY(EditAnywhere)
 	float MaxInclineAngle = 0.0f;
+
 	UPROPERTY(EditAnywhere)
 	float MaxStepUpHeight = 0.0f;
-
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Tracks || Type == EWpEntityMovementType::Wheels", EditConditionHides))
-	float MaxGroundFriction = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
