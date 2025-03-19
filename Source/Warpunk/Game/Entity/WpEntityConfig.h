@@ -30,36 +30,49 @@ struct FWpMovementConfig final
 	UPROPERTY(EditAnywhere)
 	EWpEntityMovementType Type = EWpEntityMovementType::Undefined;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float MaxMoveSpeed = 0.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float MaxMoveAccelerationTime = 0.0f;
-	UPROPERTY(EditAnywhere)
-	float MaxMoveInclineAngle = 0.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float MaxMoveInclineAngleDeg = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float MaxMoveBrakingTime = 0.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float MaxMoveInertiaTime = 0.0f;
 
-	UPROPERTY(EditAnywhere)
-	float MaxRotationSpeed = 0.0f;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Rotation")
+	float MaxRotationSpeedDeg = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Rotation", meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
 	float MaxRotationAccelerationTime = 0.0f;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Rotation", meta = (EditCondition = "Type == EWpEntityMovementType::Legs || Type == EWpEntityMovementType::Tracks", EditConditionHides))
 	float MaxRotationBrakingTime = 0.0f;
 
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Wheels", meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
 	float MinTurningRadius = 0.0f;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Wheels", meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
 	float MaxWheelEdgeRotationTime = 0.0f;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Wheels", meta = (EditCondition = "Type == EWpEntityMovementType::Wheels", EditConditionHides))
 	float MaxWheelCenterRotationTime = 0.0f;
 
-	UPROPERTY(EditAnywhere)
-	float MaxInclineAngle = 0.0f;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Collision")
+	float MaxInclineAngleDeg = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Collision")
 	float MaxStepUpHeight = 0.0f;
+
+	float MoveAccelerationTorqueCoefficient = 0.0f;
+	float MoveAccelerationCoefficient1 = 0.0f;
+	float MoveAccelerationCoefficient2 = 0.0f;
+	float MaxMoveBrakingDeceleration = 0.0f;
+	float MaxMoveInertiaDeceleration = 0.0f;
+	float MaxGroundStaticFriction = 0.0f;
+	float MaxRotationSpeed = 0.0f;
+	float MaxRotationAcceleration = 0.0f;
+	float MaxRotationBrakingDeceleration = 0.0f;
+	float MaxWheelRotationAngle = 0.0f;
+	float MaxWheelEdgeRotationSpeed = 0.0f;
+	float MaxWheelCenterRotationSpeed = 0.0f;
+	float MaxInclineAngleCos = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -118,33 +131,45 @@ struct FWpWeaponConfig final
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
+	EWpWeaponType Type = EWpWeaponType::Undefined;
+	UPROPERTY(EditAnywhere)
 	float Range = 0.0f;
 	UPROPERTY(EditAnywhere)
 	float MinRange = 0.0f;
 	UPROPERTY(EditAnywhere)
-	float FireRate = 0.0f;
-	UPROPERTY(EditAnywhere)
-	EWpWeaponType Type = EWpWeaponType::Undefined;
-	UPROPERTY(EditAnywhere)
 	float Damage = 0.0f;
 	UPROPERTY(EditAnywhere)
+	float FireRate = 0.0f;
+	UPROPERTY(EditAnywhere)
 	FVector FireLocation = FVector::ZeroVector;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Projectile", meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
 	bool bHighAngle = false;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Projectile", meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
 	float ProjectileRadius = 0.0f;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Projectile", meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
 	TObjectPtr<UStaticMesh> ProjectileMesh = nullptr;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Projectile", meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
 	FRotator ProjectileMeshRotation = FRotator::ZeroRotator;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Projectile", meta = (EditCondition = "Type == EWpWeaponType::Projectile", EditConditionHides))
 	float ProjectileMeshToRadiusScale = 0.0f;
+
+	float Cooldown = 0.0f;
+	float ProjectileSpeed2 = 0.0f;
+	float ProjectileSpeed4 = 0.0f;
+	float ProjectileSpeed = 0.0f;
+	float ProjectileSpeedMinRange2 = 0.0f;
+	float ProjectileSpeedMinRange4 = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
 struct FWpEntityConfig final : public FTableRowBase
 {
 	GENERATED_BODY()
+
+	virtual void OnDataTableChanged(const UDataTable* const InDataTable, const FName InRowName) override;
+
+	UPROPERTY(VisibleAnywhere)
+	bool bIsCorrect = false;
 
 	UPROPERTY(EditAnywhere)
 	FString Name = TEXT("");
@@ -167,4 +192,11 @@ struct FWpEntityConfig final : public FTableRowBase
 	TOptional<FWpProductionConfig> ProductionConfig = {};
 	UPROPERTY(EditAnywhere)
 	TArray<FWpWeaponConfig> WeaponConfigs = {};
+
+private:
+	void OnConfigChanged();
+	void CheckCorrectness();
+	void UpdateDerivedValues();
+
+	static float DefaultGravityScale;
 };

@@ -160,58 +160,20 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 		{
 			const FWpMovementConfig& MovementConfig = PooledEntityData.EntityConfig->MovementConfig;
 
-			ensureAlways(MovementConfig.Type != EWpEntityMovementType::Undefined);
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxMoveSpeed));
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxMoveAccelerationTime));
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxMoveBrakingTime));
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxMoveInertiaTime));
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxRotationSpeed));
-			if ((MovementConfig.Type == EWpEntityMovementType::Legs) || (MovementConfig.Type == EWpEntityMovementType::Tracks))
-			{
-				ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxRotationAccelerationTime));
-				ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxRotationBrakingTime));
-			}
-			if (MovementConfig.Type == EWpEntityMovementType::Wheels)
-			{
-				ensureAlways(!FMath::IsNearlyZero(MovementConfig.MinTurningRadius));
-				ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxWheelEdgeRotationTime));
-				ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxWheelCenterRotationTime));
-			}
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxInclineAngle));
-			ensureAlways(!FMath::IsNearlyZero(MovementConfig.MaxStepUpHeight));
-
 			MovementType = MovementConfig.Type;
 			MaxMoveSpeed = MovementConfig.MaxMoveSpeed;
-			float MoveAccelerationTorqueCoefficient = 1.0f;
-			while (true)
-			{
-				const float CurrentMaxMoveInclineAngle = FMath::Asin(
-					MaxMoveSpeed * MoveAccelerationTorqueCoefficient / -GetGravityZ() / MovementConfig.MaxMoveAccelerationTime
-					/ (1.0f - FMath::Exp(-MoveAccelerationTorqueCoefficient)));
-				const float DesiredMaxMoveInclineAngle = FMath::DegreesToRadians(MovementConfig.MaxMoveInclineAngle);
-				const float DeltaMaxMoveInclineAngle = DesiredMaxMoveInclineAngle - CurrentMaxMoveInclineAngle;
-				if (!FMath::IsNearlyZero(DeltaMaxMoveInclineAngle, FMath::DegreesToRadians(0.5f)))
-				{
-					MoveAccelerationTorqueCoefficient += DeltaMaxMoveInclineAngle / 10.0f;
-				}
-				else
-				{
-					break;
-				}
-			}
-			MoveAccelerationCoefficient1 = MaxMoveSpeed * MoveAccelerationTorqueCoefficient / MovementConfig.MaxMoveAccelerationTime
-				/ (1.0f - FMath::Exp(-MoveAccelerationTorqueCoefficient));
-			MoveAccelerationCoefficient2 = -MoveAccelerationTorqueCoefficient / MovementConfig.MaxMoveAccelerationTime;
-			MaxMoveBrakingDeceleration = MaxMoveSpeed / MovementConfig.MaxMoveBrakingTime;
-			MaxMoveInertiaDeceleration = MaxMoveSpeed / MovementConfig.MaxMoveInertiaTime;
-			MaxRotationSpeed = FMath::DegreesToRadians(MovementConfig.MaxRotationSpeed);
-			MaxRotationAcceleration = MaxRotationSpeed / MovementConfig.MaxRotationAccelerationTime;
-			MaxRotationBrakingDeceleration = MaxRotationSpeed / MovementConfig.MaxRotationBrakingTime;
-			MaxWheelRotationAngle = FMath::Asin(1.0f / MovementConfig.MinTurningRadius);
-			MaxWheelEdgeRotationSpeed = MaxWheelRotationAngle / MovementConfig.MaxWheelEdgeRotationTime;
-			MaxWheelCenterRotationSpeed = MaxWheelRotationAngle / MovementConfig.MaxWheelCenterRotationTime;
-			MaxInclineAngleCos = FMath::Cos(FMath::DegreesToRadians(MovementConfig.MaxInclineAngle));
-			MaxGroundStaticFriction = -GetGravityZ() * FMath::Tan(FMath::DegreesToRadians(MovementConfig.MaxInclineAngle));
+			MoveAccelerationCoefficient1 = MovementConfig.MoveAccelerationCoefficient1;
+			MoveAccelerationCoefficient2 = MovementConfig.MoveAccelerationCoefficient2;
+			MaxMoveBrakingDeceleration = MovementConfig.MaxMoveBrakingDeceleration;
+			MaxMoveInertiaDeceleration = MovementConfig.MaxMoveInertiaDeceleration;
+			MaxGroundStaticFriction = MovementConfig.MaxGroundStaticFriction;
+			MaxRotationSpeed = MovementConfig.MaxRotationSpeed;
+			MaxRotationAcceleration = MovementConfig.MaxRotationAcceleration;
+			MaxRotationBrakingDeceleration = MovementConfig.MaxRotationBrakingDeceleration;
+			MaxWheelRotationAngle = MovementConfig.MaxWheelRotationAngle;
+			MaxWheelEdgeRotationSpeed = MovementConfig.MaxWheelEdgeRotationSpeed;
+			MaxWheelCenterRotationSpeed = MovementConfig.MaxWheelCenterRotationSpeed;
+			MaxInclineAngleCos = MovementConfig.MaxInclineAngleCos;
 			MaxStepUpHeight = MovementConfig.MaxStepUpHeight;
 
 			MoveSpeed = FVector::ZeroVector;

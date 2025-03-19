@@ -22,14 +22,11 @@ void FWpProjectileWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquire
 		ProjectileConfig = PooledWeaponData.ProjectileConfig;
 		bHighAngle = WeaponConfig.bHighAngle;
 
-		const float GravityZ = GetGravityZ();
-
-		ProjectileSpeed2 = GetRange() * GravityZ;
-		ProjectileSpeed4 = FMath::Square(ProjectileSpeed2);
-		ProjectileSpeed = FMath::Sqrt(ProjectileSpeed2);
-
-		ProjectileSpeedMinRange2 = GetMinRange() * GravityZ;
-		ProjectileSpeedMinRange4 = FMath::Square(ProjectileSpeedMinRange2);
+		ProjectileSpeed2 = WeaponConfig.ProjectileSpeed2;
+		ProjectileSpeed4 = WeaponConfig.ProjectileSpeed4;
+		ProjectileSpeed = WeaponConfig.ProjectileSpeed;
+		ProjectileSpeedMinRange2 = WeaponConfig.ProjectileSpeedMinRange2;
+		ProjectileSpeedMinRange4 = WeaponConfig.ProjectileSpeedMinRange4;
 	}
 }
 

@@ -255,10 +255,6 @@ void AWpEntity::OnRep_EntityConfigId()
 	const FName RowName = FName{FString::FromInt(EntityConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
-	ensureAlways(EntityConfig.Type != EWpEntityType::Undefined);
-	ensureAlways(EntityConfig.MeshConfig.Mesh);
-	ensureAlways(EntityConfig.MeshConfig.Material);
-
 	EntityType = EntityConfig.Type;
 
 	MeshComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);

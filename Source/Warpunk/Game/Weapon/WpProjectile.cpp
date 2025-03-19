@@ -151,10 +151,6 @@ void AWpProjectile::OnRep_ProjectileConfig()
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 	const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
 
-	ensureAlways(!FMath::IsNearlyZero(WeaponConfig.ProjectileRadius));
-	ensureAlways(WeaponConfig.ProjectileMesh);
-	ensureAlways(!FMath::IsNearlyZero(WeaponConfig.ProjectileMeshToRadiusScale));
-
 	SphereComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
 
 	MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);

@@ -90,8 +90,6 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
 		const TArray<FWpWeaponConfig>& WeaponConfigs = PooledEntityData.EntityConfig->WeaponConfigs;
 
-		ensureAlways(WeaponConfigs.Num() <= WP_ENTITY_MAX_WEAPON);
-
 		for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)
 		{
 			if (WeaponConfigs.IsValidIndex(Index))

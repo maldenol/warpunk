@@ -84,6 +84,8 @@ private:
 	float MaxMoveBrakingDeceleration = 0.0f;
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxMoveInertiaDeceleration = 0.0f;
+	UPROPERTY(VisibleInstanceOnly)
+	float MaxGroundStaticFriction = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxRotationSpeed = 0.0f;
@@ -101,9 +103,6 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxInclineAngleCos = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
-	float MaxGroundStaticFriction = 0.0f;
-
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxStepUpHeight = 0.0f;
 

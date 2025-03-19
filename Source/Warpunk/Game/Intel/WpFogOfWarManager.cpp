@@ -32,6 +32,8 @@ void AWpFogOfWarManager::BeginPlay()
 
 	ensureAlways(TextureRenderTarget);
 	ensureAlways(FogOfWarMaterial);
+	ensureAlways(IntelMesh);
+	ensureAlways(IntelMaterial);
 
 	SceneCaptureComponent->TextureTarget = TextureRenderTarget;
 	SceneCaptureComponent->PostProcessSettings.AddBlendable(FogOfWarMaterial, 1.0f);

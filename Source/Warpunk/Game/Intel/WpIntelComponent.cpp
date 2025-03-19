@@ -186,9 +186,6 @@ void UWpIntelComponent::InitializeMesh()
 	UStaticMesh* const IntelMesh = FogOfWarManager->GetIntelMesh();
 	UMaterialInterface* const IntelMaterial = FogOfWarManager->GetIntelMaterial();
 
-	ensureAlways(IntelMesh);
-	ensureAlways(IntelMaterial);
-
 	SetStaticMesh(IntelMesh);
 	SetMaterial(0, IntelMaterial);
 }

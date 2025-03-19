@@ -110,10 +110,6 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 
 		if (ProductionConfig)
 		{
-			ensureAlways(!FMath::IsNearlyZero(ProductionConfig->Range));
-			ensureAlways(!FMath::IsNearlyZero(ProductionConfig->MatterConsumption));
-			ensureAlways(!FMath::IsNearlyZero(ProductionConfig->EnergyPerMatterRatio));
-
 			Range = ProductionConfig->Range;
 			MatterConsumption = ProductionConfig->MatterConsumption;
 			EnergyPerMatterRatio = ProductionConfig->EnergyPerMatterRatio;
