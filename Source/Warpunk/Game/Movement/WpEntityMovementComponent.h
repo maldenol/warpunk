@@ -60,9 +60,6 @@ private:
 	void Move(const float DeltaTime);
 
 	FVector CalcDeltaLocation(const float DeltaTime, const FVector& InGroundNormal) const;
-	FVector CalcInclineUpSpeed(const FVector& InGroundNormal) const;
-	FVector CalcInclineDownSpeed(const FVector& InGroundNormal) const;
-	FVector CalcInclineSideSpeed(const FVector& InGroundNormal) const;
 
 	void UpdateGround(const float DeltaTime);
 
@@ -70,8 +67,7 @@ private:
 
 	void ProcessWallImpact(const FHitResult& Hit);
 
-	void SweepUnder(FHitResult& OutHit, const float Distance) const;
-	void RevertLocationTo(const FVector& OldLocation);
+	void Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
 
 	void UpdateNavVelocity();
 
@@ -104,7 +100,7 @@ private:
 	float MaxWheelCenterRotationSpeed = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly)
-	float MaxInclineAngle = 0.0f;
+	float MaxInclineAngleCos = 0.0f;
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxGroundStaticFriction = 0.0f;
 

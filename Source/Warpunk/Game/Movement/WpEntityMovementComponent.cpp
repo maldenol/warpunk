@@ -57,19 +57,6 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 
 	ensureAlways(IsActive());
 
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Loc: ") + UpdatedComponent->GetComponentLocation().ToString(), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Loc speed: ") + MoveSpeed.ToString(), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Loc speed: ") + FString::SanitizeFloat(MoveSpeed.Size2D()), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Loc accel: ") + MoveAcceleration.ToString(), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Loc accel: ") + FString::SanitizeFloat(MoveAcceleration.Size2D()), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Rot: ") + UpdatedComponent->GetComponentRotation().ToString(), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Rot speed: ") + FString::SanitizeFloat(RotationSpeed), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Rot accel: ") + FString::SanitizeFloat(RotationAcceleration), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Wheel angle: ") + FString::SanitizeFloat(WheelRotationAngle), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Slipping: ") + FString::FromInt(bIsSlipping), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Ground: ") + FString::FromInt(bOnGround), false);
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("Normal: ") + GroundNormal.ToString(), false);
-
 	if (!GetOwner()->HasAuthority())
 	{
 		return; // todo
@@ -87,8 +74,6 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 	{
 		return;
 	}
-
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.0f, FColor::Blue, TEXT("TICKING"), false);
 
 	UpdateSlipping();
 	UpdateWheelRotationAngle(DeltaTime, InputVector.Y);
@@ -225,8 +210,8 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 			MaxWheelRotationAngle = FMath::Asin(1.0f / MovementConfig.MinTurningRadius);
 			MaxWheelEdgeRotationSpeed = MaxWheelRotationAngle / MovementConfig.MaxWheelEdgeRotationTime;
 			MaxWheelCenterRotationSpeed = MaxWheelRotationAngle / MovementConfig.MaxWheelCenterRotationTime;
-			MaxInclineAngle = FMath::DegreesToRadians(MovementConfig.MaxInclineAngle);
-			MaxGroundStaticFriction = -GetGravityZ() * FMath::Tan(MaxInclineAngle);
+			MaxInclineAngleCos = FMath::Cos(FMath::DegreesToRadians(MovementConfig.MaxInclineAngle));
+			MaxGroundStaticFriction = -GetGravityZ() * FMath::Tan(FMath::DegreesToRadians(MovementConfig.MaxInclineAngle));
 			MaxStepUpHeight = MovementConfig.MaxStepUpHeight;
 
 			MoveSpeed = FVector::ZeroVector;
@@ -689,20 +674,12 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 
 	uint32 IterationIndex = 0;
 	float RemainingTime = DeltaTime;
-	bool bIsSteppingUp = false;
 
 	while ((IterationIndex < MaxMoveIterationNum) && !FMath::IsNearlyZero(RemainingTime))
 	{
 		++IterationIndex;
 
-		if (!bIsSteppingUp)
-		{
-			UpdateGround(RemainingTime);
-		}
-		else
-		{
-			bIsSteppingUp = false;
-		}
+		UpdateGround(RemainingTime);
 
 		const FVector DeltaLocation = CalcDeltaLocation(RemainingTime, GroundNormal);
 		if (DeltaLocation.IsNearlyZero() && UpdatedComponent->GetComponentRotation().Equals(NewRotation))
@@ -718,14 +695,10 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 
 		if (Hit.bBlockingHit)
 		{
-			const float InclineAngle = FMath::Acos(Hit.ImpactNormal.Dot(FVector::UpVector));
-			if (InclineAngle > MaxInclineAngle)
+			const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
+			if (InclineAngleCos < MaxInclineAngleCos)
 			{
-				if (StepUp(RemainingTime))
-				{
-					bIsSteppingUp = true;
-				}
-				else
+				if (!StepUp(RemainingTime))
 				{
 					ProcessWallImpact(Hit);
 				}
@@ -736,63 +709,29 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 
 FVector UWpEntityMovementComponent::CalcDeltaLocation(const float DeltaTime, const FVector& InGroundNormal) const
 {
+	if (MoveSpeed.IsNearlyZero())
+	{
+		return FVector::ZeroVector;
+	}
+
 	if (InGroundNormal.Equals(FVector::UpVector))
 	{
 		return MoveSpeed * DeltaTime;
 	}
 
-	if (!bOnGround)
-	{
-		return (CalcInclineDownSpeed(InGroundNormal) + CalcInclineSideSpeed(InGroundNormal)) * DeltaTime;
-	}
-
-	return (CalcInclineUpSpeed(InGroundNormal) + CalcInclineSideSpeed(InGroundNormal)) * DeltaTime;
-}
-
-FVector UWpEntityMovementComponent::CalcInclineUpSpeed(const FVector& InGroundNormal) const
-{
-	ensureAlways(!InGroundNormal.Equals(FVector::UpVector));
-	ensureAlways(bOnGround);
-
-	const float InclineAngle = FMath::Acos(InGroundNormal.Dot(FVector::UpVector));
-	ensureAlways(InclineAngle < MaxInclineAngle);
-
-	const FVector HorizontalGroundNormal = InGroundNormal.GetSafeNormal2D();
-	const FVector HorizontalInclineUpSpeed = MoveSpeed.ProjectOnToNormal(-HorizontalGroundNormal);
-	const FVector InclineSideDirection = HorizontalGroundNormal.Cross(FVector::UpVector);
-	const FVector InclineUpSpeed = HorizontalInclineUpSpeed.RotateAngleAxis(-InclineAngle, InclineSideDirection);
-
-	return InclineUpSpeed;
-}
-
-FVector UWpEntityMovementComponent::CalcInclineDownSpeed(const FVector& InGroundNormal) const
-{
-	ensureAlways(!InGroundNormal.Equals(FVector::UpVector));
-	ensureAlways(!bOnGround);
-
-	const FVector DownSpeed = MoveSpeed * FVector::UpVector;
-	const FVector InclineDownSpeed = FVector::VectorPlaneProject(DownSpeed, InGroundNormal);
-
-	return InclineDownSpeed;
-}
-
-FVector UWpEntityMovementComponent::CalcInclineSideSpeed(const FVector& InGroundNormal) const
-{
-	ensureAlways(!InGroundNormal.Equals(FVector::UpVector));
-
-	const FVector HorizontalGroundNormal = InGroundNormal.GetSafeNormal2D();
-	const FVector InclineSideDirection = HorizontalGroundNormal.Cross(FVector::UpVector);
-	const FVector InclineSideSpeed = MoveSpeed.ProjectOnToNormal(InclineSideDirection);
-
-	return InclineSideSpeed;
+	return FVector::VectorPlaneProject(MoveSpeed, InGroundNormal).GetUnsafeNormal() * MoveSpeed.Size() * DeltaTime;
 }
 
 void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 {
 	const bool bWasOnGround = bOnGround;
 
+	bool bShouldProcessWallImpact = false;
+
 	FHitResult Hit;
-	SweepUnder(Hit, 1.0f + MaxGroundDistance);
+	const FVector StartLocation = UpdatedComponent->GetComponentLocation();
+	const FVector EndLocation = StartLocation - (1.0f + MaxGroundDistance) * FVector::UpVector;
+	Sweep(Hit, StartLocation, EndLocation);
 
 	if (Hit.bBlockingHit)
 	{
@@ -802,8 +741,13 @@ void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 		}
 		else
 		{
-			const float InclineAngle = FMath::Acos(Hit.ImpactNormal.Dot(FVector::UpVector));
-			bOnGround = InclineAngle < MaxInclineAngle;
+			const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
+			bOnGround = InclineAngleCos > MaxInclineAngleCos;
+
+			if (!bOnGround && !Hit.ImpactNormal.Equals(FVector::UpVector) && (MoveSpeed.Dot(Hit.ImpactNormal) < 0.0))
+			{
+				bShouldProcessWallImpact = true;
+			}
 		}
 	}
 	else
@@ -817,98 +761,95 @@ void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 
 		if (!bWasOnGround)
 		{
-			MoveSpeed.Z = 0.0;
+			MoveSpeed *= FVector::ForwardVector + FVector::RightVector;
 		}
 	}
 	else
 	{
 		GroundNormal = Hit.bBlockingHit ? Hit.ImpactNormal : FVector::UpVector;
 
-		MoveSpeed.Z += GetGravityZ() * DeltaTime;
+		MoveSpeed += GetGravityZ() * DeltaTime * FVector::UpVector;
 	}
 
 	if (Hit.bBlockingHit)
 	{
-		FVector OnGroundLocation = Hit.Location;
-		OnGroundLocation.Z += IdealGroundDistance;
-		const FVector DeltaLocation = OnGroundLocation - UpdatedComponent->GetComponentLocation();
-		UpdatedComponent->MoveComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), true);
+		if (bOnGround)
+		{
+			const FVector OnGroundLocation = Hit.Location + IdealGroundDistance * FVector::UpVector;
+			const FVector DeltaLocation = OnGroundLocation - UpdatedComponent->GetComponentLocation();
+			if (!DeltaLocation.IsNearlyZero())
+			{
+				UpdatedComponent->MoveComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), true);
+			}
+		}
+		else if (bShouldProcessWallImpact)
+		{
+			ProcessWallImpact(Hit);
+		}
 	}
 }
 
 bool UWpEntityMovementComponent::StepUp(const float DeltaTime)
 {
-	const FRotator Rotation = UpdatedComponent->GetComponentRotation();
-	const FVector StepUpOldLocation = UpdatedComponent->GetComponentLocation();
-
 	FHitResult Hit;
 
-	const FVector StepUpDeltaLocation = FVector{0.0, 0.0, MaxStepUpHeight};
-	UpdatedComponent->MoveComponent(StepUpDeltaLocation, Rotation, true, &Hit);
-
+	const FVector LocationBeforeStepUp = UpdatedComponent->GetComponentLocation();
+	const FVector StepUpDeltaLocation = MaxStepUpHeight * FVector::UpVector;
+	FVector LocationAfterStepUp = LocationBeforeStepUp + StepUpDeltaLocation;
+	Sweep(Hit, LocationBeforeStepUp, LocationAfterStepUp);
 	if (Hit.bBlockingHit)
 	{
-		RevertLocationTo(StepUpOldLocation);
-		return false;
+		LocationAfterStepUp = Hit.Location;
 	}
 
-	const FVector StepForwardOldLocation = UpdatedComponent->GetComponentLocation();
-
+	const FVector LocationBeforeStepForward = LocationAfterStepUp;
 	const FVector StepForwardDeltaLocation = CalcDeltaLocation(DeltaTime, FVector::UpVector);
-	UpdatedComponent->MoveComponent(StepForwardDeltaLocation, Rotation, true, &Hit);
-
+	FVector LocationAfterStepForward = LocationBeforeStepForward + StepForwardDeltaLocation;
+	Sweep(Hit, LocationBeforeStepForward, LocationAfterStepForward);
 	if (Hit.bBlockingHit)
 	{
-		const float InclineAngle = FMath::Acos(Hit.ImpactNormal.Dot(FVector::UpVector));
-		if (InclineAngle > MaxInclineAngle)
+		const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
+		if (InclineAngleCos < MaxInclineAngleCos)
 		{
-			RevertLocationTo(StepForwardOldLocation);
-			RevertLocationTo(StepUpOldLocation);
 			return false;
 		}
 
-		RevertLocationTo(StepForwardOldLocation);
-
-		const FVector StepForwardInclineDeltaLocation = CalcDeltaLocation(DeltaTime, Hit.ImpactNormal);
-		UpdatedComponent->MoveComponent(StepForwardInclineDeltaLocation, Rotation, true, &Hit);
-
-		if (Hit.bBlockingHit)
-		{
-			RevertLocationTo(StepForwardOldLocation);
-			RevertLocationTo(StepUpOldLocation);
-			return false;
-		}
+		LocationAfterStepForward = Hit.Location;
 	}
 
-	SweepUnder(Hit, 1.0f + MaxGroundDistance + MaxStepUpHeight);
-
+	const FVector LocationBeforeStepDown = LocationAfterStepForward;
+	const FVector StepDownDeltaLocation = -(1.0f + MaxGroundDistance + MaxStepUpHeight) * FVector::UpVector;
+	FVector LocationAfterStepDown = LocationBeforeStepDown + StepDownDeltaLocation;
+	Sweep(Hit, LocationBeforeStepDown, LocationAfterStepDown);
 	if (Hit.bBlockingHit)
 	{
-		const float InclineAngle = FMath::Acos(Hit.ImpactNormal.Dot(FVector::UpVector));
-		if (InclineAngle > MaxInclineAngle)
+		const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
+		if (InclineAngleCos < MaxInclineAngleCos)
 		{
-			RevertLocationTo(StepForwardOldLocation);
-			RevertLocationTo(StepUpOldLocation);
 			return false;
 		}
+
+		LocationAfterStepDown = Hit.Location;
 	}
 	else
 	{
-		Hit.Location = Hit.TraceStart - FVector::UpVector * (MaxStepUpHeight + IdealGroundDistance);
+		LocationAfterStepDown = LocationBeforeStepDown - (MaxStepUpHeight + IdealGroundDistance) * FVector::UpVector;
 	}
 
-	RevertLocationTo(StepForwardOldLocation);
+	LocationAfterStepDown += IdealGroundDistance * FVector::UpVector;
 
-	const FVector GroundLocation = Hit.Location + FVector::UpVector * IdealGroundDistance;
-	const FVector GroundDeltaLocation = GroundLocation - UpdatedComponent->GetComponentLocation();
-	UpdatedComponent->MoveComponent(GroundDeltaLocation, Rotation, true);
-
-	GroundNormal = FVector::UpVector;
+	const FRotator Rotation = UpdatedComponent->GetComponentRotation();
+	UpdatedComponent->MoveComponent(LocationAfterStepUp - UpdatedComponent->GetComponentLocation(), Rotation, true);
+	UpdatedComponent->MoveComponent(LocationAfterStepForward - UpdatedComponent->GetComponentLocation(), Rotation, true);
+	UpdatedComponent->MoveComponent(LocationAfterStepDown - UpdatedComponent->GetComponentLocation(), Rotation, true);
 	return true;
 }
 
 void UWpEntityMovementComponent::ProcessWallImpact(const FHitResult& Hit)
 {
+	ensureAlways(Hit.bBlockingHit);
+	ensureAlways(!Hit.ImpactNormal.Equals(FVector::UpVector));
+
 	const FVector HorizontalImpactNormal = Hit.ImpactNormal.GetUnsafeNormal2D();
 	const FVector HorizontalMoveSpeed = MoveSpeed * (FVector::ForwardVector + FVector::RightVector);
 	const FVector SpeedIntoWall = HorizontalMoveSpeed.ProjectOnToNormal(HorizontalImpactNormal);
@@ -930,10 +871,8 @@ void UWpEntityMovementComponent::ProcessWallImpact(const FHitResult& Hit)
 	}
 }
 
-void UWpEntityMovementComponent::SweepUnder(FHitResult& OutHit, const float Distance) const
+void UWpEntityMovementComponent::Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const
 {
-	const FVector StartLocation = UpdatedComponent->GetComponentLocation();
-	const FVector EndLocation = StartLocation - FVector::UpVector * Distance;
 	const FQuat Rotation = UpdatedComponent->GetComponentQuat();
 	const FName CollisionProfile = Cast<UCapsuleComponent>(UpdatedComponent)->GetCollisionProfileName();
 	float Radius, HalfHeight;
@@ -943,15 +882,6 @@ void UWpEntityMovementComponent::SweepUnder(FHitResult& OutHit, const float Dist
 	CollisionQueryParams.AddIgnoredActor(GetOwner());
 
 	GetWorld()->SweepSingleByProfile(OutHit, StartLocation, EndLocation, Rotation, CollisionProfile, CollisionShape, CollisionQueryParams);
-}
-
-void UWpEntityMovementComponent::RevertLocationTo(const FVector& OldLocation)
-{
-	const FVector RevertDeltaLocation = OldLocation - UpdatedComponent->GetComponentLocation();
-	const FRotator Rotation = UpdatedComponent->GetComponentRotation();
-	FHitResult Hit;
-	UpdatedComponent->MoveComponent(RevertDeltaLocation, Rotation, true, &Hit);
-	ensureAlways(!Hit.bBlockingHit);
 }
 
 void UWpEntityMovementComponent::UpdateNavVelocity()
