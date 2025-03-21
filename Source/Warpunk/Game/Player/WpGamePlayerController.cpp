@@ -18,6 +18,8 @@ AWpGamePlayerController::AWpGamePlayerController()
 
 	bReplicates = true;
 
+	bAttachToPawn = false;
+
 	OrderSenderComponent = CreateDefaultSubobject<UWpOrderSenderComponent>(OrderSenderComponentName);
 }
 

@@ -9,6 +9,7 @@
 class AWpEntityAIController;
 
 struct FInputActionValue;
+class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 
@@ -39,6 +40,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerOnFireTriggered(const FInputActionValue& ActionValue);
 
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UCameraComponent> CameraComponent = nullptr;
+
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UInputMappingContext> TacticalViewImc = nullptr;
 	UPROPERTY(EditDefaultsOnly)
@@ -50,4 +54,7 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<AWpEntityAIController> AIController = nullptr;
+
+public:
+	static const FName CameraComponentName;
 };

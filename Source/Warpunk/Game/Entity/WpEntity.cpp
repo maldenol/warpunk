@@ -59,7 +59,8 @@ AWpEntity::AWpEntity()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	MovementComponent = CreateDefaultSubobject<UWpEntityMovementComponent>(MovementComponentName);
-	MovementComponent->SetUpdatedComponent(RootComponent);
+	MovementComponent->SetUpdatedComponent(CollisionComponent);
+	MovementComponent->SetInterpolatedComponent(MeshComponent);
 
 	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
 	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
@@ -272,6 +273,4 @@ void AWpEntity::OnRep_EntityConfigId()
 	CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
 
 	MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
-
-	// CacheInitialMeshOffset(MeshComponent->GetRelativeLocation(), MeshComponent->GetRelativeRotation()); todo
 }

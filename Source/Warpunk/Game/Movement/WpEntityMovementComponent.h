@@ -31,6 +31,8 @@ public:
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 
+	void SetInterpolatedComponent(USceneComponent* const InInterpolatedComponent);
+
 	void SetCollisionSize(const float Radius, const float Height);
 
 	float GetMinBrakingDistance() const;
@@ -68,6 +70,11 @@ private:
 	void ProcessWallImpact(const FHitResult& Hit);
 
 	void Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
+
+	void CacheInitialInterpolatedComponentOffset();
+	void UpdateTargetInterpolatedComponentOffset();
+	void AddInterpolatedComponentOffset(const FVector& DeltaLocation, const FRotator& DeltaRotation);
+	void UpdateInterpolatedComponentOffset(const float DeltaTime);
 
 	void UpdateNavVelocity();
 
@@ -121,6 +128,14 @@ private:
 
 	bool bIsFirstPersonControlled = false;
 
+	USceneComponent* InterpolatedComponent = nullptr;
+
+	FTransform InitialInterpolatedComponentTransform = FTransform::Identity;
+	FVector TargetInterpolatedComponentLocation = FVector::ZeroVector;
+	FRotator TargetInterpolatedComponentRotation = FRotator::ZeroRotator;
+	FVector DeltaInterpolatedComponentLocation = FVector::ZeroVector;
+	FRotator DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+
 public:
 	static const uint32 MaxMoveIterationNum;
 
@@ -132,4 +147,8 @@ public:
 	static const float KineticToStaticGroundFriction;
 	static const float MinSlippingLateralSpeed;
 	static const float MinSlippingMagicValueScale;
+
+	static const float InterpolatedComponentSmoothingTime;
+	static const float InterpolatedComponentSnapDeltaLocation2;
+	static const float InterpolatedComponentSnapDeltaRotation;
 };

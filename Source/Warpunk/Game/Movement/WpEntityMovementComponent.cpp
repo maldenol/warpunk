@@ -25,6 +25,10 @@ const float UWpEntityMovementComponent::KineticToStaticGroundFriction = 0.8f;
 const float UWpEntityMovementComponent::MinSlippingLateralSpeed = 5.0f;
 const float UWpEntityMovementComponent::MinSlippingMagicValueScale = 0.4f;
 
+const float UWpEntityMovementComponent::InterpolatedComponentSmoothingTime = 0.1f;
+const float UWpEntityMovementComponent::InterpolatedComponentSnapDeltaLocation2 = FMath::Square(1.0f);
+const float UWpEntityMovementComponent::InterpolatedComponentSnapDeltaRotation = FMath::DegreesToRadians(1.0f);
+
 UWpEntityMovementComponent::UWpEntityMovementComponent()
 {
 	bAutoActivate = false;
@@ -64,6 +68,8 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 
 	ensureAlways(GetOwner()->HasAuthority());
 
+	UpdateInterpolatedComponentOffset(DeltaTime);
+
 	const FVector InputVector = ConsumeInputVector();
 
 	if (InputVector.IsNearlyZero()
@@ -84,6 +90,8 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 	RotationSpeed = CalcNewRotationSpeed(DeltaTime);
 
 	Move(DeltaTime);
+
+	UpdateTargetInterpolatedComponentOffset();
 
 	UpdateNavVelocity();
 }
@@ -186,6 +194,7 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 			GroundNormal = FVector::UpVector;
 			bIsSlipping = false;
 			SetIsFirstPersonControlled(false);
+			CacheInitialInterpolatedComponentOffset();
 
 			FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
 			NavAgentProperties.AgentStepHeight = MaxStepUpHeight;
@@ -205,6 +214,11 @@ void UWpEntityMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsV
 	{
 		// SetActive(bIsVisible); // todo
 	}
+}
+
+void UWpEntityMovementComponent::SetInterpolatedComponent(USceneComponent* const InInterpolatedComponent)
+{
+	InterpolatedComponent = InInterpolatedComponent;
 }
 
 void UWpEntityMovementComponent::SetCollisionSize(const float Radius, const float Height)
@@ -227,15 +241,6 @@ void UWpEntityMovementComponent::AddMovementInput(const float Forward, const flo
 void UWpEntityMovementComponent::SetIsFirstPersonControlled(const bool bInIsFirstPersonControlled)
 {
 	bIsFirstPersonControlled = bInIsFirstPersonControlled;
-
-	if (bIsFirstPersonControlled)
-	{
-		const APawn* const OwnerPawn = GetOwner<APawn>();
-		if (AController* const OwnerController = (OwnerPawn->GetLocalRole() == ROLE_SimulatedProxy) ? GetWorld()->GetFirstPlayerController() : OwnerPawn->GetController())
-		{
-			OwnerController->SetControlRotation(OwnerPawn->GetActorRotation());
-		}
-	}
 }
 
 void UWpEntityMovementComponent::UpdateSlipping()
@@ -419,7 +424,6 @@ void UWpEntityMovementComponent::ApplyInputMoveAcceleration2D(const FVector& Inp
 	const FVector DeltaSpeedForward = DeltaSpeed.ProjectOnToNormal(DirectionForward);
 	const FVector DeltaSpeedRight = DeltaSpeed - DeltaSpeedForward;
 
-	const float AccelerationScale = MoveAccelerationCoefficient1 + MoveAccelerationCoefficient2 * MoveSpeed.Size2D();
 	const bool bMovesDownIncline = CurrentSpeed.Dot(GroundNormal) > 0.0;
 	const float DecelerationScale = bMovesDownIncline ? MoveAccelerationCoefficient1 : MaxMoveBrakingDeceleration;
 
@@ -428,7 +432,10 @@ void UWpEntityMovementComponent::ApplyInputMoveAcceleration2D(const FVector& Inp
 	if (!DeltaSpeedForward.IsNearlyZero())
 	{
 		const bool bShouldAccelerate = CurrentSpeedForward.IsNearlyZero() || (CurrentSpeedForward.Dot(DeltaSpeedForward) > 0.0f);
-		const float InputAccelerationScale = (bShouldAccelerate ? AccelerationScale : DecelerationScale)
+		const float InputAccelerationScale =
+			(bShouldAccelerate
+				 ? MoveAccelerationCoefficient1 + MoveAccelerationCoefficient2 * CurrentSpeedForward.Size2D()
+				 : DecelerationScale)
 			* FMath::Abs(DeltaSpeed.GetSafeNormal2D().Dot(DirectionForward));
 		const FVector InputAccelerationDirection = DeltaSpeedForward.GetUnsafeNormal2D();
 		InputAcceleration += InputAccelerationScale * InputAccelerationDirection;
@@ -437,7 +444,10 @@ void UWpEntityMovementComponent::ApplyInputMoveAcceleration2D(const FVector& Inp
 	if (!DeltaSpeedRight.IsNearlyZero())
 	{
 		const bool bShouldAccelerate = CurrentSpeedRight.IsNearlyZero() || (CurrentSpeedRight.Dot(DeltaSpeedForward) > 0.0f);
-		const float InputAccelerationScale = (bShouldAccelerate ? AccelerationScale : DecelerationScale)
+		const float InputAccelerationScale =
+			(bShouldAccelerate
+				 ? MoveAccelerationCoefficient1 + MoveAccelerationCoefficient2 * CurrentSpeedRight.Size2D()
+				 : DecelerationScale)
 			* FMath::Abs(DeltaSpeed.GetSafeNormal2D().Dot(DirectionRight));
 		const FVector InputAccelerationDirection = DeltaSpeedRight.GetUnsafeNormal2D();
 		InputAcceleration += InputAccelerationScale * InputAccelerationDirection;
@@ -800,10 +810,17 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime)
 
 	LocationAfterStepDown += IdealGroundDistance * FVector::UpVector;
 
+	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+
 	const FRotator Rotation = UpdatedComponent->GetComponentRotation();
 	UpdatedComponent->MoveComponent(LocationAfterStepUp - UpdatedComponent->GetComponentLocation(), Rotation, true);
 	UpdatedComponent->MoveComponent(LocationAfterStepForward - UpdatedComponent->GetComponentLocation(), Rotation, true);
 	UpdatedComponent->MoveComponent(LocationAfterStepDown - UpdatedComponent->GetComponentLocation(), Rotation, true);
+
+	const FVector NewLocation = UpdatedComponent->GetComponentLocation();
+	const FVector DeltaLocation = NewLocation - OldLocation;
+	AddInterpolatedComponentOffset(DeltaLocation, FRotator::ZeroRotator);
+
 	return true;
 }
 
@@ -844,6 +861,85 @@ void UWpEntityMovementComponent::Sweep(FHitResult& OutHit, const FVector& StartL
 	CollisionQueryParams.AddIgnoredActor(GetOwner());
 
 	GetWorld()->SweepSingleByProfile(OutHit, StartLocation, EndLocation, Rotation, CollisionProfile, CollisionShape, CollisionQueryParams);
+}
+
+void UWpEntityMovementComponent::CacheInitialInterpolatedComponentOffset()
+{
+	InitialInterpolatedComponentTransform = InterpolatedComponent->GetRelativeTransform();
+
+	TargetInterpolatedComponentLocation = InitialInterpolatedComponentTransform.GetLocation();
+	TargetInterpolatedComponentRotation = InitialInterpolatedComponentTransform.GetRotation().Rotator();
+
+	DeltaInterpolatedComponentLocation = FVector::ZeroVector;
+	DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+}
+
+void UWpEntityMovementComponent::UpdateTargetInterpolatedComponentOffset()
+{
+	if (MovementType == EWpEntityMovementType::Legs)
+	{
+		return;
+	}
+
+	const FVector OldTargetInterpolatedComponentLocation = TargetInterpolatedComponentLocation;
+	const FRotator OldTargetInterpolatedComponentRotation = TargetInterpolatedComponentRotation;
+
+	const FVector ActualGroundNormal = bOnGround ? GroundNormal : FVector::UpVector;
+	const FVector LocalGroundNormal = InitialInterpolatedComponentTransform.InverseTransformVectorNoScale(
+		UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(
+			ActualGroundNormal
+		));
+	const FRotator LocalGroundNormalRotation = FQuat::FindBetweenNormals(FVector::UpVector, LocalGroundNormal).Rotator();
+	TargetInterpolatedComponentLocation = LocalGroundNormalRotation.RotateVector(InitialInterpolatedComponentTransform.GetLocation());
+	TargetInterpolatedComponentRotation = InitialInterpolatedComponentTransform.GetRotation().Rotator() + LocalGroundNormalRotation;
+
+	DeltaInterpolatedComponentLocation += TargetInterpolatedComponentLocation - OldTargetInterpolatedComponentLocation;
+	DeltaInterpolatedComponentRotation += TargetInterpolatedComponentRotation - OldTargetInterpolatedComponentRotation;
+}
+
+void UWpEntityMovementComponent::AddInterpolatedComponentOffset(const FVector& DeltaLocation, const FRotator& DeltaRotation)
+{
+	DeltaInterpolatedComponentLocation += DeltaLocation;
+	DeltaInterpolatedComponentRotation += DeltaRotation;
+
+	const FVector CurrentLocation = TargetInterpolatedComponentLocation - DeltaInterpolatedComponentLocation;
+	const FRotator CurrentRotation = TargetInterpolatedComponentRotation - DeltaInterpolatedComponentRotation;
+	InterpolatedComponent->SetRelativeLocation(CurrentLocation, false);
+	InterpolatedComponent->SetRelativeRotation(CurrentRotation, false);
+}
+
+void UWpEntityMovementComponent::UpdateInterpolatedComponentOffset(const float DeltaTime)
+{
+	if (DeltaInterpolatedComponentLocation.IsNearlyZero() && DeltaInterpolatedComponentRotation.IsNearlyZero())
+	{
+		return;
+	}
+
+	if (DeltaTime < InterpolatedComponentSmoothingTime)
+	{
+		const float Scale = 1.0f - DeltaTime / InterpolatedComponentSmoothingTime;
+		DeltaInterpolatedComponentLocation *= Scale;
+		DeltaInterpolatedComponentRotation *= Scale;
+
+		if (DeltaInterpolatedComponentLocation.SizeSquared() < InterpolatedComponentSnapDeltaLocation2)
+		{
+			DeltaInterpolatedComponentLocation = FVector::ZeroVector;
+		}
+		if (DeltaInterpolatedComponentRotation.IsNearlyZero(InterpolatedComponentSnapDeltaRotation))
+		{
+			DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+		}
+	}
+	else
+	{
+		DeltaInterpolatedComponentLocation = FVector::ZeroVector;
+		DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+	}
+
+	const FVector CurrentLocation = TargetInterpolatedComponentLocation - DeltaInterpolatedComponentLocation;
+	const FRotator CurrentRotation = TargetInterpolatedComponentRotation - DeltaInterpolatedComponentRotation;
+	InterpolatedComponent->SetRelativeLocation(CurrentLocation, false);
+	InterpolatedComponent->SetRelativeRotation(CurrentRotation, false);
 }
 
 void UWpEntityMovementComponent::UpdateNavVelocity()

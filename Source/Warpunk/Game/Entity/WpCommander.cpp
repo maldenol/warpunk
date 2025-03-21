@@ -6,9 +6,15 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Camera/CameraComponent.h"
+
+const FName AWpCommander::CameraComponentName = TEXT("CameraComponent");
 
 AWpCommander::AWpCommander()
 {
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(CameraComponentName);
+	CameraComponent->bUsePawnControlRotation = true;
+	CameraComponent->AttachToComponent(MeshComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 }
 
 void AWpCommander::PossessedBy(AController* const NewController)
