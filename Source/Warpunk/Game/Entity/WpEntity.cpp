@@ -17,18 +17,20 @@
 
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
+#include "NavAreas/NavArea_Obstacle.h"
+#include "NavModifierComponent.h"
 #include "Net/UnrealNetwork.h"
 
+const FName AWpEntity::CollisionComponentName = TEXT("CollisionComponent");
+const FName AWpEntity::MeshComponentName = TEXT("MeshComponent");
+const FName AWpEntity::NavModifierComponentName = TEXT("NavModifierComponent");
+const FName AWpEntity::MovementComponentName = TEXT("MovementComponent");
 const FName AWpEntity::BelligerentComponentName = TEXT("BelligerentComponent");
 const FName AWpEntity::EnduranceComponentName = TEXT("EnduranceComponent");
 const FName AWpEntity::IntelComponentName = TEXT("IntelComponent");
 const FName AWpEntity::OrderReceiverComponentName = TEXT("OrderReceiverComponent");
 const FName AWpEntity::ProductionComponentName = TEXT("ProductionComponent");
 const FName AWpEntity::WeaponComponentName = TEXT("WeaponComponent");
-
-const FName AWpEntity::CollisionComponentName = TEXT("CollisionComponent");
-const FName AWpEntity::MeshComponentName = TEXT("MeshComponent");
-const FName AWpEntity::MovementComponentName = TEXT("MovementComponent");
 
 const FName AWpEntity::CollisionComponentCollisionProfileName = TEXT("WpEntitySimple");
 const FName AWpEntity::MeshComponentCollisionProfileName = TEXT("WpEntityComplex");
@@ -50,26 +52,37 @@ AWpEntity::AWpEntity()
 	CollisionComponent->SetCollisionProfileName(CollisionComponentCollisionProfileName);
 	CollisionComponent->SetNotifyRigidBodyCollision(true);
 	CollisionComponent->SetGenerateOverlapEvents(true);
+	CollisionComponent->SetCanEverAffectNavigation(false);
 	RootComponent = CollisionComponent;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
 	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
 	MeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
 	MeshComponent->SetGenerateOverlapEvents(false);
+	MeshComponent->SetCanEverAffectNavigation(true);
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	NavModifierComponent = CreateDefaultSubobject<UNavModifierComponent>(NavModifierComponentName);
+	NavModifierComponent->SetAreaClass(UNavArea_Obstacle::StaticClass());
 
 	MovementComponent = CreateDefaultSubobject<UWpEntityMovementComponent>(MovementComponentName);
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
 	MovementComponent->SetInterpolatedComponent(MeshComponent);
 
 	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
-	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
-	IntelComponent = CreateDefaultSubobject<UWpIntelComponent>(IntelComponentName);
-	OrderReceiverComponent = CreateDefaultSubobject<UWpOrderReceiverComponent>(OrderReceiverComponentName);
-	ProductionComponent = CreateDefaultSubobject<UWpProductionComponent>(ProductionComponentName);
-	WeaponComponent = CreateDefaultSubobject<UWpWeaponComponent>(WeaponComponentName);
 
+	EnduranceComponent = CreateDefaultSubobject<UWpEnduranceComponent>(EnduranceComponentName);
+
+	IntelComponent = CreateDefaultSubobject<UWpIntelComponent>(IntelComponentName);
+	IntelComponent->SetCanEverAffectNavigation(false);
 	IntelComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	OrderReceiverComponent = CreateDefaultSubobject<UWpOrderReceiverComponent>(OrderReceiverComponentName);
+
+	ProductionComponent = CreateDefaultSubobject<UWpProductionComponent>(ProductionComponentName);
+
+	WeaponComponent = CreateDefaultSubobject<UWpWeaponComponent>(WeaponComponentName);
+	WeaponComponent->SetCanEverAffectNavigation(false);
 	WeaponComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	SetPooledObjectVisibility(false);
@@ -114,6 +127,10 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 
 		EntityConfigId = PooledEntityData.EntityConfigId;
 		OnRep_EntityConfigId();
+	}
+	else
+	{
+		NavModifierComponent->SetNavigationRelevancy(false);
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -271,6 +288,8 @@ void AWpEntity::OnRep_EntityConfigId()
 	const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
 	const float HalfHeight = MeshExtent.Z;
 	CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
+
+	NavModifierComponent->SetNavigationRelevancy(EntityType == EWpEntityType::Building);
 
 	MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
 }

@@ -18,6 +18,7 @@ class UWpProductionComponent;
 class UWpWeaponComponent;
 
 class UCapsuleComponent;
+class UNavModifierComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class AWpEntity : public APawn, public IWpPooledObjectInterface
@@ -72,8 +73,9 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> MeshComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UNavModifierComponent> NavModifierComponent = nullptr;
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpEntityMovementComponent> MovementComponent = nullptr;
-
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpBelligerentComponent> BelligerentComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
@@ -97,16 +99,16 @@ private:
 	EWpEntityType EntityType = EWpEntityType::Undefined;
 
 public:
+	static const FName CollisionComponentName;
+	static const FName MeshComponentName;
+	static const FName NavModifierComponentName;
+	static const FName MovementComponentName;
 	static const FName BelligerentComponentName;
 	static const FName EnduranceComponentName;
 	static const FName IntelComponentName;
 	static const FName OrderReceiverComponentName;
 	static const FName ProductionComponentName;
 	static const FName WeaponComponentName;
-
-	static const FName CollisionComponentName;
-	static const FName MeshComponentName;
-	static const FName MovementComponentName;
 
 	static const FName CollisionComponentCollisionProfileName;
 	static const FName MeshComponentCollisionProfileName;
