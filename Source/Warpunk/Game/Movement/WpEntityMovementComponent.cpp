@@ -1,5 +1,6 @@
 #include "WpEntityMovementComponent.h"
 
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 
@@ -19,7 +20,8 @@ const uint32 UWpEntityMovementComponent::MaxMoveIterationNum = 10;
 const float UWpEntityMovementComponent::IdealGroundDistance = 1.0f;
 const float UWpEntityMovementComponent::MaxGroundDistance = IdealGroundDistance + 1.0f;
 
-const float UWpEntityMovementComponent::WallBumpIntensity = 0.1f;
+const float UWpEntityMovementComponent::WallImpactElasticity = 0.2f;
+const float UWpEntityMovementComponent::EntityImpactElasticity = 0.5f;
 
 const float UWpEntityMovementComponent::KineticToStaticGroundFriction = 0.8f;
 const float UWpEntityMovementComponent::MinSlippingLateralSpeed = 5.0f;
@@ -147,13 +149,27 @@ void UWpEntityMovementComponent::RequestPathMove(const FVector& MoveInput)
 {
 	const FVector HorizontalMoveInput = MoveInput.GetSafeNormal2D() * MoveInput.Size();
 
-	if (MovementType != EWpEntityMovementType::Legs)
+	FVector InputVector = HorizontalMoveInput;
+
+	switch (MovementType)
 	{
-		ensureAlways(false);
-		return;
+	case EWpEntityMovementType::Legs:
+		break;
+	case EWpEntityMovementType::Tracks:
+	case EWpEntityMovementType::Wheels:
+		{
+			const FRotator LocalRotation = FRotationMatrix::MakeFromXZ(UpdatedComponent->GetForwardVector(), FVector::UpVector).Rotator();
+			const FTransform LocalTransform = FTransform{LocalRotation};
+			InputVector = LocalTransform.InverseTransformVectorNoScale(InputVector);
+			InputVector.X = FMath::Sign(InputVector.X);
+			InputVector.Y = FMath::Sign(InputVector.Y) * InputVector.X;
+		}
+		break;
+	default:
+		break;
 	}
 
-	Super::RequestPathMove(HorizontalMoveInput);
+	Super::RequestPathMove(InputVector);
 }
 
 void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -181,6 +197,7 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 			MaxWheelRotationAngle = MovementConfig.MaxWheelRotationAngle;
 			MaxWheelEdgeRotationSpeed = MovementConfig.MaxWheelEdgeRotationSpeed;
 			MaxWheelCenterRotationSpeed = MovementConfig.MaxWheelCenterRotationSpeed;
+			Mass = MovementConfig.Mass;
 			MaxInclineAngleCos = MovementConfig.MaxInclineAngleCos;
 			MaxStepUpHeight = MovementConfig.MaxStepUpHeight;
 
@@ -667,12 +684,19 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 
 		if (Hit.bBlockingHit)
 		{
-			const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
-			if (InclineAngleCos < MaxInclineAngleCos)
+			if (Hit.GetActor()->GetClass()->IsChildOf<AWpEntity>())
 			{
-				if (!StepUp(RemainingTime))
+				ProcessImpact(RemainingTime, Hit);
+			}
+			else
+			{
+				const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
+				if (InclineAngleCos < MaxInclineAngleCos)
 				{
-					ProcessWallImpact(Hit);
+					if (!StepUp(RemainingTime))
+					{
+						ProcessImpact(RemainingTime, Hit);
+					}
 				}
 			}
 		}
@@ -691,14 +715,23 @@ FVector UWpEntityMovementComponent::CalcDeltaLocation(const float DeltaTime, con
 		return MoveSpeed * DeltaTime;
 	}
 
-	return FVector::VectorPlaneProject(MoveSpeed, InGroundNormal).GetUnsafeNormal() * MoveSpeed.Size() * DeltaTime;
+	FVector DeltaLocation = FVector::VectorPlaneProject(MoveSpeed, InGroundNormal).GetUnsafeNormal() * MoveSpeed.Size() * DeltaTime;
+
+	if (DeltaLocation.Z > 0.0)
+	{
+		const float InclineAngleCos = InGroundNormal.Dot(FVector::UpVector);
+		if (InclineAngleCos < MaxInclineAngleCos)
+		{
+			DeltaLocation.Z = 0.0;
+		}
+	}
+
+	return DeltaLocation;
 }
 
 void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 {
 	const bool bWasOnGround = bOnGround;
-
-	bool bShouldProcessWallImpact = false;
 
 	FHitResult Hit;
 	const FVector StartLocation = UpdatedComponent->GetComponentLocation();
@@ -715,11 +748,6 @@ void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 		{
 			const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
 			bOnGround = InclineAngleCos > MaxInclineAngleCos;
-
-			if (!bOnGround && !Hit.ImpactNormal.Equals(FVector::UpVector) && (MoveSpeed.Dot(Hit.ImpactNormal) < 0.0))
-			{
-				bShouldProcessWallImpact = true;
-			}
 		}
 	}
 	else
@@ -754,10 +782,98 @@ void UWpEntityMovementComponent::UpdateGround(const float DeltaTime)
 				UpdatedComponent->MoveComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), true);
 			}
 		}
-		else if (bShouldProcessWallImpact)
+		else if (bWasOnGround)
 		{
-			ProcessWallImpact(Hit);
+			const FVector InclineOffsetLocation = Hit.Location + IdealGroundDistance * GroundNormal.GetSafeNormal2D();
+			const FVector DeltaLocation = InclineOffsetLocation - UpdatedComponent->GetComponentLocation();
+			UpdatedComponent->MoveComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), true);
+
+			UpdateGround(0.0f);
 		}
+	}
+}
+
+void UWpEntityMovementComponent::ProcessImpact(const float DeltaTime, const FHitResult& Hit)
+{
+	ensureAlways(Hit.bBlockingHit);
+
+	if (Hit.ImpactNormal.Equals(FVector::UpVector))
+	{
+		return;
+	}
+
+	AWpEntity* const OtherEntity = Cast<AWpEntity>(Hit.GetActor());
+	UWpEntityMovementComponent* const OtherEntityMovementComponent = OtherEntity ? OtherEntity->GetEntityMovementComponent() : nullptr;
+	const bool bImpactWithUnit = OtherEntityMovementComponent && OtherEntityMovementComponent->IsActive();
+
+	if (bImpactWithUnit)
+	{
+		const FVector ThisMoveSpeed = MoveSpeed;
+		const FVector OtherMoveSpeed = OtherEntityMovementComponent->MoveSpeed;
+
+		ProcessEntityImpact(Hit, OtherEntityMovementComponent, OtherMoveSpeed);
+		OtherEntityMovementComponent->ProcessEntityImpact(Hit, this, ThisMoveSpeed);
+		OtherEntityMovementComponent->Move(DeltaTime);
+	}
+	else
+	{
+		ProcessWallImpact(Hit);
+	}
+}
+
+void UWpEntityMovementComponent::ProcessWallImpact(const FHitResult& Hit)
+{
+	const FVector HorizontalImpactNormal = Hit.ImpactNormal.GetUnsafeNormal2D();
+	const FVector HorizontalMoveSpeed = MoveSpeed * (FVector::ForwardVector + FVector::RightVector);
+	const FVector SpeedInto = HorizontalMoveSpeed.ProjectOnToNormal(HorizontalImpactNormal);
+	const FVector SpeedAlong = HorizontalMoveSpeed - SpeedInto;
+
+	const FVector NewSpeedInto = WallImpactElasticity * -SpeedInto;
+	const FVector DeltaSpeed = NewSpeedInto - SpeedInto;
+	MoveSpeed += DeltaSpeed;
+
+	if (MovementType != EWpEntityMovementType::Legs)
+	{
+		const FVector ImpactRadiusVector = Hit.ImpactPoint - Hit.Location;
+		const float ImpactRotationSpeedScale = SpeedAlong.Size2D() / ImpactRadiusVector.Size2D();
+		const float ImpactRotationSpeedDirection =
+			FMath::Sign(ImpactRadiusVector.Dot(UpdatedComponent->GetRightVector()))
+			* FMath::Sign(HorizontalMoveSpeed.Dot(UpdatedComponent->GetForwardVector()));
+		const float ImpactRotationSpeed = ImpactRotationSpeedScale * ImpactRotationSpeedDirection;
+		RotationSpeed = FMath::Clamp(ImpactRotationSpeed, -MaxRotationSpeed, MaxRotationSpeed);
+	}
+}
+
+void UWpEntityMovementComponent::ProcessEntityImpact(const FHitResult& Hit, const UWpEntityMovementComponent* const OtherMovementComponent, const FVector& OtherMoveSpeed)
+{
+	ensureAlways(OtherMovementComponent);
+
+	const FVector HorizontalImpactNormal = Hit.ImpactNormal.GetUnsafeNormal2D();
+	const FVector HorizontalMoveSpeed = MoveSpeed * (FVector::ForwardVector + FVector::RightVector);
+	const FVector SpeedInto = HorizontalMoveSpeed.ProjectOnToNormal(HorizontalImpactNormal);
+	const FVector SpeedAlong = HorizontalMoveSpeed - SpeedInto;
+
+	const FVector OtherHorizontalMoveSpeed = OtherMoveSpeed * (FVector::ForwardVector + FVector::RightVector);
+	const FVector OtherSpeedInto = OtherHorizontalMoveSpeed.ProjectOnToNormal(HorizontalImpactNormal);
+	const FVector OtherSpeedAlong = OtherHorizontalMoveSpeed - OtherSpeedInto;
+	const float& OtherMass = OtherMovementComponent->Mass;
+
+	const FVector NewSpeedInto = EntityImpactElasticity
+		* ((Mass - OtherMass) * SpeedInto
+			+ 2.0 * OtherMass * OtherSpeedInto)
+		/ (Mass + OtherMass);
+	const FVector DeltaSpeed = NewSpeedInto - SpeedInto;
+	MoveSpeed += DeltaSpeed;
+
+	if (MovementType != EWpEntityMovementType::Legs)
+	{
+		const FVector ImpactRadiusVector = Hit.ImpactPoint - UpdatedComponent->GetComponentLocation();
+		const float ImpactRotationSpeedScale = (SpeedAlong - OtherSpeedAlong).Size2D() / ImpactRadiusVector.Size2D();
+		const float ImpactRotationSpeedDirection =
+			FMath::Sign(ImpactRadiusVector.Dot(UpdatedComponent->GetRightVector()))
+			* FMath::Sign(HorizontalMoveSpeed.Dot(UpdatedComponent->GetForwardVector()));
+		const float ImpactRotationSpeed = ImpactRotationSpeedScale * ImpactRotationSpeedDirection;
+		RotationSpeed = FMath::Clamp(ImpactRotationSpeed, -MaxRotationSpeed, MaxRotationSpeed);
 	}
 }
 
@@ -822,32 +938,6 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime)
 	AddInterpolatedComponentOffset(DeltaLocation, FRotator::ZeroRotator);
 
 	return true;
-}
-
-void UWpEntityMovementComponent::ProcessWallImpact(const FHitResult& Hit)
-{
-	ensureAlways(Hit.bBlockingHit);
-	ensureAlways(!Hit.ImpactNormal.Equals(FVector::UpVector));
-
-	const FVector HorizontalImpactNormal = Hit.ImpactNormal.GetUnsafeNormal2D();
-	const FVector HorizontalMoveSpeed = MoveSpeed * (FVector::ForwardVector + FVector::RightVector);
-	const FVector SpeedIntoWall = HorizontalMoveSpeed.ProjectOnToNormal(HorizontalImpactNormal);
-	const FVector SpeedAlongWall = HorizontalMoveSpeed - SpeedIntoWall;
-
-	const FVector NewSpeedIntoWall = SpeedIntoWall * -WallBumpIntensity;
-	const FVector DeltaMoveSpeed = NewSpeedIntoWall - SpeedIntoWall;
-	MoveSpeed += DeltaMoveSpeed;
-
-	if (MovementType != EWpEntityMovementType::Legs)
-	{
-		const FVector ImpactRadiusVector = Hit.ImpactPoint - Hit.Location;
-		const float ImpactRotationSpeedScale = SpeedAlongWall.Size2D() / ImpactRadiusVector.Size2D();
-		const float ImpactRotationSpeedDirection =
-			FMath::Sign(ImpactRadiusVector.Dot(UpdatedComponent->GetRightVector()))
-			* FMath::Sign(HorizontalMoveSpeed.Dot(UpdatedComponent->GetForwardVector()));
-		const float ImpactRotationSpeed = ImpactRotationSpeedScale * ImpactRotationSpeedDirection;
-		RotationSpeed = FMath::Clamp(ImpactRotationSpeed, -MaxRotationSpeed, MaxRotationSpeed);
-	}
 }
 
 void UWpEntityMovementComponent::Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const

@@ -57,6 +57,7 @@ void FWpEntityConfig::CheckCorrectness()
 			bIsCorrect &= MovementConfig.MaxWheelEdgeRotationTime > 0.0f;
 			bIsCorrect &= MovementConfig.MaxWheelCenterRotationTime > 0.0f;
 		}
+		bIsCorrect &= MovementConfig.Mass > 0.0f;
 		bIsCorrect &= (MovementConfig.MaxInclineAngleDeg > 0.0f) && (MovementConfig.MaxInclineAngleDeg < 90.0f);
 		bIsCorrect &= MovementConfig.MaxStepUpHeight > 0.0f;
 	}

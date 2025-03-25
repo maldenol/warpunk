@@ -65,9 +65,11 @@ private:
 
 	void UpdateGround(const float DeltaTime);
 
-	bool StepUp(const float DeltaTime);
-
+	void ProcessImpact(const float DeltaTime, const FHitResult& Hit);
 	void ProcessWallImpact(const FHitResult& Hit);
+	void ProcessEntityImpact(const FHitResult& Hit, const UWpEntityMovementComponent* const OtherMovementComponent, const FVector& OtherMoveSpeed);
+
+	bool StepUp(const float DeltaTime);
 
 	void Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
 
@@ -109,6 +111,8 @@ private:
 	float MaxWheelCenterRotationSpeed = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly)
+	float Mass = 0.0f;
+	UPROPERTY(VisibleInstanceOnly)
 	float MaxInclineAngleCos = 0.0f;
 	UPROPERTY(VisibleInstanceOnly)
 	float MaxStepUpHeight = 0.0f;
@@ -142,7 +146,8 @@ public:
 	static const float IdealGroundDistance;
 	static const float MaxGroundDistance;
 
-	static const float WallBumpIntensity;
+	static const float WallImpactElasticity;
+	static const float EntityImpactElasticity;
 
 	static const float KineticToStaticGroundFriction;
 	static const float MinSlippingLateralSpeed;

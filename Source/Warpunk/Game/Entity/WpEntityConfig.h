@@ -56,6 +56,8 @@ struct FWpMovementConfig final
 	float MaxWheelCenterRotationTime = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Collision")
+	float Mass = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Collision")
 	float MaxInclineAngleDeg = 0.0f;
 	UPROPERTY(EditAnywhere, Category = "Collision")
 	float MaxStepUpHeight = 0.0f;
