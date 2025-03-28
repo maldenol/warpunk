@@ -63,15 +63,17 @@ private:
 
 	FVector CalcDeltaLocation(const float DeltaTime, const FVector& InGroundNormal) const;
 
-	void UpdateGround(const float DeltaTime);
+	void UpdateGround();
 
-	void ProcessImpact(const float DeltaTime, const FHitResult& Hit);
 	void ProcessWallImpact(const FHitResult& Hit);
-	void ProcessEntityImpact(const FHitResult& Hit, const UWpEntityMovementComponent* const OtherMovementComponent, const FVector& OtherMoveSpeed);
+	bool ProcessEntityImpact(const FHitResult& Hit);
+	void ReceiveEntityImpact(const FHitResult& Hit, const UWpEntityMovementComponent* const OtherMovementComponent, const FVector& OtherMoveSpeed);
 
-	bool StepUp(const float DeltaTime);
+	bool StepUp(const float DeltaTime, float& OutSpentTime);
 
-	void Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
+	void SweepCapsule(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
+	void SweepBottomSphere(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
+	void LineTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
 
 	void CacheInitialInterpolatedComponentOffset();
 	void UpdateTargetInterpolatedComponentOffset();
@@ -141,6 +143,7 @@ private:
 	FRotator DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
 
 public:
+	static const float MinTickTime;
 	static const uint32 MaxMoveIterationNum;
 
 	static const float IdealGroundDistance;
@@ -148,6 +151,8 @@ public:
 
 	static const float WallImpactElasticity;
 	static const float EntityImpactElasticity;
+	static const float EntityImpactReturnDistance;
+	static const float EntityImpactLateralSpeedReduction;
 
 	static const float KineticToStaticGroundFriction;
 	static const float MinSlippingLateralSpeed;
