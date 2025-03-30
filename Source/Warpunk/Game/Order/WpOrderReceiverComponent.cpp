@@ -92,8 +92,6 @@ void UWpOrderReceiverComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UWpOrderReceiverComponent, DefaultOrders);
-	DOREPLIFETIME(UWpOrderReceiverComponent, SupportedOrders);
 	DOREPLIFETIME(UWpOrderReceiverComponent, UnitToProduceConfigIdNumbers);
 }
 
@@ -104,7 +102,10 @@ void UWpOrderReceiverComponent::OnRep_IsActive()
 
 void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
 
 	CreateSelectionWidgetComponentIfNull();
 
@@ -115,14 +116,17 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 
 		if (OrderReceiverConfig)
 		{
-			ensureAlways(!OrderReceiverConfig->SupportedOrders.IsEmpty());
-
 			DefaultOrders = OrderReceiverConfig->DefaultOrders;
 			SupportedOrders = OrderReceiverConfig->SupportedOrders.Array();
 			bShouldProxyOrders = OrderReceiverConfig->bShouldProxyOrders;
 		}
 
 		bIsAcquired = OrderReceiverConfig != nullptr;
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
 	}
 
 	if (!bIsAcquired)

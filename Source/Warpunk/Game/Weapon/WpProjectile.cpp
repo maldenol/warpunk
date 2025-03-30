@@ -91,21 +91,53 @@ void AWpProjectile::PostNetReceiveLocationAndRotation()
 
 void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(HasAuthority());
+	}
 
 	if (bIsAcquired)
 	{
 		const FWpPooledProjectileData& PooledProjectileData = static_cast<const FWpPooledProjectileData&>(PooledObjectData);
 
 		ensureAlways(PooledProjectileData.ProjectileConfig.EntityConfigId > 0);
-		ensureAlways(!FMath::IsNearlyZero(PooledProjectileData.Damage));
-		ensureAlways(PooledProjectileData.Weapon);
 
 		ProjectileConfig = PooledProjectileData.ProjectileConfig;
-		OnRep_ProjectileConfig();
 
-		Damage = PooledProjectileData.Damage;
-		Weapon = PooledProjectileData.Weapon;
+		const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
+		const FName RowName = FName{FString::FromInt(ProjectileConfig.EntityConfigId)};
+		const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+		const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
+
+		SphereComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
+
+		MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
+		MeshComponent->SetRelativeRotation(WeaponConfig.ProjectileMeshRotation);
+
+		const FBoxSphereBounds& MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
+
+		const float MeshExtentMax = MeshBounds.BoxExtent.GetMax();
+		const float MeshScale = WeaponConfig.ProjectileMeshToRadiusScale * WeaponConfig.ProjectileRadius / MeshExtentMax;
+		MeshComponent->SetRelativeScale3D(FVector{MeshScale});
+
+		const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
+		MeshComponent->SetRelativeLocation(-MeshOrigin);
+
+		MovementComponent->SetInterpolatedComponent(MeshComponent);
+
+		if (HasAuthority())
+		{
+			ensureAlways(!FMath::IsNearlyZero(PooledProjectileData.Damage));
+			ensureAlways(PooledProjectileData.Weapon);
+
+			Damage = PooledProjectileData.Damage;
+			Weapon = PooledProjectileData.Weapon;
+		}
+	}
+
+	if (!HasAuthority())
+	{
+		return;
 	}
 
 	SetActorEnableCollision(bIsAcquired);
@@ -146,24 +178,11 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 
 void AWpProjectile::OnRep_ProjectileConfig()
 {
-	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
-	const FName RowName = FName{FString::FromInt(ProjectileConfig.EntityConfigId)};
-	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
-	const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
+	FWpPooledProjectileData PooledProjectileData;
+	PooledProjectileData.ProjectileConfig = ProjectileConfig;
+	PooledProjectileData.InitialVelocity = FVector::ZeroVector;
+	PooledProjectileData.Damage = 0.0f;
+	PooledProjectileData.Weapon = nullptr;
 
-	SphereComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
-
-	MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
-	MeshComponent->SetRelativeRotation(WeaponConfig.ProjectileMeshRotation);
-
-	const FBoxSphereBounds& MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
-
-	const float MeshExtentMax = MeshBounds.BoxExtent.GetMax();
-	const float MeshScale = WeaponConfig.ProjectileMeshToRadiusScale * WeaponConfig.ProjectileRadius / MeshExtentMax;
-	MeshComponent->SetRelativeScale3D(FVector{MeshScale});
-
-	const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
-	MeshComponent->SetRelativeLocation(-MeshOrigin);
-
-	MovementComponent->SetInterpolatedComponent(MeshComponent);
+	AcquirePooledObject(PooledProjectileData);
 }

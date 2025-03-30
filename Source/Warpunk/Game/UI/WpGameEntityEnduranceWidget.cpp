@@ -22,9 +22,9 @@ void UWpGameEntityEnduranceWidget::SetEnduranceComponent(UWpEnduranceComponent* 
 
 void UWpGameEntityEnduranceWidget::OnCurrentEnduranceChanged(const float CurrentEndurance, const float MaxEndurance)
 {
-	ensureAlways(CurrentEndurance >= 0.0f && CurrentEndurance <= MaxEndurance);
-
-	if (CurrentEndurance == MaxEndurance)
+	const bool bError = FMath::IsNearlyZero(MaxEndurance) || (CurrentEndurance > MaxEndurance);
+	const bool bFull = FMath::IsNearlyEqual(CurrentEndurance, MaxEndurance);
+	if (bError || bFull)
 	{
 		ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
 		return;

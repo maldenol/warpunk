@@ -55,9 +55,9 @@ private:
 
 	void CreateSelectionWidgetComponentIfNull();
 
-	UPROPERTY(VisibleInstanceOnly, Replicated)
+	UPROPERTY(VisibleInstanceOnly)
 	FWpDefaultOrders DefaultOrders = {};
-	UPROPERTY(VisibleInstanceOnly, Replicated)
+	UPROPERTY(VisibleInstanceOnly)
 	TArray<EWpOrderType> SupportedOrders = {};
 	UPROPERTY(VisibleInstanceOnly)
 	bool bShouldProxyOrders = false;

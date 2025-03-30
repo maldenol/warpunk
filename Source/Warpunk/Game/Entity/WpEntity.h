@@ -95,7 +95,8 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing=OnRep_EntityConfigId)
 	uint32 EntityConfigId = 0;
-	UPROPERTY(VisibleInstanceOnly, Replicated)
+
+	UPROPERTY(VisibleInstanceOnly)
 	EWpEntityType EntityType = EWpEntityType::Undefined;
 
 public:

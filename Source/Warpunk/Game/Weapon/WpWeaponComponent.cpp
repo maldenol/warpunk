@@ -81,7 +81,15 @@ void UWpWeaponComponent::OnRep_IsActive()
 
 void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
 
 	float LongestRange = 0.0f;
 

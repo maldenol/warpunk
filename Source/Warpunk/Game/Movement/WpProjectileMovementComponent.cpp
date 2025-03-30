@@ -39,7 +39,15 @@ void UWpProjectileMovementComponent::UpdateTickRegistration()
 
 void UWpProjectileMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
 
 	if (bIsAcquired)
 	{

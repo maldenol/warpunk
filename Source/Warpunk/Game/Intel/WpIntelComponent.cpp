@@ -73,7 +73,6 @@ void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UWpIntelComponent, bMeshIsVisible);
-	DOREPLIFETIME(UWpIntelComponent, MeshTransform);
 }
 
 void UWpIntelComponent::OnRep_IsActive()
@@ -83,7 +82,10 @@ void UWpIntelComponent::OnRep_IsActive()
 
 void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
 
 	if (bIsAcquired)
 	{
@@ -104,11 +106,14 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 
 			SetRelativeLocation(FVector{0.0f, 0.0f, -HalfSizeZ});
 			SetRelativeScale3D(FVector{ScaleX, ScaleY, ScaleZ});
-
-			MeshTransform = GetRelativeTransform();
 		}
 
 		bIsAcquired = IntelConfig != nullptr;
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
 	}
 
 	SetMeshIsVisibile(bIsAcquired);
@@ -173,11 +178,6 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 void UWpIntelComponent::OnRep_bMeshIsVisible()
 {
 	UpdateMeshVisibilityBasedOnTeam();
-}
-
-void UWpIntelComponent::OnRep_MeshTransform()
-{
-	SetRelativeTransform(MeshTransform);
 }
 
 void UWpIntelComponent::InitializeMesh()

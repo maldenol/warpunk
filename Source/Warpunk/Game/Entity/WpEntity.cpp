@@ -64,6 +64,7 @@ AWpEntity::AWpEntity()
 
 	NavModifierComponent = CreateDefaultSubobject<UNavModifierComponent>(NavModifierComponentName);
 	NavModifierComponent->SetAreaClass(UNavArea_Obstacle::StaticClass());
+	NavModifierComponent->SetNavigationRelevancy(false);
 
 	MovementComponent = CreateDefaultSubobject<UWpEntityMovementComponent>(MovementComponentName);
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
@@ -104,7 +105,6 @@ void AWpEntity::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWpEntity, EntityConfigId);
-	DOREPLIFETIME(AWpEntity, EntityType);
 }
 
 bool AWpEntity::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth)
@@ -117,7 +117,10 @@ bool AWpEntity::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, A
 
 void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(HasAuthority());
+	}
 
 	if (bIsAcquired)
 	{
@@ -126,12 +129,34 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		ensureAlways(PooledEntityData.EntityConfigId > 0);
 
 		EntityConfigId = PooledEntityData.EntityConfigId;
-		OnRep_EntityConfigId();
+
+		const FWpEntityConfig& EntityConfig = *PooledEntityData.EntityConfig;
+
+		EntityType = EntityConfig.Type;
+
+		MeshComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
+		MeshComponent->SetStaticMesh(EntityConfig.MeshConfig.Mesh);
+		MeshComponent->SetMaterial(0, EntityConfig.MeshConfig.Material);
+
+		const FBoxSphereBounds MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
+
+		const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.MeshConfig.Transform.GetScale3D();
+		MeshComponent->SetRelativeLocation(-MeshOrigin);
+
+		const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
+		const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
+		const float HalfHeight = MeshExtent.Z;
+		CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
+
+		MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
 	}
-	else
+
+	if (!HasAuthority())
 	{
-		NavModifierComponent->SetNavigationRelevancy(false);
+		return;
 	}
+
+	NavModifierComponent->SetNavigationRelevancy(bIsAcquired && (EntityType == EWpEntityType::Building));
 
 	SetActorEnableCollision(bIsAcquired);
 	SetActorHiddenInGame(!bIsAcquired);
@@ -273,23 +298,11 @@ void AWpEntity::OnRep_EntityConfigId()
 	const FName RowName = FName{FString::FromInt(EntityConfigId)};
 	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 
-	EntityType = EntityConfig.Type;
+	FWpPooledEntityData PooledEntityData;
+	PooledEntityData.EntityConfig = &EntityConfig;
+	PooledEntityData.EntityConfigId = EntityConfigId;
+	PooledEntityData.BelligerentId = 0;
+	PooledEntityData.TeamId = 0;
 
-	MeshComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
-	MeshComponent->SetStaticMesh(EntityConfig.MeshConfig.Mesh);
-	MeshComponent->SetMaterial(0, EntityConfig.MeshConfig.Material);
-
-	const FBoxSphereBounds MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
-
-	const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.MeshConfig.Transform.GetScale3D();
-	MeshComponent->SetRelativeLocation(-MeshOrigin);
-
-	const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
-	const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
-	const float HalfHeight = MeshExtent.Z;
-	CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
-
-	NavModifierComponent->SetNavigationRelevancy(EntityType == EWpEntityType::Building);
-
-	MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
+	AcquirePooledObject(PooledEntityData);
 }

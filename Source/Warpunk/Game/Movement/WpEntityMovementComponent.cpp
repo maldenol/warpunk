@@ -177,7 +177,10 @@ void UWpEntityMovementComponent::RequestPathMove(const FVector& MoveInput)
 
 void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
 
 	if (bIsAcquired)
 	{
@@ -204,25 +207,33 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 			MaxInclineAngleCos = MovementConfig.MaxInclineAngleCos;
 			MaxStepUpHeight = MovementConfig.MaxStepUpHeight;
 
-			MoveSpeed = FVector::ZeroVector;
-			Velocity = FVector::ZeroVector;
-			MoveAcceleration = FVector::ZeroVector;
-			RotationSpeed = 0.0f;
-			RotationAcceleration = 0.0f;
-			WheelRotationAngle = 0.0f;
-			bOnGround = false;
-			GroundNormal = FVector::UpVector;
-			bIsSlipping = false;
-			SetIsFirstPersonControlled(false);
-			CacheInitialInterpolatedComponentOffset();
+			if (GetOwner()->HasAuthority())
+			{
+				MoveSpeed = FVector::ZeroVector;
+				Velocity = FVector::ZeroVector;
+				MoveAcceleration = FVector::ZeroVector;
+				RotationSpeed = 0.0f;
+				RotationAcceleration = 0.0f;
+				WheelRotationAngle = 0.0f;
+				bOnGround = false;
+				GroundNormal = FVector::UpVector;
+				bIsSlipping = false;
+				SetIsFirstPersonControlled(false);
+				CacheInitialInterpolatedComponentOffset();
 
-			FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
-			NavAgentProperties.AgentStepHeight = MaxStepUpHeight;
+				FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
+				NavAgentProperties.AgentStepHeight = MaxStepUpHeight;
+			}
 		}
 		else
 		{
 			bIsAcquired = false;
 		}
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
 	}
 
 	SetActive(bIsAcquired);

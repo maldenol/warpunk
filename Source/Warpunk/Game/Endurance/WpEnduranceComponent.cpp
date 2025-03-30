@@ -51,7 +51,6 @@ void UWpEnduranceComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UWpEnduranceComponent, MaxEndurance);
 	DOREPLIFETIME(UWpEnduranceComponent, EntityState);
 	DOREPLIFETIME(UWpEnduranceComponent, CurrentEndurance);
 }
@@ -63,7 +62,10 @@ void UWpEnduranceComponent::OnRep_IsActive()
 
 void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
 
 	if (bIsAcquired)
 	{
@@ -72,8 +74,17 @@ void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcqui
 
 		MaxEndurance = EnduranceConfig.MaxEndurance;
 		MatterCost = EnduranceConfig.MatterCost;
-		SetEntityState(EWpEntityState::NotProduced);
-		CurrentEndurance = 0.0f;
+
+		if (GetOwner()->HasAuthority())
+		{
+			SetEntityState(EWpEntityState::NotProduced);
+			CurrentEndurance = 0.0f;
+		}
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
 	}
 
 	SetActive(bIsAcquired);

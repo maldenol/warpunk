@@ -28,7 +28,15 @@ void UWpBelligerentComponent::OnRep_IsActive()
 
 void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
 
 	if (bIsAcquired)
 	{

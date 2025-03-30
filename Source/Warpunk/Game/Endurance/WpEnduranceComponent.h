@@ -67,7 +67,7 @@ private:
 
 	void SetEntityState(const EWpEntityState InEntityState);
 
-	UPROPERTY(VisibleInstanceOnly, Replicated)
+	UPROPERTY(VisibleInstanceOnly)
 	float MaxEndurance = 0.0f;
 	UPROPERTY(VisibleInstanceOnly)
 	float MatterCost = 0.0f;

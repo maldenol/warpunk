@@ -38,8 +38,6 @@ private:
 
 	UFUNCTION()
 	void OnRep_bMeshIsVisible();
-	UFUNCTION()
-	void OnRep_MeshTransform();
 
 	void InitializeMesh();
 
@@ -54,8 +52,6 @@ private:
 	bool bCanCheckTeam = false;
 	UPROPERTY(ReplicatedUsing=OnRep_bMeshIsVisible)
 	bool bMeshIsVisible = false;
-	UPROPERTY(ReplicatedUsing=OnRep_MeshTransform)
-	FTransform MeshTransform = FTransform::Identity;
 
 	FDelegateHandle OnPlayerStateReplicatedDelegateHandle = {};
 

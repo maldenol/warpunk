@@ -101,7 +101,10 @@ void UWpProductionComponent::OnRep_IsActive()
 
 void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
-	ensureAlways(GetOwner()->HasAuthority());
+	if (!bIsAcquired)
+	{
+		ensureAlways(GetOwner()->HasAuthority());
+	}
 
 	if (bIsAcquired)
 	{
@@ -116,13 +119,21 @@ void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, 
 			bCanProduce = ProductionConfig->bCanProduce;
 			bShouldSupport = ProductionConfig->bIsSupport;
 
-			ProductionState = EWpProductionState::Idle;
-			EntityToProduceConfigId = 0;
-			EntityToProduceLocation = FVector::ZeroVector;
-			bInfiniteProductionEnabled = false;
+			if (GetOwner()->HasAuthority())
+			{
+				ProductionState = EWpProductionState::Idle;
+				EntityToProduceConfigId = 0;
+				EntityToProduceLocation = FVector::ZeroVector;
+				bInfiniteProductionEnabled = false;
+			}
 		}
 
 		bIsAcquired = ProductionConfig != nullptr;
+	}
+
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
 	}
 
 	if (!bIsAcquired)

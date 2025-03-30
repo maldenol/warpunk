@@ -67,6 +67,10 @@ void FWpEntityConfig::CheckCorrectness()
 		bIsCorrect &= EnduranceConfig.MaxEndurance > 0.0f;
 	}
 
+	{
+		bIsCorrect &= !OrderReceiverConfig->SupportedOrders.IsEmpty();
+	}
+
 	if (const FWpIntelConfig* const IntelConfigPtr = IntelConfig.GetPtrOrNull())
 	{
 		bIsCorrect &= IntelConfigPtr->Range > 0.0f;
