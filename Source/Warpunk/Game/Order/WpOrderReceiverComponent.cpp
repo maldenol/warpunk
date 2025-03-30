@@ -90,14 +90,9 @@ void UWpOrderReceiverComponent::TickComponent(const float DeltaTime, const ELeve
 
 void UWpOrderReceiverComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	// Do not call base function so bIsActive is not replicated
 
 	DOREPLIFETIME(UWpOrderReceiverComponent, UnitToProduceConfigIdNumbers);
-}
-
-void UWpOrderReceiverComponent::OnRep_IsActive()
-{
-	// Override to not enable tick
 }
 
 void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -144,6 +139,19 @@ void UWpOrderReceiverComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquire
 	SelectionWidgetComponent->SetVisibility(false);
 
 	SetActive(bIsAcquired);
+}
+
+void UWpOrderReceiverComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		SetActive(bIsVisible);
+
+		if (bIsVisible)
+		{
+			SetComponentTickEnabled(false);
+		}
+	}
 }
 
 void UWpOrderReceiverComponent::ReceiveOrder(const FWpOrder& Order, const bool bOverride)

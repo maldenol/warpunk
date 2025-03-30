@@ -27,9 +27,8 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void OnRep_IsActive() override;
-
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
+	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 
 	void ReceiveOrder(const FWpOrder& Order, const bool bOverride);
 	FWpOrder GetOrder() const;

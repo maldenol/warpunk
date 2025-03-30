@@ -11,6 +11,8 @@ UWpProjectileMovementComponent::UWpProjectileMovementComponent()
 
 	SetIsReplicatedByDefault(false);
 
+	bAutoUpdateTickRegistration = false;
+
 	bRotationFollowsVelocity = true;
 	bRotationRemainsVertical = false;
 
@@ -27,14 +29,9 @@ void UWpProjectileMovementComponent::BeginPlay()
 	bInterpRotation = !bHasAuthority;
 }
 
-void UWpProjectileMovementComponent::OnRep_IsActive()
+void UWpProjectileMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Override to not enable tick
-}
-
-void UWpProjectileMovementComponent::UpdateTickRegistration()
-{
-	// Override to not enable tick
+	// Do not call base function so bIsActive is not replicated
 }
 
 void UWpProjectileMovementComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)

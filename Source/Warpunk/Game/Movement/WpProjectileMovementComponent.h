@@ -18,9 +18,7 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void OnRep_IsActive() override;
-
-	virtual void UpdateTickRegistration() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;

@@ -70,14 +70,9 @@ void UWpIntelComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	// Do not call base function so bIsActive is not replicated
 
 	DOREPLIFETIME(UWpIntelComponent, bMeshIsVisible);
-}
-
-void UWpIntelComponent::OnRep_IsActive()
-{
-	// Override to not enable tick
 }
 
 void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -119,6 +114,14 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 	SetMeshIsVisibile(bIsAcquired);
 
 	SetActive(bIsAcquired);
+}
+
+void UWpIntelComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		SetActive(bIsVisible);
+	}
 }
 
 const TSet<AWpEntity*>& UWpIntelComponent::GetVisibleEntities() const

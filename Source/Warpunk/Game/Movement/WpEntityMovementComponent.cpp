@@ -44,6 +44,8 @@ UWpEntityMovementComponent::UWpEntityMovementComponent()
 
 	// NetworkNoSmoothUpdateDistance = 100.0f; todo
 
+	bAutoUpdateTickRegistration = false;
+
 	bUpdateNavAgentWithOwnersCollision = false;
 
 	FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
@@ -101,14 +103,9 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 	UpdateNavVelocity();
 }
 
-void UWpEntityMovementComponent::OnRep_IsActive()
+void UWpEntityMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Override to not enable tick
-}
-
-void UWpEntityMovementComponent::UpdateTickRegistration()
-{
-	// Override to not enable tick
+	// Do not call base function so bIsActive is not replicated
 }
 
 void UWpEntityMovementComponent::SetUpdatedComponent(USceneComponent* const NewUpdatedComponent)

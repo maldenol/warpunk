@@ -74,9 +74,9 @@ void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick T
 	}
 }
 
-void UWpWeaponComponent::OnRep_IsActive()
+void UWpWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Override to not enable tick
+	// Do not call base function so bIsActive is not replicated
 }
 
 void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)

@@ -19,9 +19,8 @@ public:
 
 	virtual void TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* const ThisTickFunction) override;
 
-	virtual void OnRep_IsActive() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void UpdateTickRegistration() override;
 	virtual void SetUpdatedComponent(USceneComponent* const NewUpdatedComponent) override;
 	virtual float GetMaxSpeed() const override;
 	virtual FVector ConsumeInputVector() override;

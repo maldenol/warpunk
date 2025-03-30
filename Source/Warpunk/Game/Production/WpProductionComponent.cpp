@@ -94,9 +94,9 @@ void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTi
 	}
 }
 
-void UWpProductionComponent::OnRep_IsActive()
+void UWpProductionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Override to not enable tick
+	// Do not call base function so bIsActive is not replicated
 }
 
 void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)

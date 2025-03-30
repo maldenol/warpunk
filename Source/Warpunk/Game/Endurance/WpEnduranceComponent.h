@@ -35,9 +35,8 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void OnRep_IsActive() override;
-
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
+	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 
 	bool CanBeRepaired(const bool bCanProduce) const;
 	void ReceiveRepair(const float DeltaMatter);

@@ -15,15 +15,10 @@ UWpBelligerentComponent::UWpBelligerentComponent()
 
 void UWpBelligerentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	// Do not call base function so bIsActive is not replicated
 
 	DOREPLIFETIME(UWpBelligerentComponent, BelligerentId);
 	DOREPLIFETIME(UWpBelligerentComponent, TeamId);
-}
-
-void UWpBelligerentComponent::OnRep_IsActive()
-{
-	// Override to not enable tick
 }
 
 void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -65,6 +60,14 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 	}
 
 	SetActive(bIsAcquired);
+}
+
+void UWpBelligerentComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		SetActive(bIsVisible);
+	}
 }
 
 bool UWpBelligerentComponent::BelongsToSameBelligerent(const uint32 OtherBelligerentId) const

@@ -49,15 +49,10 @@ void UWpEnduranceComponent::BeginPlay()
 
 void UWpEnduranceComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	// Do not call base function so bIsActive is not replicated
 
 	DOREPLIFETIME(UWpEnduranceComponent, EntityState);
 	DOREPLIFETIME(UWpEnduranceComponent, CurrentEndurance);
-}
-
-void UWpEnduranceComponent::OnRep_IsActive()
-{
-	// Override to not enable tick
 }
 
 void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -88,6 +83,14 @@ void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcqui
 	}
 
 	SetActive(bIsAcquired);
+}
+
+void UWpEnduranceComponent::OnPooledObjectVisibilityChanged(const bool bIsVisible)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		SetActive(bIsVisible);
+	}
 }
 
 bool UWpEnduranceComponent::CanBeRepaired(const bool bCanProduce) const
