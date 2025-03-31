@@ -115,6 +115,20 @@ bool AWpEntity::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, A
 	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
 }
 
+void AWpEntity::PostNetReceiveLocationAndRotation()
+{
+	if (EntityType == EWpEntityType::Unit)
+	{
+		return;
+	}
+
+	const FRepMovement& LocalRepMovement = GetReplicatedMovement();
+	const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, this);
+	const FRotator& NewRotation = LocalRepMovement.Rotation;
+
+	SetActorLocationAndRotation(NewLocation, NewRotation, false);
+}
+
 void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	if (!bIsAcquired)
@@ -149,6 +163,7 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
 
 		MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
+		MovementComponent->CacheInitialInterpolatedComponentOffset();
 	}
 
 	if (!HasAuthority())

@@ -3,8 +3,11 @@
 #include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
+#include "Warpunk/Game/Player/WpGamePlayerController.h"
 
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/GameStateBase.h"
+#include "Net/UnrealNetwork.h"
 
 /*
  * v(t) = V * (1 - e ^ (-C / T * t)) / (1 - e ^ (-C))
@@ -33,6 +36,7 @@ const float UWpEntityMovementComponent::MinSlippingMagicValueScale = 0.4f;
 const float UWpEntityMovementComponent::InterpolatedComponentSmoothingTime = 0.1f;
 const float UWpEntityMovementComponent::InterpolatedComponentSnapDeltaLocation2 = FMath::Square(1.0f);
 const float UWpEntityMovementComponent::InterpolatedComponentSnapDeltaRotation = FMath::DegreesToRadians(1.0f);
+const float UWpEntityMovementComponent::InterpolatedComponentNoSmoothDistance2 = FMath::Square(100.0f);
 
 UWpEntityMovementComponent::UWpEntityMovementComponent()
 {
@@ -40,9 +44,7 @@ UWpEntityMovementComponent::UWpEntityMovementComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
-	SetIsReplicatedByDefault(false);
-
-	// NetworkNoSmoothUpdateDistance = 100.0f; todo
+	SetIsReplicatedByDefault(true);
 
 	bAutoUpdateTickRegistration = false;
 
@@ -68,44 +70,14 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 
 	ensureAlways(IsActive());
 
-	if (!GetOwner()->HasAuthority())
-	{
-		return; // todo
-	}
-
-	ensureAlways(GetOwner()->HasAuthority());
-
-	UpdateInterpolatedComponentOffset(DeltaTime);
-
-	const FVector InputVector = ConsumeInputVector();
-
-	if (InputVector.IsNearlyZero()
-		&& FMath::IsNearlyZero(WheelRotationAngle)
-		&& MoveSpeed.IsNearlyZero() && MoveAcceleration.IsNearlyZero()
-		&& FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(RotationAcceleration)
-		&& bOnGround)
-	{
-		return;
-	}
-
-	UpdateSlipping();
-	UpdateWheelRotationAngle(DeltaTime, InputVector.Y);
-	UpdateMoveAcceleration(DeltaTime, InputVector);
-	UpdateRotationAcceleration(DeltaTime, InputVector);
-
-	MoveSpeed = CalcNewMoveSpeed(DeltaTime);
-	RotationSpeed = CalcNewRotationSpeed(DeltaTime);
-
-	Move(DeltaTime);
-
-	UpdateTargetInterpolatedComponentOffset();
-
-	UpdateNavVelocity();
+	TickMovement(DeltaTime);
 }
 
 void UWpEntityMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	// Do not call base function so bIsActive is not replicated
+
+	DOREPLIFETIME(UWpEntityMovementComponent, PredictionData);
 }
 
 void UWpEntityMovementComponent::SetUpdatedComponent(USceneComponent* const NewUpdatedComponent)
@@ -119,30 +91,6 @@ void UWpEntityMovementComponent::SetUpdatedComponent(USceneComponent* const NewU
 float UWpEntityMovementComponent::GetMaxSpeed() const
 {
 	return MaxMoveSpeed;
-}
-
-FVector UWpEntityMovementComponent::ConsumeInputVector()
-{
-	FVector InputVector = Super::ConsumeInputVector();
-
-	switch (MovementType)
-	{
-	case EWpEntityMovementType::Legs:
-	case EWpEntityMovementType::Tracks:
-		InputVector = InputVector.GetClampedToMaxSize2D(1.0);
-		break;
-	case EWpEntityMovementType::Wheels:
-		if ((InputVector.X > 1.0) || (InputVector.Y > 1.0))
-		{
-			const float MaxComponent = InputVector.GetMax();
-			InputVector /= MaxComponent;
-		}
-		break;
-	default:
-		break;
-	}
-
-	return InputVector;
 }
 
 void UWpEntityMovementComponent::RequestPathMove(const FVector& MoveInput)
@@ -207,7 +155,6 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 			if (GetOwner()->HasAuthority())
 			{
 				MoveSpeed = FVector::ZeroVector;
-				Velocity = FVector::ZeroVector;
 				MoveAcceleration = FVector::ZeroVector;
 				RotationSpeed = 0.0f;
 				RotationAcceleration = 0.0f;
@@ -216,7 +163,8 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 				GroundNormal = FVector::UpVector;
 				bIsSlipping = false;
 				SetIsFirstPersonControlled(false);
-				CacheInitialInterpolatedComponentOffset();
+				UpdateNavVelocity();
+				UpdatePredictionData(FVector::ZeroVector);
 
 				FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
 				NavAgentProperties.AgentStepHeight = MaxStepUpHeight;
@@ -240,7 +188,7 @@ void UWpEntityMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsV
 {
 	if (!GetOwner()->HasAuthority())
 	{
-		// SetActive(bIsVisible); // todo
+		SetActive(bIsVisible && (GetOwner<AWpEntity>()->GetEntityType() == EWpEntityType::Unit));
 	}
 }
 
@@ -268,7 +216,98 @@ void UWpEntityMovementComponent::AddMovementInput(const float Forward, const flo
 
 void UWpEntityMovementComponent::SetIsFirstPersonControlled(const bool bInIsFirstPersonControlled)
 {
-	bIsFirstPersonControlled = bInIsFirstPersonControlled;
+	if (bIsFirstPersonControlled != bInIsFirstPersonControlled)
+	{
+		bIsFirstPersonControlled = bInIsFirstPersonControlled;
+
+		if (bIsFirstPersonControlled && !GetOwner()->HasAuthority())
+		{
+			LastInputVector = FVector::ZeroVector;
+		}
+	}
+}
+
+void UWpEntityMovementComponent::CacheInitialInterpolatedComponentOffset()
+{
+	InitialInterpolatedComponentTransform = InterpolatedComponent->GetRelativeTransform();
+
+	TargetInterpolatedComponentLocation = InitialInterpolatedComponentTransform.GetLocation();
+	TargetInterpolatedComponentRotation = InitialInterpolatedComponentTransform.GetRotation().Rotator();
+
+	DeltaInterpolatedComponentLocation = FVector::ZeroVector;
+	DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+}
+
+void UWpEntityMovementComponent::TickMovement(const float DeltaTime)
+{
+	UpdateInterpolatedComponentOffset(DeltaTime);
+
+	const FVector InputVector = GetInputVector();
+
+	if (InputVector.IsNearlyZero()
+		&& FMath::IsNearlyZero(WheelRotationAngle)
+		&& MoveSpeed.IsNearlyZero() && MoveAcceleration.IsNearlyZero()
+		&& FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(RotationAcceleration)
+		&& bOnGround)
+	{
+		return;
+	}
+
+	UpdateSlipping();
+	UpdateWheelRotationAngle(DeltaTime, InputVector.Y);
+	UpdateMoveAcceleration(DeltaTime, InputVector);
+	UpdateRotationAcceleration(DeltaTime, InputVector);
+
+	MoveSpeed = CalcNewMoveSpeed(DeltaTime);
+	RotationSpeed = CalcNewRotationSpeed(DeltaTime);
+
+	Move(DeltaTime);
+
+	UpdateTargetInterpolatedComponentOffset();
+
+	if (GetOwner()->HasAuthority())
+	{
+		UpdateNavVelocity();
+
+		UpdatePredictionData(InputVector);
+	}
+}
+
+FVector UWpEntityMovementComponent::GetInputVector()
+{
+	const bool bConsume = bIsFirstPersonControlled
+		                      ? (GetController() && GetController()->IsLocalPlayerController())
+		                      : GetOwner()->HasAuthority();
+	FVector InputVector = bConsume ? ConsumeInputVector() : GetPendingInputVector();
+
+	switch (MovementType)
+	{
+	case EWpEntityMovementType::Legs:
+	case EWpEntityMovementType::Tracks:
+		InputVector = InputVector.GetClampedToMaxSize2D(1.0);
+		break;
+	case EWpEntityMovementType::Wheels:
+		if ((InputVector.X > 1.0) || (InputVector.Y > 1.0))
+		{
+			const float MaxComponent = InputVector.GetMax();
+			InputVector /= MaxComponent;
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (bIsFirstPersonControlled && !GetOwner()->HasAuthority() && !InputVector.Equals(LastInputVector))
+	{
+		if (AWpGamePlayerController* const PlayerController = GetOwner<APawn>()->GetController<AWpGamePlayerController>())
+		{
+			PlayerController->ServerSetCommanderMovementInput(InputVector.X, InputVector.Y);
+
+			LastInputVector = InputVector;
+		}
+	}
+
+	return InputVector;
 }
 
 void UWpEntityMovementComponent::UpdateSlipping()
@@ -867,7 +906,10 @@ bool UWpEntityMovementComponent::ProcessEntityImpact(const FHitResult& Hit)
 		const FVector OtherMoveSpeed = OtherMovementComponent->MoveSpeed;
 
 		ReceiveEntityImpact(Hit, OtherMovementComponent, OtherMoveSpeed);
-		OtherMovementComponent->ReceiveEntityImpact(Hit, this, ThisMoveSpeed);
+		if (OtherEntity->HasAuthority())
+		{
+			OtherMovementComponent->ReceiveEntityImpact(Hit, this, ThisMoveSpeed);
+		}
 
 		const FVector EntityImpactReturnDeltaLocation = EntityImpactReturnDistance * Hit.Normal;
 		UpdatedComponent->MoveComponent(EntityImpactReturnDeltaLocation, UpdatedComponent->GetComponentRotation(), true);
@@ -1028,15 +1070,21 @@ void UWpEntityMovementComponent::LineTrace(FHitResult& OutHit, const FVector& St
 	}
 }
 
-void UWpEntityMovementComponent::CacheInitialInterpolatedComponentOffset()
+void UWpEntityMovementComponent::AddInterpolatedComponentOffset(const FVector& DeltaLocation, const FRotator& DeltaRotation)
 {
-	InitialInterpolatedComponentTransform = InterpolatedComponent->GetRelativeTransform();
+	const FVector LocalDeltaLocation = InitialInterpolatedComponentTransform.InverseTransformVectorNoScale(
+		UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(
+			DeltaLocation
+		));
 
-	TargetInterpolatedComponentLocation = InitialInterpolatedComponentTransform.GetLocation();
-	TargetInterpolatedComponentRotation = InitialInterpolatedComponentTransform.GetRotation().Rotator();
+	DeltaInterpolatedComponentLocation += LocalDeltaLocation;
+	DeltaInterpolatedComponentRotation += DeltaRotation;
+	DeltaInterpolatedComponentRotation.Normalize();
 
-	DeltaInterpolatedComponentLocation = FVector::ZeroVector;
-	DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+	const FVector CurrentLocation = TargetInterpolatedComponentLocation - DeltaInterpolatedComponentLocation;
+	const FRotator CurrentRotation = TargetInterpolatedComponentRotation - DeltaInterpolatedComponentRotation;
+	InterpolatedComponent->SetRelativeLocation(CurrentLocation, false);
+	InterpolatedComponent->SetRelativeRotation(CurrentRotation, false);
 }
 
 void UWpEntityMovementComponent::UpdateTargetInterpolatedComponentOffset()
@@ -1057,20 +1105,11 @@ void UWpEntityMovementComponent::UpdateTargetInterpolatedComponentOffset()
 	const FRotator LocalGroundNormalRotation = FQuat::FindBetweenNormals(FVector::UpVector, LocalGroundNormal).Rotator();
 	TargetInterpolatedComponentLocation = LocalGroundNormalRotation.RotateVector(InitialInterpolatedComponentTransform.GetLocation());
 	TargetInterpolatedComponentRotation = InitialInterpolatedComponentTransform.GetRotation().Rotator() + LocalGroundNormalRotation;
+	TargetInterpolatedComponentRotation.Normalize();
 
 	DeltaInterpolatedComponentLocation += TargetInterpolatedComponentLocation - OldTargetInterpolatedComponentLocation;
 	DeltaInterpolatedComponentRotation += TargetInterpolatedComponentRotation - OldTargetInterpolatedComponentRotation;
-}
-
-void UWpEntityMovementComponent::AddInterpolatedComponentOffset(const FVector& DeltaLocation, const FRotator& DeltaRotation)
-{
-	DeltaInterpolatedComponentLocation += DeltaLocation;
-	DeltaInterpolatedComponentRotation += DeltaRotation;
-
-	const FVector CurrentLocation = TargetInterpolatedComponentLocation - DeltaInterpolatedComponentLocation;
-	const FRotator CurrentRotation = TargetInterpolatedComponentRotation - DeltaInterpolatedComponentRotation;
-	InterpolatedComponent->SetRelativeLocation(CurrentLocation, false);
-	InterpolatedComponent->SetRelativeRotation(CurrentRotation, false);
+	DeltaInterpolatedComponentRotation.Normalize();
 }
 
 void UWpEntityMovementComponent::UpdateInterpolatedComponentOffset(const float DeltaTime)
@@ -1080,7 +1119,7 @@ void UWpEntityMovementComponent::UpdateInterpolatedComponentOffset(const float D
 		return;
 	}
 
-	if (DeltaTime < InterpolatedComponentSmoothingTime)
+	if ((DeltaTime < InterpolatedComponentSmoothingTime) && (DeltaInterpolatedComponentLocation.SizeSquared() < InterpolatedComponentNoSmoothDistance2))
 	{
 		const float Scale = 1.0f - DeltaTime / InterpolatedComponentSmoothingTime;
 		DeltaInterpolatedComponentLocation *= Scale;
@@ -1109,7 +1148,59 @@ void UWpEntityMovementComponent::UpdateInterpolatedComponentOffset(const float D
 
 void UWpEntityMovementComponent::UpdateNavVelocity()
 {
+	ensureAlways(GetOwner()->HasAuthority());
+
 	const FVector GroundVelocity = FVector::VectorPlaneProject(MoveSpeed, GroundNormal).GetSafeNormal() * MoveSpeed.Size2D();
 	const FVector VerticalVelocity = MoveSpeed * FVector::UpVector;
 	Velocity = GroundVelocity + VerticalVelocity;
+}
+
+void UWpEntityMovementComponent::UpdatePredictionData(const FVector& InputVector)
+{
+	ensureAlways(GetOwner()->HasAuthority());
+
+	PredictionData.ServerTime = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+	PredictionData.UpdatedComponentLocation = UpdatedComponent->GetComponentLocation();
+	PredictionData.UpdatedComponentRotation = UpdatedComponent->GetComponentRotation();
+	PredictionData.InputVector = InputVector;
+	PredictionData.MoveSpeed = MoveSpeed;
+	PredictionData.RotationSpeed = RotationSpeed;
+	PredictionData.WheelRotationAngle = WheelRotationAngle;
+	PredictionData.TargetInterpolatedComponentLocation = TargetInterpolatedComponentLocation;
+	PredictionData.TargetInterpolatedComponentRotation = TargetInterpolatedComponentRotation;
+}
+
+void UWpEntityMovementComponent::OnRep_PredictionData()
+{
+	const FVector DeltaLocation = PredictionData.UpdatedComponentLocation - UpdatedComponent->GetComponentLocation();
+	const FRotator DeltaRotation = (PredictionData.UpdatedComponentRotation - UpdatedComponent->GetComponentRotation()).GetNormalized();
+	UpdatedComponent->MoveComponent(DeltaLocation, PredictionData.UpdatedComponentRotation, false);
+	AddInterpolatedComponentOffset(DeltaLocation, DeltaRotation);
+
+	if (!bIsFirstPersonControlled)
+	{
+		ConsumeInputVector();
+		AddInputVector(PredictionData.InputVector);
+	}
+
+	MoveSpeed = PredictionData.MoveSpeed;
+	RotationSpeed = PredictionData.RotationSpeed;
+	WheelRotationAngle = PredictionData.WheelRotationAngle;
+
+	const FVector OldTargetInterpolatedComponentLocation = TargetInterpolatedComponentLocation;
+	const FRotator OldTargetInterpolatedComponentRotation = TargetInterpolatedComponentRotation;
+	TargetInterpolatedComponentLocation = PredictionData.TargetInterpolatedComponentLocation;
+	TargetInterpolatedComponentRotation = PredictionData.TargetInterpolatedComponentRotation;
+	DeltaInterpolatedComponentLocation += TargetInterpolatedComponentLocation - OldTargetInterpolatedComponentLocation;
+	DeltaInterpolatedComponentRotation += TargetInterpolatedComponentRotation - OldTargetInterpolatedComponentRotation;
+	DeltaInterpolatedComponentRotation.Normalize();
+
+	if (const AGameStateBase* const GameState = GetWorld()->GetGameState())
+	{
+		const float DeltaTime = GameState->GetServerWorldTimeSeconds() - PredictionData.ServerTime;
+		if (DeltaTime > MinTickTime)
+		{
+			TickMovement(DeltaTime);
+		}
+	}
 }

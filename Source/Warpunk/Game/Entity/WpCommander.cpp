@@ -113,14 +113,7 @@ void AWpCommander::ClientUnPossessed_Implementation()
 
 void AWpCommander::OnMoveTriggered(const FInputActionValue& ActionValue)
 {
-	if (HasAuthority())
-	{
-		MovementComponent->AddMovementInput(ActionValue[1], ActionValue[0]);
-	}
-	else
-	{
-		GetController<AWpGamePlayerController>()->ServerAddCommanderMovementInput(ActionValue[1], ActionValue[0]);
-	}
+	MovementComponent->AddMovementInput(ActionValue[1], ActionValue[0]);
 }
 
 void AWpCommander::OnLookTriggered(const FInputActionValue& ActionValue)

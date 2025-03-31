@@ -9,6 +9,34 @@
 
 #include "WpEntityMovementComponent.generated.h"
 
+USTRUCT(NotBlueprintable, NotBlueprintType)
+struct FWpEntityMovementComponentPredictionData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleInstanceOnly)
+	double ServerTime = 0.0;
+
+	UPROPERTY(VisibleInstanceOnly)
+	FVector UpdatedComponentLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
+	FRotator UpdatedComponentRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleInstanceOnly)
+	FVector InputVector = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
+	FVector MoveSpeed = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
+	float RotationSpeed = 0.0f;
+	UPROPERTY(VisibleInstanceOnly)
+	float WheelRotationAngle = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly)
+	FVector TargetInterpolatedComponentLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
+	FRotator TargetInterpolatedComponentRotation = FRotator::ZeroRotator;
+};
+
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class UWpEntityMovementComponent final : public UPawnMovementComponent, public IWpPooledObjectInterface
 {
@@ -23,7 +51,6 @@ public:
 
 	virtual void SetUpdatedComponent(USceneComponent* const NewUpdatedComponent) override;
 	virtual float GetMaxSpeed() const override;
-	virtual FVector ConsumeInputVector() override;
 
 	virtual void RequestPathMove(const FVector& MoveInput) override;
 
@@ -39,7 +66,13 @@ public:
 	void AddMovementInput(const float Forward, const float Right);
 	void SetIsFirstPersonControlled(const bool bInIsFirstPersonControlled);
 
+	void CacheInitialInterpolatedComponentOffset();
+
 private:
+	void TickMovement(const float DeltaTime);
+
+	FVector GetInputVector();
+
 	void UpdateSlipping();
 
 	void UpdateWheelRotationAngle(const float DeltaTime, const float Input);
@@ -74,61 +107,60 @@ private:
 	void SweepBottomSphere(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
 	void LineTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
 
-	void CacheInitialInterpolatedComponentOffset();
-	void UpdateTargetInterpolatedComponentOffset();
 	void AddInterpolatedComponentOffset(const FVector& DeltaLocation, const FRotator& DeltaRotation);
+	void UpdateTargetInterpolatedComponentOffset();
 	void UpdateInterpolatedComponentOffset(const float DeltaTime);
 
 	void UpdateNavVelocity();
 
-	UPROPERTY(VisibleInstanceOnly)
+	void UpdatePredictionData(const FVector& InputVector);
+
+	UFUNCTION()
+	void OnRep_PredictionData();
+
 	EWpEntityMovementType MovementType = EWpEntityMovementType::Undefined;
 
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxMoveSpeed = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MoveAccelerationCoefficient1 = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MoveAccelerationCoefficient2 = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxMoveBrakingDeceleration = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxMoveInertiaDeceleration = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxGroundStaticFriction = 0.0f;
 
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxRotationSpeed = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxRotationAcceleration = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxRotationBrakingDeceleration = 0.0f;
 
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxWheelRotationAngle = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxWheelEdgeRotationSpeed = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxWheelCenterRotationSpeed = 0.0f;
 
-	UPROPERTY(VisibleInstanceOnly)
 	float Mass = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxInclineAngleCos = 0.0f;
-	UPROPERTY(VisibleInstanceOnly)
 	float MaxStepUpHeight = 0.0f;
 
+	UPROPERTY(VisibleInstanceOnly)
+	FVector LastInputVector = FVector::ZeroVector;
+
+	UPROPERTY(VisibleInstanceOnly)
 	FVector MoveSpeed = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
 	FVector MoveAcceleration = FVector::ZeroVector;
 
+	UPROPERTY(VisibleInstanceOnly)
 	float RotationSpeed = 0.0f;
+	UPROPERTY(VisibleInstanceOnly)
 	float RotationAcceleration = 0.0f;
 
+	UPROPERTY(VisibleInstanceOnly)
 	float WheelRotationAngle = 0.0f;
 
+	UPROPERTY(VisibleInstanceOnly)
 	bool bOnGround = false;
+	UPROPERTY(VisibleInstanceOnly)
 	FVector GroundNormal = FVector::UpVector;
 
+	UPROPERTY(VisibleInstanceOnly)
 	bool bIsSlipping = false;
 
 	bool bIsFirstPersonControlled = false;
@@ -136,10 +168,17 @@ private:
 	USceneComponent* InterpolatedComponent = nullptr;
 
 	FTransform InitialInterpolatedComponentTransform = FTransform::Identity;
+	UPROPERTY(VisibleInstanceOnly)
 	FVector TargetInterpolatedComponentLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
 	FRotator TargetInterpolatedComponentRotation = FRotator::ZeroRotator;
+	UPROPERTY(VisibleInstanceOnly)
 	FVector DeltaInterpolatedComponentLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
 	FRotator DeltaInterpolatedComponentRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(ReplicatedUsing=OnRep_PredictionData)
+	FWpEntityMovementComponentPredictionData PredictionData = {};
 
 public:
 	static const float MinTickTime;
@@ -160,4 +199,5 @@ public:
 	static const float InterpolatedComponentSmoothingTime;
 	static const float InterpolatedComponentSnapDeltaLocation2;
 	static const float InterpolatedComponentSnapDeltaRotation;
+	static const float InterpolatedComponentNoSmoothDistance2;
 };

@@ -37,7 +37,7 @@ public:
 	void ClientSetExpectedLoadedObjectNum(const uint32 ExpectedLoadedObjectNum);
 
 	UFUNCTION(Server, Unreliable)
-	void ServerAddCommanderMovementInput(const float Forward, const float Right);
+	void ServerSetCommanderMovementInput(const float Forward, const float Right);
 
 	void NotifyCommanderDestroyed();
 

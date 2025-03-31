@@ -90,10 +90,11 @@ void AWpGamePlayerController::ClientSetExpectedLoadedObjectNum_Implementation(co
 	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->SetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
 }
 
-void AWpGamePlayerController::ServerAddCommanderMovementInput_Implementation(const float Forward, const float Right)
+void AWpGamePlayerController::ServerSetCommanderMovementInput_Implementation(const float Forward, const float Right)
 {
-	if (Commander && GetPawn<AWpCommander>() == Commander)
+	if (Commander && (GetPawn<AWpCommander>() == Commander))
 	{
+		Commander->GetEntityMovementComponent()->ConsumeInputVector();
 		Commander->GetEntityMovementComponent()->AddMovementInput(Forward, Right);
 	}
 }
