@@ -15,11 +15,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
-const FName AWpProjectile::SphereComponentName = TEXT("SphereCollision");
-const FName AWpProjectile::MeshComponentName = TEXT("StaticMesh");
-const FName AWpProjectile::MovementComponentName = TEXT("ProjectileMovement");
+const FName AWpProjectile::CollisionComponentName = TEXT("CollisionComponent");
+const FName AWpProjectile::MeshComponentName = TEXT("MeshComponent");
+const FName AWpProjectile::MovementComponentName = TEXT("MovementComponent");
 
-const FName AWpProjectile::SphereComponentCollisionProfileName = TEXT("WpProjectile");
+const FName AWpProjectile::CollisionComponentCollisionProfileName = TEXT("WpProjectile");
 const FName AWpProjectile::MeshComponentCollisionProfileName = TEXT("NoCollision");
 
 AWpProjectile::AWpProjectile()
@@ -27,16 +27,16 @@ AWpProjectile::AWpProjectile()
 	PrimaryActorTick.bCanEverTick = false;
 
 	bReplicates = true;
-	Super::SetReplicateMovement(true);
+	Super::SetReplicateMovement(false);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
 	NetUpdateFrequency = 60.0f;
 
-	SphereComponent = CreateDefaultSubobject<USphereComponent>(SphereComponentName);
-	SphereComponent->SetCollisionProfileName(SphereComponentCollisionProfileName);
-	SphereComponent->SetNotifyRigidBodyCollision(true);
-	SphereComponent->SetGenerateOverlapEvents(true);
-	RootComponent = SphereComponent;
+	CollisionComponent = CreateDefaultSubobject<USphereComponent>(CollisionComponentName);
+	CollisionComponent->SetCollisionProfileName(CollisionComponentCollisionProfileName);
+	CollisionComponent->SetNotifyRigidBodyCollision(true);
+	CollisionComponent->SetGenerateOverlapEvents(true);
+	RootComponent = CollisionComponent;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
 	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
@@ -45,6 +45,7 @@ AWpProjectile::AWpProjectile()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	MovementComponent = CreateDefaultSubobject<UWpProjectileMovementComponent>(MovementComponentName);
+	MovementComponent->SetUpdatedComponent(CollisionComponent);
 
 	SetPooledObjectVisibility(false);
 }
@@ -55,7 +56,7 @@ void AWpProjectile::BeginPlay()
 
 	if (HasAuthority())
 	{
-		SphereComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
+		CollisionComponent->OnComponentHit.AddDynamic(this, &AWpProjectile::OnComponentHit);
 	}
 
 	UWpLoadingScreen* const LoadingScreen = GetGameInstance<UWpGameInstance>()->GetLoadingScreen();
@@ -80,15 +81,6 @@ bool AWpProjectile::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDi
 	return !AWpPooledActorVisibilityManager::IsVisibleForTeam(ViewerTeamId, this);
 }
 
-void AWpProjectile::PostNetReceiveLocationAndRotation()
-{
-	const FRepMovement& LocalRepMovement = GetReplicatedMovement();
-	const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, this);
-	const FRotator& NewRotation = LocalRepMovement.Rotation;
-
-	MovementComponent->MoveInterpolationTarget(NewLocation, NewRotation);
-}
-
 void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	if (!bIsAcquired)
@@ -109,7 +101,7 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 		const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
 		const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
 
-		SphereComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
+		CollisionComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
 
 		MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
 		MeshComponent->SetRelativeRotation(WeaponConfig.ProjectileMeshRotation);
@@ -122,8 +114,6 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 		const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
 		MeshComponent->SetRelativeLocation(-MeshOrigin);
-
-		MovementComponent->SetInterpolatedComponent(MeshComponent);
 
 		if (HasAuthority())
 		{

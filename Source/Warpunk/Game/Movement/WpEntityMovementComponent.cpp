@@ -7,6 +7,7 @@
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/GameStateBase.h"
+#include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 
 /*
@@ -77,7 +78,9 @@ void UWpEntityMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 {
 	// Do not call base function so bIsActive is not replicated
 
-	DOREPLIFETIME(UWpEntityMovementComponent, PredictionData);
+	FDoRepLifetimeParams DoRepLifetimeParams;
+	DoRepLifetimeParams.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UWpEntityMovementComponent, PredictionData, DoRepLifetimeParams);
 }
 
 void UWpEntityMovementComponent::SetUpdatedComponent(USceneComponent* const NewUpdatedComponent)
@@ -1168,10 +1171,14 @@ void UWpEntityMovementComponent::UpdatePredictionData(const FVector& InputVector
 	PredictionData.WheelRotationAngle = WheelRotationAngle;
 	PredictionData.TargetInterpolatedComponentLocation = TargetInterpolatedComponentLocation;
 	PredictionData.TargetInterpolatedComponentRotation = TargetInterpolatedComponentRotation;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UWpEntityMovementComponent, PredictionData, this);
 }
 
 void UWpEntityMovementComponent::OnRep_PredictionData()
 {
+	ensureAlways(!GetOwner()->HasAuthority());
+
 	const FVector DeltaLocation = PredictionData.UpdatedComponentLocation - UpdatedComponent->GetComponentLocation();
 	const FRotator DeltaRotation = (PredictionData.UpdatedComponentRotation - UpdatedComponent->GetComponentRotation()).GetNormalized();
 	UpdatedComponent->MoveComponent(DeltaLocation, PredictionData.UpdatedComponentRotation, false);

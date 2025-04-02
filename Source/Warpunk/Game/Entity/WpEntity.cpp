@@ -40,7 +40,7 @@ AWpEntity::AWpEntity()
 	PrimaryActorTick.bCanEverTick = false;
 
 	bReplicates = true;
-	Super::SetReplicateMovement(true);
+	Super::SetReplicateMovement(false);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
 	NetUpdateFrequency = 60.0f;
@@ -117,10 +117,7 @@ bool AWpEntity::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, A
 
 void AWpEntity::PostNetReceiveLocationAndRotation()
 {
-	if (EntityType == EWpEntityType::Unit)
-	{
-		return;
-	}
+	ensureAlways(EntityType != EWpEntityType::Unit);
 
 	const FRepMovement& LocalRepMovement = GetReplicatedMovement();
 	const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, this);
@@ -147,6 +144,8 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		const FWpEntityConfig& EntityConfig = *PooledEntityData.EntityConfig;
 
 		EntityType = EntityConfig.Type;
+
+		SetReplicateMovement(EntityType == EWpEntityType::Building);
 
 		MeshComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
 		MeshComponent->SetStaticMesh(EntityConfig.MeshConfig.Mesh);

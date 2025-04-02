@@ -27,8 +27,6 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* const Viewer, AActor* const ViewTarget, UActorChannel* const InChannel, const float Time, const bool bLowBandwidth) override;
 
-	virtual void PostNetReceiveLocationAndRotation() override;
-
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
@@ -41,7 +39,7 @@ private:
 	void OnRep_ProjectileConfig();
 
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USphereComponent> SphereComponent = nullptr;
+	TObjectPtr<USphereComponent> CollisionComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> MeshComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
@@ -53,9 +51,10 @@ private:
 	FWpProjectileWeapon* Weapon = nullptr;
 
 public:
-	static const FName SphereComponentName;
+	static const FName CollisionComponentName;
 	static const FName MeshComponentName;
 	static const FName MovementComponentName;
-	static const FName SphereComponentCollisionProfileName;
+
+	static const FName CollisionComponentCollisionProfileName;
 	static const FName MeshComponentCollisionProfileName;
 };
