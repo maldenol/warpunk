@@ -33,12 +33,14 @@ AWpProjectile::AWpProjectile()
 	NetUpdateFrequency = 60.0f;
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(CollisionComponentName);
+	CollisionComponent->SetIsReplicated(false);
 	CollisionComponent->SetCollisionProfileName(CollisionComponentCollisionProfileName);
 	CollisionComponent->SetNotifyRigidBodyCollision(true);
 	CollisionComponent->SetGenerateOverlapEvents(true);
 	RootComponent = CollisionComponent;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
+	MeshComponent->SetIsReplicated(false);
 	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
 	MeshComponent->SetNotifyRigidBodyCollision(false);
 	MeshComponent->SetGenerateOverlapEvents(false);
@@ -96,9 +98,7 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 		ProjectileConfig = PooledProjectileData.ProjectileConfig;
 
-		const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
-		const FName RowName = FName{FString::FromInt(ProjectileConfig.EntityConfigId)};
-		const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+		const FWpEntityConfig EntityConfig = GetGameInstance<UWpGameInstance>()->GetEntityConfig(ProjectileConfig.EntityConfigId);
 		const FWpWeaponConfig& WeaponConfig = EntityConfig.WeaponConfigs[ProjectileConfig.WeaponConfigIndex];
 
 		CollisionComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
@@ -136,11 +136,6 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 void AWpProjectile::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
-	if (!HasAuthority() && !bIsVisible)
-	{
-		SetActorLocation(FVector::ZeroVector);
-	}
-
 	MeshComponent->SetHiddenInGame(!bIsVisible);
 }
 

@@ -101,7 +101,7 @@ void AWpStrategicViewPawn::ClientUnPossessed_Implementation()
 
 void AWpStrategicViewPawn::ServerUpdateLocation_Implementation(const FVector& Location)
 {
-	SetActorLocation(Location);
+	SetActorLocation(Location, true);
 }
 
 void AWpStrategicViewPawn::OnMoveTriggered(const FInputActionValue& ActionValue)
@@ -114,30 +114,48 @@ void AWpStrategicViewPawn::OnMoveTriggered(const FInputActionValue& ActionValue)
 
 void AWpStrategicViewPawn::OnLMBStarted()
 {
-	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnLMBStarted();
+	if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+	{
+		PlayerController->GetOrderSenderComponent()->OnLMBStarted();
+	}
 }
 
 void AWpStrategicViewPawn::OnLMBTriggered()
 {
-	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnLMBTriggered();
+	if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+	{
+		PlayerController->GetOrderSenderComponent()->OnLMBTriggered();
+	}
 }
 
 void AWpStrategicViewPawn::OnLMBCompleted()
 {
-	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnLMBCompleted();
+	if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+	{
+		PlayerController->GetOrderSenderComponent()->OnLMBCompleted();
+	}
 }
 
 void AWpStrategicViewPawn::OnRMBStarted()
 {
-	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnRMBStarted();
+	if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+	{
+		PlayerController->GetOrderSenderComponent()->OnRMBStarted();
+	}
 }
 
 void AWpStrategicViewPawn::OnRMBTriggered()
 {
-	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnRMBTriggered();
+	if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+	{
+		PlayerController->GetOrderSenderComponent()->OnRMBTriggered();
+	}
 }
 
 void AWpStrategicViewPawn::OnRMBCompleted()
 {
-	GetController<AWpGamePlayerController>()->GetOrderSenderComponent()->OnRMBCompleted();
+	if (AWpGamePlayerController* const PlayerController = GetController<AWpGamePlayerController>())
+	{
+		PlayerController->GetOrderSenderComponent()->OnRMBCompleted();
+	}
 }

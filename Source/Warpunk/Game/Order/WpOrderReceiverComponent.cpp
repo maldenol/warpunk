@@ -90,7 +90,9 @@ void UWpOrderReceiverComponent::TickComponent(const float DeltaTime, const ELeve
 
 void UWpOrderReceiverComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
 
 	DOREPLIFETIME(UWpOrderReceiverComponent, UnitToProduceConfigIdNumbers);
 }
@@ -387,8 +389,9 @@ void UWpOrderReceiverComponent::CreateSelectionWidgetComponentIfNull()
 
 	SelectionWidgetComponent = NewObject<UWidgetComponent>(GetOwner(), UWidgetComponent::StaticClass(), SelectionWidgetComponentName);
 	SelectionWidgetComponent->RegisterComponent();
-	SelectionWidgetComponent->AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	SelectionWidgetComponent->AttachToComponent(GetOwner<AWpEntity>()->GetMeshComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
+	SelectionWidgetComponent->SetIsReplicated(false);
 	SelectionWidgetComponent->SetCollisionProfileName(TEXT("NoCollision"));
 	SelectionWidgetComponent->SetNotifyRigidBodyCollision(false);
 	SelectionWidgetComponent->SetGenerateOverlapEvents(false);
@@ -396,7 +399,7 @@ void UWpOrderReceiverComponent::CreateSelectionWidgetComponentIfNull()
 	SelectionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	SelectionWidgetComponent->SetDrawAtDesiredSize(true);
 
-	const TSubclassOf<UUserWidget>& SelectionWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->SelectionWidgetClass;
+	const TSubclassOf<UUserWidget>& SelectionWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->GetSelectionWidgetClass();
 	ensureAlways(SelectionWidgetClass);
 	SelectionWidgetComponent->SetWidgetClass(SelectionWidgetClass);
 

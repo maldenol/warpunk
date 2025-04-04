@@ -18,8 +18,6 @@ class UWpGameEntityEnduranceWidget final : public UUserWidget
 public:
 	UWpGameEntityEnduranceWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	virtual void NativeConstruct() override;
-
 	void SetEnduranceComponent(UWpEnduranceComponent* const EnduranceComponent);
 
 private:

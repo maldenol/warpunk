@@ -13,6 +13,7 @@
 #include "AIController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Net/UnrealNetwork.h"
 
 UWpProductionComponent::UWpProductionComponent()
 {
@@ -96,7 +97,9 @@ void UWpProductionComponent::TickComponent(const float DeltaTime, const ELevelTi
 
 void UWpProductionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
 }
 
 void UWpProductionComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -334,9 +337,7 @@ void UWpProductionComponent::Produce()
 	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
-	const UDataTable* const EntityConfigs = GetWorld()->GetGameInstance<UWpGameInstance>()->EntityConfigs;
-	const FName RowName = FName{FString::FromInt(EntityToProduceConfigId)};
-	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+	const FWpEntityConfig EntityConfig = GetOwner()->GetGameInstance<UWpGameInstance>()->GetEntityConfig(EntityToProduceConfigId);
 
 	if (!ensureAlways(EntityConfig.Type != EWpEntityType::Undefined))
 	{
@@ -573,6 +574,11 @@ void UWpProductionComponent::OnCurrentTargetEntityStateChanged(AWpEntity* const 
 
 void UWpProductionComponent::OnOrderReceived(const FWpOrder& InOrder)
 {
+	if (!IsActive())
+	{
+		return;
+	}
+
 	if (InOrder.Type == EWpOrderType::Stop)
 	{
 		AWpEntity* const LastTargetEntity = CurrentTargetEntity;

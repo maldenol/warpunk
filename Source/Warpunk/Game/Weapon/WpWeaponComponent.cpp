@@ -9,6 +9,8 @@
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 
+#include "Net/UnrealNetwork.h"
+
 const FName UWpWeaponComponent::MeshCollisionProfileName = TEXT("WpIntel");
 
 UWpWeaponComponent::UWpWeaponComponent()
@@ -76,7 +78,10 @@ void UWpWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick T
 
 void UWpWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UStaticMeshComponent, StaticMesh);
 }
 
 void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
@@ -146,7 +151,8 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 	}
 	else
 	{
-		InitializeMesh();
+		const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
+		SetStaticMesh(FogOfWarManager->GetIntelMesh());
 
 		const float Range = LongestRange;
 
@@ -221,25 +227,13 @@ void UWpWeaponComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompo
 	}
 }
 
-void UWpWeaponComponent::InitializeMesh()
-{
-	ensureAlways(GetOwner()->HasAuthority());
-
-	const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
-	UStaticMesh* const IntelMesh = FogOfWarManager->GetIntelMesh();
-
-	ensureAlways(IntelMesh);
-
-	SetStaticMesh(IntelMesh);
-}
-
 void UWpWeaponComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState)
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	const bool bIsOperational = EntityState == EWpEntityState::Operational;
-	SetGenerateOverlapEvents(bIsOperational);
-	if (bIsOperational)
+	const bool bEnableOverlap = EntityState == EWpEntityState::Operational;
+	SetGenerateOverlapEvents(bEnableOverlap);
+	if (bEnableOverlap)
 	{
 		const FVector SmallDelta = FVector::UpVector / 1000.0f;
 		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() + SmallDelta);
@@ -249,6 +243,11 @@ void UWpWeaponComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWp
 
 void UWpWeaponComponent::OnOrderReceived(const FWpOrder& InOrder)
 {
+	if (!IsActive())
+	{
+		return;
+	}
+
 	if (InOrder.Type == EWpOrderType::Stop)
 	{
 		for (uint32 Index = 0; Index < WP_ENTITY_MAX_WEAPON; ++Index)

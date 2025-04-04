@@ -42,8 +42,6 @@ private:
 	UFUNCTION()
 	void OnEndOverlap(UPrimitiveComponent* const OverlappedComponent, AActor* const OtherActor, UPrimitiveComponent* const OtherComp, const int32 OtherBodyIndex);
 
-	void InitializeMesh();
-
 	void OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState);
 	void OnOrderReceived(const FWpOrder& InOrder);
 

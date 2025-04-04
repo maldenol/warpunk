@@ -76,7 +76,9 @@ void UWpEntityMovementComponent::TickComponent(const float DeltaTime, const ELev
 
 void UWpEntityMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
 
 	FDoRepLifetimeParams DoRepLifetimeParams;
 	DoRepLifetimeParams.bIsPushBased = true;

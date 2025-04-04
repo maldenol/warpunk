@@ -299,7 +299,11 @@ void UWpOrderSenderComponent::ServerSendOrders_Implementation(const TArray<FWpNe
 			continue;
 		}
 
-		NetOrder.Entity->GetOrderReceiverComponent()->ReceiveOrder(Order, bOverride);
+		UWpOrderReceiverComponent* const OrderReceiverComponent = NetOrder.Entity->GetOrderReceiverComponent();
+		if (OrderReceiverComponent->IsActive())
+		{
+			OrderReceiverComponent->ReceiveOrder(Order, bOverride);
+		}
 	}
 }
 
@@ -562,7 +566,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 	{
 		if (Hit.bBlockingHit)
 		{
-			BuildingToProduce->SetActorLocation(Hit.Location);
+			BuildingToProduce->SetActorLocation(Hit.Location, false);
 		}
 	}
 	else
@@ -572,9 +576,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			BuildingToProduce = GetWorld()->SpawnActor<AWpEntity>();
 			BuildingToProduce->SetReplicates(false);
 
-			const UDataTable* const EntityConfigs = GetWorld()->GetGameInstance<UWpGameInstance>()->EntityConfigs;
-			const FName RowName = FName{FString::FromInt(BuildingToProduceConfigId)};
-			const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+			const FWpEntityConfig EntityConfig = GetOwner()->GetGameInstance<UWpGameInstance>()->GetEntityConfig(BuildingToProduceConfigId);
 
 			FWpPooledEntityData PooledEntityData;
 			PooledEntityData.EntityConfig = &EntityConfig;

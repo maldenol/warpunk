@@ -8,28 +8,20 @@ UWpGameEntityEnduranceWidget::UWpGameEntityEnduranceWidget(const FObjectInitiali
 {
 }
 
-void UWpGameEntityEnduranceWidget::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
-}
-
 void UWpGameEntityEnduranceWidget::SetEnduranceComponent(UWpEnduranceComponent* const EnduranceComponent)
 {
 	EnduranceComponent->OnCurrentEnduranceChanged().AddUObject(this, &UWpGameEntityEnduranceWidget::OnCurrentEnduranceChanged);
+	OnCurrentEnduranceChanged(EnduranceComponent->GetCurrentEndurance(), EnduranceComponent->GetMaxEndurance());
 }
 
 void UWpGameEntityEnduranceWidget::OnCurrentEnduranceChanged(const float CurrentEndurance, const float MaxEndurance)
 {
-	const bool bError = FMath::IsNearlyZero(MaxEndurance) || (CurrentEndurance > MaxEndurance);
-	const bool bFull = FMath::IsNearlyEqual(CurrentEndurance, MaxEndurance);
-	if (bError || bFull)
+	if (!FMath::IsNearlyZero(MaxEndurance))
 	{
-		ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
-		return;
+		ProgressBar->SetPercent(CurrentEndurance / MaxEndurance);
 	}
-
-	ProgressBar->SetVisibility(ESlateVisibility::Visible);
-	ProgressBar->SetPercent(CurrentEndurance / MaxEndurance);
+	else
+	{
+		ProgressBar->SetPercent(0.0f);
+	}
 }

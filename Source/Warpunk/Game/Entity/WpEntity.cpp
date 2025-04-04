@@ -16,7 +16,6 @@
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
 #include "NavAreas/NavArea_Obstacle.h"
 #include "NavModifierComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -49,6 +48,7 @@ AWpEntity::AWpEntity()
 	AIControllerClass = AWpEntityAIController::StaticClass();
 
 	CollisionComponent = CreateDefaultSubobject<UCapsuleComponent>(CollisionComponentName);
+	CollisionComponent->SetIsReplicated(false);
 	CollisionComponent->SetCollisionProfileName(CollisionComponentCollisionProfileName);
 	CollisionComponent->SetNotifyRigidBodyCollision(true);
 	CollisionComponent->SetGenerateOverlapEvents(true);
@@ -56,6 +56,7 @@ AWpEntity::AWpEntity()
 	RootComponent = CollisionComponent;
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
+	MeshComponent->SetIsReplicated(false);
 	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
 	MeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
 	MeshComponent->SetGenerateOverlapEvents(false);
@@ -63,6 +64,7 @@ AWpEntity::AWpEntity()
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	NavModifierComponent = CreateDefaultSubobject<UNavModifierComponent>(NavModifierComponentName);
+	NavModifierComponent->SetIsReplicated(false);
 	NavModifierComponent->SetAreaClass(UNavArea_Obstacle::StaticClass());
 	NavModifierComponent->SetNavigationRelevancy(false);
 
@@ -178,18 +180,8 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 
 void AWpEntity::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
-	if (!HasAuthority() && !bIsVisible)
-	{
-		SetActorLocation(FVector::ZeroVector);
-	}
-
 	MeshComponent->SetHiddenInGame(!bIsVisible);
 	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
-
-	if (UWidgetComponent* const WidgetComponent = EnduranceComponent->GetEnduranceWidgetComponent())
-	{
-		WidgetComponent->SetHiddenInGame(!bIsVisible);
-	}
 }
 
 TArray<IWpPooledObjectInterface*> AWpEntity::GetInnerPooledObjects()
@@ -308,9 +300,7 @@ EWpEntityType AWpEntity::GetEntityType() const
 
 void AWpEntity::OnRep_EntityConfigId()
 {
-	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
-	const FName RowName = FName{FString::FromInt(EntityConfigId)};
-	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+	const FWpEntityConfig EntityConfig = GetGameInstance<UWpGameInstance>()->GetEntityConfig(EntityConfigId);
 
 	FWpPooledEntityData PooledEntityData;
 	PooledEntityData.EntityConfig = &EntityConfig;

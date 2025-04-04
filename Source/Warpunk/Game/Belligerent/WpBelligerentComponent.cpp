@@ -15,7 +15,9 @@ UWpBelligerentComponent::UWpBelligerentComponent()
 
 void UWpBelligerentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
 
 	DOREPLIFETIME(UWpBelligerentComponent, BelligerentId);
 	DOREPLIFETIME(UWpBelligerentComponent, TeamId);

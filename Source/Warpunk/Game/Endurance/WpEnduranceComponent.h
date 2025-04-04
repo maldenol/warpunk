@@ -44,6 +44,7 @@ public:
 	void ReceiveDamage(const float DeltaEndurance);
 	void Destruct();
 
+	void SetMaxEndurance(const float InMaxEndurance);
 	float GetMaxEndurance() const;
 	float GetMatterCost() const;
 	EWpEntityState GetEntityState() const;

@@ -10,7 +10,7 @@
 #include "WpEntityMovementComponent.generated.h"
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
-struct FWpEntityMovementComponentPredictionData
+struct FWpEntityMovementComponentPredictionData final
 {
 	GENERATED_BODY()
 

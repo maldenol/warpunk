@@ -6,6 +6,7 @@
 
 #include "WpGameInstance.generated.h"
 
+struct FWpEntityConfig;
 class UWpGameEntityEnduranceWidget;
 class UWpLoadingScreen;
 
@@ -17,22 +18,25 @@ class UWpGameInstance final : public UGameInstance
 public:
 	UWpLoadingScreen* GetLoadingScreen();
 
+	FWpEntityConfig GetEntityConfig(const uint32 EntityConfigId) const;
+	const TSubclassOf<UWpGameEntityEnduranceWidget>& GetEnduranceWidgetClass() const;
+	const TSubclassOf<UUserWidget>& GetSelectionWidgetClass() const;
+
 	void SetPlayerIds(const TArray<int32>& InPlayerIds);
 	const TArray<int32>& GetPlayerIds() const;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UWpGameEntityEnduranceWidget> EnduranceWidgetClass = nullptr;
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UUserWidget> SelectionWidgetClass = nullptr;
-
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<const UDataTable> EntityConfigs = nullptr;
 
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UWpLoadingScreen> LoadingScreenClass = nullptr;
 	UPROPERTY(VisibleInstanceOnly)
 	TObjectPtr<UWpLoadingScreen> LoadingScreen = nullptr;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<const UDataTable> EntityConfigs = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UWpGameEntityEnduranceWidget> EnduranceWidgetClass = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUserWidget> SelectionWidgetClass = nullptr;
 
 	TArray<int32> PlayerIds = {};
 

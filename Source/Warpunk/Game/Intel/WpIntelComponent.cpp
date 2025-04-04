@@ -43,10 +43,6 @@ void UWpIntelComponent::BeginPlay()
 		OnComponentBeginOverlap.AddDynamic(this, &UWpIntelComponent::OnBeginOverlap);
 		OnComponentEndOverlap.AddDynamic(this, &UWpIntelComponent::OnEndOverlap);
 	}
-	else
-	{
-		InitializeMesh();
-	}
 
 	UWpEnduranceComponent* const EnduranceComponent = GetOwner<AWpEntity>()->GetEnduranceComponent();
 	EnduranceComponent->OnEntityStateChanged().AddUObject(this, &UWpIntelComponent::OnEntityStateChanged);
@@ -70,7 +66,10 @@ void UWpIntelComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UWpIntelComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UStaticMeshComponent, StaticMesh);
 
 	DOREPLIFETIME(UWpIntelComponent, bMeshIsVisible);
 }
@@ -89,7 +88,12 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 
 		if (IntelConfig)
 		{
-			InitializeMesh();
+			if (!GetStaticMesh())
+			{
+				const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
+				SetStaticMesh(FogOfWarManager->GetIntelMesh());
+				SetMaterial(0, FogOfWarManager->GetIntelMaterial());
+			}
 
 			const float Range = IntelConfig->Range;
 
@@ -183,25 +187,15 @@ void UWpIntelComponent::OnRep_bMeshIsVisible()
 	UpdateMeshVisibilityBasedOnTeam();
 }
 
-void UWpIntelComponent::InitializeMesh()
-{
-	const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
-	UStaticMesh* const IntelMesh = FogOfWarManager->GetIntelMesh();
-	UMaterialInterface* const IntelMaterial = FogOfWarManager->GetIntelMaterial();
-
-	SetStaticMesh(IntelMesh);
-	SetMaterial(0, IntelMaterial);
-}
-
 void UWpIntelComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState)
 {
-	const bool bHasAuthorityAndIsOperational = GetOwner()->HasAuthority() && (EntityState == EWpEntityState::Operational);
-	SetGenerateOverlapEvents(bHasAuthorityAndIsOperational);
-	if (bHasAuthorityAndIsOperational)
+	const bool bEnableOverlap = EntityState == EWpEntityState::Operational;
+	SetGenerateOverlapEvents(bEnableOverlap);
+	if (bEnableOverlap)
 	{
 		const FVector SmallDelta = FVector::UpVector / 1000.0f;
-		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() + SmallDelta);
-		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() - SmallDelta);
+		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() + SmallDelta, false);
+		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() - SmallDelta, false);
 	}
 
 	UpdateMeshVisibilityBasedOnTeam();

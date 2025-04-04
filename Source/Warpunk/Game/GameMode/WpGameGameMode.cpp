@@ -88,17 +88,15 @@ void AWpGameGameMode::InitializeActorPools() const
 
 void AWpGameGameMode::InitializeCommander(AWpGamePlayerController* const PlayerController) const
 {
-	constexpr uint32 ConfigId = 1;
-	ensureAlways(ConfigId > 0);
+	constexpr uint32 EntityConfigId = 1;
+	ensureAlways(EntityConfigId > 0);
 
-	const UDataTable* const EntityConfigs = GetGameInstance<UWpGameInstance>()->EntityConfigs;
-	const FName RowName = FName{FString::FromInt(ConfigId)};
-	const FWpEntityConfig& EntityConfig = *EntityConfigs->FindRow<FWpEntityConfig>(RowName, nullptr);
+	const FWpEntityConfig EntityConfig = GetGameInstance<UWpGameInstance>()->GetEntityConfig(EntityConfigId);
 
 	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
 	FWpPooledEntityData PooledEntityData;
 	PooledEntityData.EntityConfig = &EntityConfig;
-	PooledEntityData.EntityConfigId = ConfigId;
+	PooledEntityData.EntityConfigId = EntityConfigId;
 	PooledEntityData.BelligerentId = PlayerState->GetBelligerentId();
 	PooledEntityData.TeamId = PlayerState->GetTeamId();
 

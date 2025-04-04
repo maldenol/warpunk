@@ -6,7 +6,11 @@
 #include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"
 #include "Warpunk/Lobby/UI/WpLobbyHUD.h"
 
+#ifdef UE_EDITOR
+const float AWpLobbyGameMode::TimeUntilGameStart = 3.0f;
+#else
 const float AWpLobbyGameMode::TimeUntilGameStart = 10.0f;
+#endif
 
 AWpLobbyGameMode::AWpLobbyGameMode()
 {

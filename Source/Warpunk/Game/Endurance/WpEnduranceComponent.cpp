@@ -31,8 +31,9 @@ void UWpEnduranceComponent::BeginPlay()
 
 	EnduranceWidgetComponent = NewObject<UWidgetComponent>(GetOwner(), UWidgetComponent::StaticClass(), EnduranceWidgetComponentName);
 	EnduranceWidgetComponent->RegisterComponent();
-	EnduranceWidgetComponent->AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	EnduranceWidgetComponent->AttachToComponent(GetOwner<AWpEntity>()->GetMeshComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
+	EnduranceWidgetComponent->SetIsReplicated(false);
 	EnduranceWidgetComponent->SetCollisionProfileName(TEXT("NoCollision"));
 	EnduranceWidgetComponent->SetNotifyRigidBodyCollision(false);
 	EnduranceWidgetComponent->SetGenerateOverlapEvents(false);
@@ -40,16 +41,20 @@ void UWpEnduranceComponent::BeginPlay()
 	EnduranceWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	EnduranceWidgetComponent->SetDrawAtDesiredSize(true);
 
-	const TSubclassOf<UWpGameEntityEnduranceWidget>& EnduranceWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->EnduranceWidgetClass;
+	const TSubclassOf<UWpGameEntityEnduranceWidget>& EnduranceWidgetClass = GetWorld()->GetGameInstance<UWpGameInstance>()->GetEnduranceWidgetClass();
 	ensureAlways(EnduranceWidgetClass);
 	EnduranceWidgetComponent->SetWidgetClass(EnduranceWidgetClass);
 
 	Cast<UWpGameEntityEnduranceWidget>(EnduranceWidgetComponent->GetWidget())->SetEnduranceComponent(this);
+
+	EnduranceWidgetComponent->SetVisibility(false);
 }
 
 void UWpEnduranceComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	// Do not call base function so bIsActive is not replicated
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DISABLE_REPLICATED_PRIVATE_PROPERTY(UActorComponent, bIsActive);
 
 	DOREPLIFETIME(UWpEnduranceComponent, EntityState);
 	DOREPLIFETIME(UWpEnduranceComponent, CurrentEndurance);
@@ -67,13 +72,13 @@ void UWpEnduranceComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcqui
 		const FWpPooledEntityData& PooledEntityData = static_cast<const FWpPooledEntityData&>(PooledObjectData);
 		const FWpEnduranceConfig& EnduranceConfig = PooledEntityData.EntityConfig->EnduranceConfig;
 
-		MaxEndurance = EnduranceConfig.MaxEndurance;
+		SetMaxEndurance(EnduranceConfig.MaxEndurance);
 		MatterCost = EnduranceConfig.MatterCost;
 
 		if (GetOwner()->HasAuthority())
 		{
 			SetEntityState(EWpEntityState::NotProduced);
-			CurrentEndurance = 0.0f;
+			SetCurrentEndurance(0.0f);
 		}
 	}
 
@@ -90,6 +95,11 @@ void UWpEnduranceComponent::OnPooledObjectVisibilityChanged(const bool bIsVisibl
 	if (!GetOwner()->HasAuthority())
 	{
 		SetActive(bIsVisible);
+	}
+
+	if (EnduranceWidgetComponent)
+	{
+		EnduranceWidgetComponent->SetVisibility(bIsVisible);
 	}
 }
 
@@ -154,28 +164,23 @@ void UWpEnduranceComponent::Destruct()
 
 	SetEntityState(EWpEntityState::Wreck);
 
-	if (AWpActorPool* const ActorPool = AWpActorPool::Instance(GetOwner()->GetClass()))
-	{
-		ActorPool->Release(GetOwner());
-	}
-	else
-	{
-		GetOwner()->Destroy();
-	}
+	AWpActorPool* const ActorPool = AWpActorPool::Instance(GetOwner()->GetClass());
+	ActorPool->Release(GetOwner());
+}
+
+void UWpEnduranceComponent::SetMaxEndurance(const float InMaxEndurance)
+{
+	MaxEndurance = InMaxEndurance;
+	OnRep_CurrentEndurance();
 }
 
 float UWpEnduranceComponent::GetMaxEndurance() const
 {
-	ensureAlways(IsActive());
-
 	return MaxEndurance;
 }
 
 float UWpEnduranceComponent::GetMatterCost() const
 {
-	ensureAlways(IsActive());
-	ensureAlways(GetOwner()->HasAuthority());
-
 	return MatterCost;
 }
 
@@ -186,7 +191,6 @@ EWpEntityState UWpEnduranceComponent::GetEntityState() const
 
 void UWpEnduranceComponent::SetCurrentEndurance(const float InCurrentEndurance)
 {
-	ensureAlways(IsActive());
 	ensureAlways(GetOwner()->HasAuthority());
 
 	CurrentEndurance = InCurrentEndurance;
@@ -195,8 +199,6 @@ void UWpEnduranceComponent::SetCurrentEndurance(const float InCurrentEndurance)
 
 float UWpEnduranceComponent::GetCurrentEndurance() const
 {
-	ensureAlways(IsActive());
-
 	return CurrentEndurance;
 }
 

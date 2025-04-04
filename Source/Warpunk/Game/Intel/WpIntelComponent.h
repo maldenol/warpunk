@@ -38,8 +38,6 @@ private:
 	UFUNCTION()
 	void OnRep_bMeshIsVisible();
 
-	void InitializeMesh();
-
 	void OnEntityStateChanged(AWpEntity* const Entity, const EWpEntityState EntityState);
 	void OnLoaded();
 

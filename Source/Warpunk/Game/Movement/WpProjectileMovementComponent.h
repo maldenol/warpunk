@@ -9,7 +9,7 @@
 #include "WpProjectileMovementComponent.generated.h"
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
-struct FWpProjectileMovementComponentPredictionData
+struct FWpProjectileMovementComponentPredictionData final
 {
 	GENERATED_BODY()
 
