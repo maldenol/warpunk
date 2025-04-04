@@ -164,7 +164,7 @@ void UWpEnduranceComponent::Destruct()
 
 	SetEntityState(EWpEntityState::Wreck);
 
-	AWpActorPool* const ActorPool = AWpActorPool::Instance(GetOwner()->GetClass());
+	AWpActorPool* const ActorPool = AWpActorPool::Instance(GetWorld(), GetOwner()->GetClass());
 	ActorPool->Release(GetOwner());
 }
 

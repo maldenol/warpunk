@@ -11,7 +11,7 @@ AWpActorPool::AWpActorPool()
 
 void AWpActorPool::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Instances.Remove(Class);
+	Instances.Remove(FWpActorPoolInstanceKey{GetWorld(), Class});
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -25,7 +25,7 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 
 	Class = InClass;
 
-	Instances.Add(Class, this);
+	Instances.Add(FWpActorPoolInstanceKey{GetWorld(), Class}, this);
 
 	FreeActors.Reserve(Number);
 
@@ -54,11 +54,11 @@ AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation,
 	AActor* const Actor = *FreeActors.CreateIterator();
 	FreeActors.Remove(Actor);
 
-	Actor->SetActorLocationAndRotation(Location, Rotation);
+	Actor->SetActorLocationAndRotation(Location, Rotation, false);
 
 	Cast<IWpPooledObjectInterface>(Actor)->AcquirePooledObject(PooledObjectData);
 
-	GEngine->AddOnScreenDebugMessage(0, 5.0f, FColor::Green, Actor->GetActorNameOrLabel());
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 5.0f, FColor::Green, Actor->GetActorNameOrLabel());
 
 	return Actor;
 }
@@ -71,18 +71,19 @@ void AWpActorPool::Release(AActor* const Actor)
 
 	Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
 
-	Actor->SetActorLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
+	Actor->SetActorLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator, false);
 
 	FreeActors.Add(Actor);
 
-	GEngine->AddOnScreenDebugMessage(0, 5.0f, FColor::Red, Actor->GetActorNameOrLabel());
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 5.0f, FColor::Red, Actor->GetActorNameOrLabel());
 }
 
-AWpActorPool* AWpActorPool::Instance(const TSubclassOf<AActor>& Class)
+AWpActorPool* AWpActorPool::Instance(const UWorld* const World, const TSubclassOf<AActor>& Class)
 {
+	ensureAlways(World);
 	ensureAlways(Class);
 
-	if (AWpActorPool** const Ptr = Instances.Find(Class))
+	if (AWpActorPool** const Ptr = Instances.Find(FWpActorPoolInstanceKey{World, Class}))
 	{
 		return *Ptr;
 	}
@@ -90,14 +91,14 @@ AWpActorPool* AWpActorPool::Instance(const TSubclassOf<AActor>& Class)
 	return nullptr;
 }
 
-AActor* AWpActorPool::Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
+AActor* AWpActorPool::Acquire(const UWorld* const World, const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
 {
-	return Instance(Class)->Acquire(Location, Rotation, PooledObjectData);
+	return Instance(World, Class)->Acquire(Location, Rotation, PooledObjectData);
 }
 
 void AWpActorPool::Release(const TSubclassOf<AActor>& Class, AActor* const Actor)
 {
-	Instance(Class)->Release(Actor);
+	Instance(Actor->GetWorld(), Class)->Release(Actor);
 }
 
-TMap<TSubclassOf<AActor>, AWpActorPool*> AWpActorPool::Instances = {};
+TMap<AWpActorPool::FWpActorPoolInstanceKey, AWpActorPool*> AWpActorPool::Instances = {};

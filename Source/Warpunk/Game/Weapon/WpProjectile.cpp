@@ -153,9 +153,12 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 
 	if (AWpEntity* const Entity = Cast<AWpEntity>(OtherActor))
 	{
-		UGameplayStatics::ApplyPointDamage(Entity, Damage, FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
+		if (Entity->GetIsReplicated())
+		{
+			UGameplayStatics::ApplyPointDamage(Entity, Damage, FVector::ZeroVector, {}, nullptr, nullptr, nullptr);
 
-		Weapon->OnProjectileHit(Entity);
+			Weapon->OnProjectileHit(Entity);
+		}
 	}
 
 	AWpActorPool::Release<AWpProjectile>(this);

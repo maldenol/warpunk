@@ -29,15 +29,15 @@ private:
 	TSet<AActor*> FreeActors = {};
 
 public:
-	static AWpActorPool* Instance(const TSubclassOf<AActor>& Class);
+	static AWpActorPool* Instance(const UWorld* const World, const TSubclassOf<AActor>& Class);
 
-	static AActor* Acquire(const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData);
+	static AActor* Acquire(const UWorld* const World, const TSubclassOf<AActor>& Class, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData);
 	static void Release(const TSubclassOf<AActor>& Class, AActor* const Actor);
 
 	template <class T>
-	static T* Acquire(const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
+	static T* Acquire(const UWorld* const World, const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
 	{
-		return Cast<T>(Acquire(T::StaticClass(), Location, Rotation, PooledObjectData));
+		return Cast<T>(Acquire(World, T::StaticClass(), Location, Rotation, PooledObjectData));
 	}
 
 	template <class T>
@@ -47,5 +47,7 @@ public:
 	}
 
 private:
-	static TMap<TSubclassOf<AActor>, AWpActorPool*> Instances;
+	using FWpActorPoolInstanceKey = TPair<const UWorld*, TSubclassOf<AActor>>;
+
+	static TMap<FWpActorPoolInstanceKey, AWpActorPool*> Instances;
 };

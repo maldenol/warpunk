@@ -140,7 +140,7 @@ void UWpIntelComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedComp
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (OtherActor == GetOwner())
+	if ((OtherActor == GetOwner()) || !OtherActor->GetIsReplicated())
 	{
 		return;
 	}
@@ -163,7 +163,7 @@ void UWpIntelComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompon
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (OtherActor == GetOwner())
+	if ((OtherActor == GetOwner()) || !OtherActor->GetIsReplicated())
 	{
 		return;
 	}

@@ -9,6 +9,7 @@
 
 #include "WpOrderSenderComponent.generated.h"
 
+class AWpLocalEntity;
 enum class EWpEntityState : uint8;
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -107,7 +108,7 @@ private:
 	FVector OrderStartLocation = FVector::ZeroVector;
 
 	uint32 BuildingToProduceConfigId = 0;
-	TObjectPtr<AWpEntity> BuildingToProduce = nullptr;
+	TObjectPtr<AWpLocalEntity> BuildingToProduce = nullptr;
 
 	TMap<const AWpEntity*, TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
 

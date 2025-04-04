@@ -99,7 +99,7 @@ void FWpProjectileWeapon::Fire(const FVector& Location)
 	PooledProjectileData.Damage = GetDamage();
 	PooledProjectileData.Weapon = this;
 
-	AWpActorPool::Acquire<AWpProjectile>(ProjectileLocation, FRotator::ZeroRotator, PooledProjectileData);
+	AWpActorPool::Acquire<AWpProjectile>(GetOwnerEntity()->GetWorld(), ProjectileLocation, FRotator::ZeroRotator, PooledProjectileData);
 }
 
 float FWpProjectileWeapon::CalcElevationAngle(const FVector& ProjectileLocation, const FVector& TargetLocation) const

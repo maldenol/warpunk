@@ -1,14 +1,18 @@
 #include "WpGamePlayerController.h"
 
 #include "Warpunk/Game/Entity/WpCommander.h"
+#include "Warpunk/Game/Entity/WpLocalEntity.h"
 #include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Player/WpStrategicViewPawn.h"
+#include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
 #include "EnhancedInputComponent.h"
+
+static constexpr uint32 LocalEntityPoolSize = 100;
 
 const FName AWpGamePlayerController::OrderSenderComponentName = TEXT("OrderSenderComponent");
 
@@ -27,10 +31,16 @@ void AWpGamePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority() && IsLocalController())
+	if (IsLocalController())
 	{
-		GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
-		bHasNotifiedObjectLoaded = true;
+		AWpActorPool* const LocalEntityPool = GetWorld()->SpawnActor<AWpActorPool>();
+		LocalEntityPool->Reserve(AWpLocalEntity::StaticClass(), LocalEntityPoolSize);
+
+		if (HasAuthority())
+		{
+			GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->NotifyObjectLoaded();
+			bHasNotifiedObjectLoaded = true;
+		}
 	}
 }
 
@@ -87,7 +97,8 @@ const UWpOrderSenderComponent* AWpGamePlayerController::GetOrderSenderComponent(
 
 void AWpGamePlayerController::ClientSetExpectedLoadedObjectNum_Implementation(const uint32 ExpectedLoadedObjectNum)
 {
-	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->SetExpectedLoadedObjectNum(ExpectedLoadedObjectNum);
+	const uint32 LocalExpectedLoadedObjectNum = ExpectedLoadedObjectNum + LocalEntityPoolSize;
+	GetGameInstance<UWpGameInstance>()->GetLoadingScreen()->SetExpectedLoadedObjectNum(LocalExpectedLoadedObjectNum);
 }
 
 void AWpGamePlayerController::ServerSetCommanderMovementInput_Implementation(const float Forward, const float Right)

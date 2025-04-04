@@ -197,7 +197,7 @@ void UWpWeaponComponent::OnBeginOverlap(UPrimitiveComponent* const OverlappedCom
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (OtherActor == GetOwner())
+	if ((OtherActor == GetOwner()) || !OtherActor->GetIsReplicated())
 	{
 		return;
 	}
@@ -214,7 +214,7 @@ void UWpWeaponComponent::OnEndOverlap(UPrimitiveComponent* const OverlappedCompo
 {
 	ensureAlways(GetOwner()->HasAuthority());
 
-	if (OtherActor == GetOwner())
+	if ((OtherActor == GetOwner()) || !OtherActor->GetIsReplicated())
 	{
 		return;
 	}
@@ -236,8 +236,8 @@ void UWpWeaponComponent::OnEntityStateChanged(AWpEntity* const Entity, const EWp
 	if (bEnableOverlap)
 	{
 		const FVector SmallDelta = FVector::UpVector / 1000.0f;
-		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() + SmallDelta);
-		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() - SmallDelta);
+		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() + SmallDelta, false);
+		GetOwner()->SetActorLocation(GetOwner()->GetActorLocation() - SmallDelta, false);
 	}
 }
 

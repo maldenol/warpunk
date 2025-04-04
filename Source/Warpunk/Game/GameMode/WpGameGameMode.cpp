@@ -102,7 +102,7 @@ void AWpGameGameMode::InitializeCommander(AWpGamePlayerController* const PlayerC
 
 	const FTransform Transform = PlayerController->GetPawn()->GetActorTransform();
 
-	AWpActorPool* const CommanderPool = AWpActorPool::Instance(CommanderClass);
+	AWpActorPool* const CommanderPool = AWpActorPool::Instance(GetWorld(), CommanderClass);
 	AWpCommander* const Commander = Cast<AWpCommander>(CommanderPool->Acquire(Transform.GetLocation(), Transform.Rotator(), PooledEntityData));
 
 	UWpEnduranceComponent* const EnduranceComponent = Commander->GetEnduranceComponent();

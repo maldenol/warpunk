@@ -2,11 +2,12 @@
 
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
-#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpLocalEntity.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
@@ -65,7 +66,7 @@ void UWpOrderSenderComponent::SelectBuildingToProduce(const uint32 BuildingConfi
 {
 	if (BuildingToProduce)
 	{
-		BuildingToProduce->Destroy();
+		AWpActorPool::Release<AWpLocalEntity>(BuildingToProduce);
 		BuildingToProduce = nullptr;
 	}
 
@@ -573,9 +574,6 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 	{
 		if (Hit.bBlockingHit)
 		{
-			BuildingToProduce = GetWorld()->SpawnActor<AWpEntity>();
-			BuildingToProduce->SetReplicates(false);
-
 			const FWpEntityConfig EntityConfig = GetOwner()->GetGameInstance<UWpGameInstance>()->GetEntityConfig(BuildingToProduceConfigId);
 
 			FWpPooledEntityData PooledEntityData;
@@ -584,10 +582,7 @@ void UWpOrderSenderComponent::UpdateBuildingPlan()
 			PooledEntityData.BelligerentId = GetBelligerentId();
 			PooledEntityData.TeamId = GetTeamId();
 
-			BuildingToProduce->AcquirePooledObject(PooledEntityData);
-			BuildingToProduce->ReleasePooledObject();
-			BuildingToProduce->SetActorHiddenInGame(false);
-			BuildingToProduce->SetPooledObjectVisibility(true);
+			BuildingToProduce = AWpActorPool::Acquire<AWpLocalEntity>(GetWorld(), FVector::ZeroVector, FRotator::ZeroRotator, PooledEntityData);
 		}
 	}
 }

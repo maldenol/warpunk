@@ -3,12 +3,14 @@
 #include "Warpunk/Game/Belligerent/WpBelligerentComponent.h"
 #include "Warpunk/Game/Endurance/WpEnduranceComponent.h"
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
+#include "Warpunk/Game/Entity/WpLocalEntity.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
 #include "Warpunk/Game/Navigation/WpEntityAIController.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
@@ -182,6 +184,20 @@ void AWpEntity::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
 	MeshComponent->SetHiddenInGame(!bIsVisible);
 	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
+
+	if (!bIsVisible && (EntityType == EWpEntityType::Building) && GetIsReplicated())
+	{
+		const FWpEntityConfig EntityConfig = GetGameInstance<UWpGameInstance>()->GetEntityConfig(EntityConfigId);
+
+		FWpPooledEntityData PooledEntityData;
+		PooledEntityData.EntityConfig = &EntityConfig;
+		PooledEntityData.EntityConfigId = EntityConfigId;
+		PooledEntityData.BelligerentId = GetBelligerentComponent()->GetBelligerentId();
+		PooledEntityData.TeamId = GetBelligerentComponent()->GetTeamId();
+
+		AWpLocalEntity* const LocalBuilding = AWpActorPool::Acquire<AWpLocalEntity>(GetWorld(), GetActorLocation(), GetActorRotation(), PooledEntityData);
+		LocalBuilding->RememberIntel();
+	}
 }
 
 TArray<IWpPooledObjectInterface*> AWpEntity::GetInnerPooledObjects()

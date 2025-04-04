@@ -371,7 +371,7 @@ void UWpProductionComponent::Produce()
 		PooledEntityData.BelligerentId = BelligerentComponent->GetBelligerentId();
 		PooledEntityData.TeamId = BelligerentComponent->GetTeamId();
 
-		Entity = AWpActorPool::Acquire<AWpEntity>(SpawnLocation, FRotator::ZeroRotator, PooledEntityData);
+		Entity = AWpActorPool::Acquire<AWpEntity>(GetWorld(), SpawnLocation, FRotator::ZeroRotator, PooledEntityData);
 		if (!Entity)
 		{
 			return;
