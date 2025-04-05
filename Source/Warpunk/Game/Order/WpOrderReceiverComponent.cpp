@@ -389,7 +389,7 @@ void UWpOrderReceiverComponent::CreateSelectionWidgetComponentIfNull()
 
 	SelectionWidgetComponent = NewObject<UWidgetComponent>(GetOwner(), UWidgetComponent::StaticClass(), SelectionWidgetComponentName);
 	SelectionWidgetComponent->RegisterComponent();
-	SelectionWidgetComponent->AttachToComponent(GetOwner<AWpEntity>()->GetMeshComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	SelectionWidgetComponent->AttachToComponent(GetOwner<AWpEntity>()->GetMeshBaseComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	SelectionWidgetComponent->SetIsReplicated(false);
 	SelectionWidgetComponent->SetCollisionProfileName(TEXT("NoCollision"));

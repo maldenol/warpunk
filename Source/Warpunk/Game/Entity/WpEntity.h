@@ -42,8 +42,11 @@ public:
 	UCapsuleComponent* GetCollisionComponent();
 	const UCapsuleComponent* GetCollisionComponent() const;
 
-	UStaticMeshComponent* GetMeshComponent();
-	const UStaticMeshComponent* GetMeshComponent() const;
+	USceneComponent* GetMeshBaseComponent();
+	const USceneComponent* GetMeshBaseComponent() const;
+
+	UMeshComponent* GetMeshComponent();
+	const UMeshComponent* GetMeshComponent() const;
 
 	UWpEntityMovementComponent* GetEntityMovementComponent();
 	const UWpEntityMovementComponent* GetEntityMovementComponent() const;
@@ -73,7 +76,11 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UCapsuleComponent> CollisionComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UStaticMeshComponent> MeshComponent = nullptr;
+	TObjectPtr<USceneComponent> MeshBaseComponent = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> StaticMeshComponent = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UNavModifierComponent> NavModifierComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
@@ -101,9 +108,14 @@ private:
 	UPROPERTY(VisibleInstanceOnly)
 	EWpEntityType EntityType = EWpEntityType::Undefined;
 
+	UPROPERTY(VisibleInstanceOnly)
+	bool bUseSkeletalMesh = false;
+
 public:
 	static const FName CollisionComponentName;
-	static const FName MeshComponentName;
+	static const FName MeshBaseComponentName;
+	static const FName StaticMeshComponentName;
+	static const FName SkeletalMeshComponentName;
 	static const FName NavModifierComponentName;
 	static const FName MovementComponentName;
 	static const FName BelligerentComponentName;

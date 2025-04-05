@@ -345,7 +345,9 @@ void UWpProductionComponent::Produce()
 	}
 	const bool bIsBuilding = EntityConfig.Type == EWpEntityType::Building;
 
-	const FBoxSphereBounds EntityMeshBounds = EntityConfig.MeshConfig.Mesh->GetBounds();
+	const FBoxSphereBounds EntityMeshBounds = EntityConfig.MeshConfig.bUseSkeletalMesh
+		                                          ? EntityConfig.MeshConfig.SkeletalMesh->GetBounds()
+		                                          : EntityConfig.MeshConfig.StaticMesh->GetBounds();
 	const FVector EntityMeshExtent = EntityMeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
 	const FVector SpawnLocation = EntityToProduceLocation + EntityMeshExtent * 0.5f * FVector::UpVector + 1.0f * FVector::UpVector;
 

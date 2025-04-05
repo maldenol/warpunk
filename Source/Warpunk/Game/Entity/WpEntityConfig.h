@@ -17,7 +17,13 @@ struct FWpMeshConfig final
 	UPROPERTY(EditAnywhere)
 	FTransform Transform = FTransform::Identity;
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<UStaticMesh> Mesh = nullptr;
+	bool bUseSkeletalMesh = false;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "!bUseSkeletalMesh", EditConditionHides))
+	TObjectPtr<UStaticMesh> StaticMesh = nullptr;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "bUseSkeletalMesh", EditConditionHides))
+	TObjectPtr<USkeletalMesh> SkeletalMesh = nullptr;
+	UPROPERTY(EditAnywhere, meta = (EditCondition = "bUseSkeletalMesh", EditConditionHides))
+	TSubclassOf<UAnimInstance> AnimInstanceClass = nullptr;
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UMaterialInterface> Material = nullptr;
 };

@@ -33,7 +33,15 @@ void FWpEntityConfig::CheckCorrectness()
 
 	{
 		bIsCorrect &= MeshConfig.Transform.GetScale3D().GetMin() > 0.0;
-		bIsCorrect &= MeshConfig.Mesh != nullptr;
+		if (MeshConfig.bUseSkeletalMesh)
+		{
+			bIsCorrect &= MeshConfig.SkeletalMesh != nullptr;
+			bIsCorrect &= MeshConfig.AnimInstanceClass != nullptr;
+		}
+		else
+		{
+			bIsCorrect &= MeshConfig.StaticMesh != nullptr;
+		}
 		bIsCorrect &= MeshConfig.Material != nullptr;
 	}
 

@@ -22,9 +22,11 @@ AWpLocalEntity::AWpLocalEntity()
 	CollisionComponent->SetNotifyRigidBodyCollision(false);
 	CollisionComponent->SetGenerateOverlapEvents(false);
 
-	MeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
-	MeshComponent->BodyInstance.SetInstanceNotifyRBCollision(false);
-	MeshComponent->SetCanEverAffectNavigation(false);
+	StaticMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
+	StaticMeshComponent->SetCanEverAffectNavigation(false);
+
+	SkeletalMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
+	SkeletalMeshComponent->SetCanEverAffectNavigation(false);
 }
 
 void AWpLocalEntity::BeginPlay()

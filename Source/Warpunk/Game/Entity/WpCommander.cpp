@@ -14,7 +14,7 @@ AWpCommander::AWpCommander()
 {
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(CameraComponentName);
 	CameraComponent->bUsePawnControlRotation = true;
-	CameraComponent->AttachToComponent(MeshComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	CameraComponent->AttachToComponent(MeshBaseComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 }
 
 void AWpCommander::PossessedBy(AController* const NewController)

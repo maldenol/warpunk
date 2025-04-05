@@ -31,7 +31,7 @@ void UWpEnduranceComponent::BeginPlay()
 
 	EnduranceWidgetComponent = NewObject<UWidgetComponent>(GetOwner(), UWidgetComponent::StaticClass(), EnduranceWidgetComponentName);
 	EnduranceWidgetComponent->RegisterComponent();
-	EnduranceWidgetComponent->AttachToComponent(GetOwner<AWpEntity>()->GetMeshComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	EnduranceWidgetComponent->AttachToComponent(GetOwner<AWpEntity>()->GetMeshBaseComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	EnduranceWidgetComponent->SetIsReplicated(false);
 	EnduranceWidgetComponent->SetCollisionProfileName(TEXT("NoCollision"));

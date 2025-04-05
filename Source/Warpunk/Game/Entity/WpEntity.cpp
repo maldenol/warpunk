@@ -23,7 +23,9 @@
 #include "Net/UnrealNetwork.h"
 
 const FName AWpEntity::CollisionComponentName = TEXT("CollisionComponent");
-const FName AWpEntity::MeshComponentName = TEXT("MeshComponent");
+const FName AWpEntity::MeshBaseComponentName = TEXT("MeshBaseComponent");
+const FName AWpEntity::StaticMeshComponentName = TEXT("StaticMeshComponent");
+const FName AWpEntity::SkeletalMeshComponentName = TEXT("SkeletalMeshComponent");
 const FName AWpEntity::NavModifierComponentName = TEXT("NavModifierComponent");
 const FName AWpEntity::MovementComponentName = TEXT("MovementComponent");
 const FName AWpEntity::BelligerentComponentName = TEXT("BelligerentComponent");
@@ -57,13 +59,26 @@ AWpEntity::AWpEntity()
 	CollisionComponent->SetCanEverAffectNavigation(false);
 	RootComponent = CollisionComponent;
 
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(MeshComponentName);
-	MeshComponent->SetIsReplicated(false);
-	MeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
-	MeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
-	MeshComponent->SetGenerateOverlapEvents(false);
-	MeshComponent->SetCanEverAffectNavigation(true);
-	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	MeshBaseComponent = CreateDefaultSubobject<USceneComponent>(MeshBaseComponentName);
+	MeshBaseComponent->SetIsReplicated(false);
+	MeshBaseComponent->SetCanEverAffectNavigation(false);
+	MeshBaseComponent->AttachToComponent(RootComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(StaticMeshComponentName);
+	StaticMeshComponent->SetIsReplicated(false);
+	StaticMeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
+	StaticMeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
+	StaticMeshComponent->SetGenerateOverlapEvents(false);
+	StaticMeshComponent->SetCanEverAffectNavigation(false);
+	StaticMeshComponent->AttachToComponent(MeshBaseComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+
+	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(SkeletalMeshComponentName);
+	SkeletalMeshComponent->SetIsReplicated(false);
+	SkeletalMeshComponent->SetCollisionProfileName(MeshComponentCollisionProfileName);
+	SkeletalMeshComponent->BodyInstance.SetInstanceNotifyRBCollision(true);
+	SkeletalMeshComponent->SetGenerateOverlapEvents(false);
+	SkeletalMeshComponent->SetCanEverAffectNavigation(false);
+	SkeletalMeshComponent->AttachToComponent(MeshBaseComponent, FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
 
 	NavModifierComponent = CreateDefaultSubobject<UNavModifierComponent>(NavModifierComponentName);
 	NavModifierComponent->SetIsReplicated(false);
@@ -72,7 +87,7 @@ AWpEntity::AWpEntity()
 
 	MovementComponent = CreateDefaultSubobject<UWpEntityMovementComponent>(MovementComponentName);
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
-	MovementComponent->SetInterpolatedComponent(MeshComponent);
+	MovementComponent->SetInterpolatedComponent(MeshBaseComponent);
 
 	BelligerentComponent = CreateDefaultSubobject<UWpBelligerentComponent>(BelligerentComponentName);
 
@@ -151,14 +166,31 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 
 		SetReplicateMovement(EntityType == EWpEntityType::Building);
 
-		MeshComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
-		MeshComponent->SetStaticMesh(EntityConfig.MeshConfig.Mesh);
-		MeshComponent->SetMaterial(0, EntityConfig.MeshConfig.Material);
+		bUseSkeletalMesh = EntityConfig.MeshConfig.bUseSkeletalMesh;
 
-		const FBoxSphereBounds MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
+		StaticMeshComponent->SetActive(!bUseSkeletalMesh);
+		StaticMeshComponent->SetCollisionProfileName(!bUseSkeletalMesh ? MeshComponentCollisionProfileName : TEXT("NoCollision"));
+		StaticMeshComponent->SetCanEverAffectNavigation(!bUseSkeletalMesh);
+		SkeletalMeshComponent->SetActive(bUseSkeletalMesh);
+		SkeletalMeshComponent->SetCollisionProfileName(bUseSkeletalMesh ? MeshComponentCollisionProfileName : TEXT("NoCollision"));
+		SkeletalMeshComponent->SetCanEverAffectNavigation(bUseSkeletalMesh);
+		if (bUseSkeletalMesh)
+		{
+			SkeletalMeshComponent->SetSkeletalMeshAsset(EntityConfig.MeshConfig.SkeletalMesh);
+			SkeletalMeshComponent->SetAnimInstanceClass(EntityConfig.MeshConfig.AnimInstanceClass);
+		}
+		else
+		{
+			StaticMeshComponent->SetStaticMesh(EntityConfig.MeshConfig.StaticMesh);
+		}
+		GetMeshComponent()->SetMaterial(0, EntityConfig.MeshConfig.Material);
+
+		MeshBaseComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
+
+		const FBoxSphereBounds MeshBounds = bUseSkeletalMesh ? SkeletalMeshComponent->GetSkeletalMeshAsset()->GetBounds() : StaticMeshComponent->GetStaticMesh()->GetBounds();
 
 		const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.MeshConfig.Transform.GetScale3D();
-		MeshComponent->SetRelativeLocation(-MeshOrigin);
+		MeshBaseComponent->SetRelativeLocation(-MeshOrigin);
 
 		const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
 		const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
@@ -182,8 +214,19 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 
 void AWpEntity::OnPooledObjectVisibilityChanged(const bool bIsVisible)
 {
-	MeshComponent->SetHiddenInGame(!bIsVisible);
-	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, bIsVisible ? ECR_Block : ECR_Ignore);
+	if (bIsVisible)
+	{
+		UMeshComponent* const MeshComponent = GetMeshComponent();
+		MeshComponent->SetHiddenInGame(false);
+		MeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+	}
+	else
+	{
+		StaticMeshComponent->SetHiddenInGame(true);
+		StaticMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+		SkeletalMeshComponent->SetHiddenInGame(true);
+		SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
 
 	if (!bIsVisible && (EntityType == EWpEntityType::Building) && GetIsReplicated())
 	{
@@ -224,14 +267,24 @@ const UCapsuleComponent* AWpEntity::GetCollisionComponent() const
 	return CollisionComponent;
 }
 
-UStaticMeshComponent* AWpEntity::GetMeshComponent()
+USceneComponent* AWpEntity::GetMeshBaseComponent()
 {
-	return MeshComponent;
+	return MeshBaseComponent;
 }
 
-const UStaticMeshComponent* AWpEntity::GetMeshComponent() const
+const USceneComponent* AWpEntity::GetMeshBaseComponent() const
 {
-	return MeshComponent;
+	return MeshBaseComponent;
+}
+
+UMeshComponent* AWpEntity::GetMeshComponent()
+{
+	return bUseSkeletalMesh ? Cast<UMeshComponent>(SkeletalMeshComponent) : Cast<UMeshComponent>(StaticMeshComponent);
+}
+
+const UMeshComponent* AWpEntity::GetMeshComponent() const
+{
+	return bUseSkeletalMesh ? Cast<UMeshComponent>(SkeletalMeshComponent) : Cast<UMeshComponent>(StaticMeshComponent);
 }
 
 UWpEntityMovementComponent* AWpEntity::GetEntityMovementComponent()
