@@ -53,7 +53,7 @@ void AWpPooledActorVisibilityManager::BeginPlay()
 	}
 }
 
-void AWpPooledActorVisibilityManager::Tick(float DeltaSeconds)
+void AWpPooledActorVisibilityManager::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 

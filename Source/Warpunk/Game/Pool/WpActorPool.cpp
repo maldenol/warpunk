@@ -2,11 +2,43 @@
 
 #include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
 
+const float AWpActorPool::AdditionalActorSpawnDelay = 0.5f;
+
 AWpActorPool::AWpActorPool()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.SetTickFunctionEnable(false);
 
 	bReplicates = false;
+}
+
+void AWpActorPool::Tick(const float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	ensureAlways(HasAuthority());
+
+	if (AdditionalActorSpawnNum == 0)
+	{
+		AdditionalActorSpawnTime = 0.0f;
+		SetActorTickEnabled(false);
+		return;
+	}
+
+	AdditionalActorSpawnTime += DeltaSeconds;
+	if (AdditionalActorSpawnTime > AdditionalActorSpawnDelay)
+	{
+		SpawnActors(1);
+
+		--AdditionalActorSpawnNum;
+		AdditionalActorSpawnTime = 0.0f;
+
+		if (AdditionalActorSpawnNum == 0)
+		{
+			SetActorTickEnabled(false);
+		}
+	}
 }
 
 void AWpActorPool::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -27,19 +59,9 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 
 	Instances.Add(FWpActorPoolInstanceKey{GetWorld(), Class}, this);
 
+	AllActors.Reserve(Number);
 	FreeActors.Reserve(Number);
-
-	FActorSpawnParameters ActorSpawnParameters;
-	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	for (uint32 Index = 0; Index < Number; ++Index)
-	{
-		AActor* const Actor = GetWorld()->SpawnActor(Class, nullptr, nullptr, ActorSpawnParameters);
-
-		Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
-
-		FreeActors.Add(Actor);
-	}
+	SpawnActors(Number);
 }
 
 AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation, const FWpPooledObjectData& PooledObjectData)
@@ -48,7 +70,7 @@ AActor* AWpActorPool::Acquire(const FVector& Location, const FRotator& Rotation,
 
 	if (FreeActors.IsEmpty())
 	{
-		return nullptr;
+		BeginSpawnAdditionalActors();
 	}
 
 	AActor* const Actor = *FreeActors.CreateIterator();
@@ -68,6 +90,7 @@ void AWpActorPool::Release(AActor* const Actor)
 	ensureAlways(HasAuthority());
 
 	ensureAlways(Actor);
+	ensureAlways(AllActors.Contains(Actor));
 
 	Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
 
@@ -76,6 +99,39 @@ void AWpActorPool::Release(AActor* const Actor)
 	FreeActors.Add(Actor);
 
 	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 5.0f, FColor::Red, Actor->GetActorNameOrLabel());
+}
+
+void AWpActorPool::SpawnActors(const uint32 Number)
+{
+	FActorSpawnParameters ActorSpawnParameters;
+	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	for (uint32 Index = 0; Index < Number; ++Index)
+	{
+		AActor* const Actor = GetWorld()->SpawnActor(Class, nullptr, nullptr, ActorSpawnParameters);
+
+		Cast<IWpPooledObjectInterface>(Actor)->ReleasePooledObject();
+
+		AllActors.Add(Actor);
+		FreeActors.Add(Actor);
+	}
+}
+
+void AWpActorPool::BeginSpawnAdditionalActors()
+{
+	if (AdditionalActorSpawnNum == 0)
+	{
+		AdditionalActorSpawnNum = FMath::Max(AllActors.Num() / 2, 2);
+
+		const uint32 NewActorNum = AllActors.Num() + AdditionalActorSpawnNum;
+		AllActors.Reserve(NewActorNum);
+		FreeActors.Reserve(NewActorNum);
+
+		SetActorTickEnabled(true);
+	}
+
+	--AdditionalActorSpawnNum;
+	SpawnActors(1);
 }
 
 AWpActorPool* AWpActorPool::Instance(const UWorld* const World, const TSubclassOf<AActor>& Class)

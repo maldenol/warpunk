@@ -15,7 +15,7 @@ public:
 	AWpLocalEntity();
 
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
+	virtual void Tick(const float DeltaSeconds) override;
 
 	virtual void OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;

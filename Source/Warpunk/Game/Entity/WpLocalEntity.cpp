@@ -34,7 +34,7 @@ void AWpLocalEntity::BeginPlay()
 	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AWpLocalEntity::OnBeginOverlap);
 }
 
-void AWpLocalEntity::Tick(float DeltaSeconds)
+void AWpLocalEntity::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 

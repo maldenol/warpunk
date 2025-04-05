@@ -16,6 +16,7 @@ class AWpActorPool final : public AInfo
 public:
 	AWpActorPool();
 
+	virtual void Tick(const float DeltaSeconds) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	void Reserve(const TSubclassOf<AActor>& InClass, const uint32 Number);
@@ -24,9 +25,16 @@ public:
 	void Release(AActor* const Actor);
 
 private:
+	void SpawnActors(const uint32 Number);
+	void BeginSpawnAdditionalActors();
+
 	TSubclassOf<AActor> Class = nullptr;
 
+	TSet<AActor*> AllActors = {};
 	TSet<AActor*> FreeActors = {};
+
+	uint32 AdditionalActorSpawnNum = 0;
+	float AdditionalActorSpawnTime = 0.0f;
 
 public:
 	static AWpActorPool* Instance(const UWorld* const World, const TSubclassOf<AActor>& Class);
@@ -45,6 +53,8 @@ public:
 	{
 		Release(T::StaticClass(), Actor);
 	}
+
+	static const float AdditionalActorSpawnDelay;
 
 private:
 	using FWpActorPoolInstanceKey = TPair<const UWorld*, TSubclassOf<AActor>>;
