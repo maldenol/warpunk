@@ -111,6 +111,22 @@ void FWpEntityConfig::CheckCorrectness()
 
 void FWpEntityConfig::UpdateDerivedValues()
 {
+	{
+		const FBoxSphereBounds MeshBounds = MeshConfig.bUseSkeletalMesh
+			                                    ? MeshConfig.SkeletalMesh->GetBounds()
+			                                    : MeshConfig.StaticMesh->GetBounds();
+
+		MeshConfig.RelativeTransform = MeshConfig.Transform;
+
+		const FVector MeshOrigin = MeshBounds.Origin * MeshConfig.Transform.GetScale3D();
+		MeshConfig.RelativeTransform.AddToTranslation(-MeshOrigin);
+
+		const FVector MeshExtent = MeshBounds.BoxExtent * MeshConfig.Transform.GetScale3D();
+		MeshConfig.CollisionRadius = FMath::Max(MeshExtent.X, MeshExtent.Y);
+		MeshConfig.CollisionHalfHeight = FMath::Max(MeshExtent.Z, MeshConfig.CollisionRadius);
+		MeshConfig.CollisionHeight = 2.0f * MeshConfig.CollisionHalfHeight;
+	}
+
 	if (Type == EWpEntityType::Unit)
 	{
 		float MoveAccelerationTorqueCoefficient = 1.0f;
@@ -167,6 +183,17 @@ void FWpEntityConfig::UpdateDerivedValues()
 			WeaponConfig.ProjectileSpeed = FMath::Sqrt(WeaponConfig.ProjectileSpeed2);
 			WeaponConfig.ProjectileSpeedMinRange2 = WeaponConfig.MinRange * DefaultGravityScale;
 			WeaponConfig.ProjectileSpeedMinRange4 = FMath::Square(WeaponConfig.ProjectileSpeedMinRange2);
+
+			const FBoxSphereBounds& MeshBounds = WeaponConfig.ProjectileMesh->GetBounds();
+			const float MeshExtentMax = MeshBounds.BoxExtent.GetMax();
+			const float MeshScale = WeaponConfig.ProjectileMeshToRadiusScale * WeaponConfig.ProjectileRadius / MeshExtentMax;
+			const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
+			WeaponConfig.ProjectileMeshRelativeTransform =
+				FTransform{
+					WeaponConfig.ProjectileMeshRotation,
+					-MeshOrigin,
+					FVector{MeshScale}
+				};
 		}
 	}
 }

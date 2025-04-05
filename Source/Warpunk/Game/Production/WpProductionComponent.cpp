@@ -339,17 +339,10 @@ void UWpProductionComponent::Produce()
 
 	const FWpEntityConfig EntityConfig = GetOwner()->GetGameInstance<UWpGameInstance>()->GetEntityConfig(EntityToProduceConfigId);
 
-	if (!ensureAlways(EntityConfig.Type != EWpEntityType::Undefined))
-	{
-		return;
-	}
 	const bool bIsBuilding = EntityConfig.Type == EWpEntityType::Building;
 
-	const FBoxSphereBounds EntityMeshBounds = EntityConfig.MeshConfig.bUseSkeletalMesh
-		                                          ? EntityConfig.MeshConfig.SkeletalMesh->GetBounds()
-		                                          : EntityConfig.MeshConfig.StaticMesh->GetBounds();
-	const FVector EntityMeshExtent = EntityMeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
-	const FVector SpawnLocation = EntityToProduceLocation + EntityMeshExtent * 0.5f * FVector::UpVector + 1.0f * FVector::UpVector;
+	const FVector SpawnLocation = EntityToProduceLocation + 1.0f * FVector::UpVector
+		+ EntityConfig.MeshConfig.CollisionHalfHeight * FVector::UpVector;
 
 	TArray<AActor*> Actors;
 	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes =
@@ -357,8 +350,8 @@ void UWpProductionComponent::Produce()
 		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel1),
 		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel5),
 	};
-	UKismetSystemLibrary::BoxOverlapActors(GetWorld(), SpawnLocation, EntityMeshExtent, ObjectTypes, AActor::StaticClass(), {}, Actors);
-	UKismetSystemLibrary::DrawDebugBox(GetWorld(), SpawnLocation, EntityMeshExtent, FColor::Red);
+	UKismetSystemLibrary::CapsuleOverlapActors(GetWorld(), SpawnLocation, EntityConfig.MeshConfig.CollisionRadius, EntityConfig.MeshConfig.CollisionHalfHeight, ObjectTypes, AActor::StaticClass(), {}, Actors);
+	UKismetSystemLibrary::DrawDebugCapsule(GetWorld(), SpawnLocation, EntityConfig.MeshConfig.CollisionHalfHeight, EntityConfig.MeshConfig.CollisionRadius, FRotator::ZeroRotator, FColor::Red);
 	const bool bHasSpaceToProduce = Actors.IsEmpty();
 
 	AWpEntity* Entity;

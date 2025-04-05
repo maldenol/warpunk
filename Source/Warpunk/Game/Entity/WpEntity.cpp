@@ -166,6 +166,9 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 
 		SetReplicateMovement(EntityType == EWpEntityType::Building);
 
+		CollisionComponent->SetCapsuleSize(EntityConfig.MeshConfig.CollisionRadius, EntityConfig.MeshConfig.CollisionHalfHeight);
+		MeshBaseComponent->SetRelativeTransform(EntityConfig.MeshConfig.RelativeTransform);
+
 		bUseSkeletalMesh = EntityConfig.MeshConfig.bUseSkeletalMesh;
 
 		StaticMeshComponent->SetActive(!bUseSkeletalMesh);
@@ -174,30 +177,20 @@ void AWpEntity::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const F
 		SkeletalMeshComponent->SetActive(bUseSkeletalMesh);
 		SkeletalMeshComponent->SetCollisionProfileName(bUseSkeletalMesh ? MeshComponentCollisionProfileName : TEXT("NoCollision"));
 		SkeletalMeshComponent->SetCanEverAffectNavigation(bUseSkeletalMesh);
+
 		if (bUseSkeletalMesh)
 		{
 			SkeletalMeshComponent->SetSkeletalMeshAsset(EntityConfig.MeshConfig.SkeletalMesh);
 			SkeletalMeshComponent->SetAnimInstanceClass(EntityConfig.MeshConfig.AnimInstanceClass);
+			SkeletalMeshComponent->SetMaterial(0, EntityConfig.MeshConfig.Material);
 		}
 		else
 		{
 			StaticMeshComponent->SetStaticMesh(EntityConfig.MeshConfig.StaticMesh);
+			StaticMeshComponent->SetMaterial(0, EntityConfig.MeshConfig.Material);
 		}
-		GetMeshComponent()->SetMaterial(0, EntityConfig.MeshConfig.Material);
 
-		MeshBaseComponent->SetRelativeTransform(EntityConfig.MeshConfig.Transform);
-
-		const FBoxSphereBounds MeshBounds = bUseSkeletalMesh ? SkeletalMeshComponent->GetSkeletalMeshAsset()->GetBounds() : StaticMeshComponent->GetStaticMesh()->GetBounds();
-
-		const FVector MeshOrigin = MeshBounds.Origin * EntityConfig.MeshConfig.Transform.GetScale3D();
-		MeshBaseComponent->SetRelativeLocation(-MeshOrigin);
-
-		const FVector MeshExtent = MeshBounds.BoxExtent * EntityConfig.MeshConfig.Transform.GetScale3D();
-		const float Radius = FMath::Max(MeshExtent.X, MeshExtent.Y);
-		const float HalfHeight = MeshExtent.Z;
-		CollisionComponent->SetCapsuleSize(Radius, HalfHeight);
-
-		MovementComponent->SetCollisionSize(Radius, HalfHeight * 2.0f);
+		MovementComponent->SetCollisionSize(EntityConfig.MeshConfig.CollisionRadius, EntityConfig.MeshConfig.CollisionHeight);
 		MovementComponent->CacheInitialInterpolatedComponentOffset();
 	}
 

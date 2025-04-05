@@ -26,6 +26,11 @@ struct FWpMeshConfig final
 	TSubclassOf<UAnimInstance> AnimInstanceClass = nullptr;
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UMaterialInterface> Material = nullptr;
+
+	FTransform RelativeTransform = FTransform::Identity;
+	float CollisionRadius = 0.0f;
+	float CollisionHalfHeight = 0.0f;
+	float CollisionHeight = 0.0f;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -167,6 +172,7 @@ struct FWpWeaponConfig final
 	float ProjectileSpeed = 0.0f;
 	float ProjectileSpeedMinRange2 = 0.0f;
 	float ProjectileSpeedMinRange4 = 0.0f;
+	FTransform ProjectileMeshRelativeTransform = FTransform::Identity;
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)

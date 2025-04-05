@@ -103,17 +103,8 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 		CollisionComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
 
+		MeshComponent->SetRelativeTransform(WeaponConfig.ProjectileMeshRelativeTransform);
 		MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
-		MeshComponent->SetRelativeRotation(WeaponConfig.ProjectileMeshRotation);
-
-		const FBoxSphereBounds& MeshBounds = MeshComponent->GetStaticMesh()->GetBounds();
-
-		const float MeshExtentMax = MeshBounds.BoxExtent.GetMax();
-		const float MeshScale = WeaponConfig.ProjectileMeshToRadiusScale * WeaponConfig.ProjectileRadius / MeshExtentMax;
-		MeshComponent->SetRelativeScale3D(FVector{MeshScale});
-
-		const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
-		MeshComponent->SetRelativeLocation(-MeshOrigin);
 
 		if (HasAuthority())
 		{
