@@ -49,7 +49,6 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void SetUpdatedComponent(USceneComponent* const NewUpdatedComponent) override;
 	virtual float GetMaxSpeed() const override;
 
 	virtual void RequestPathMove(const FVector& MoveInput) override;
@@ -57,9 +56,8 @@ public:
 	virtual void OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const FWpPooledObjectData& PooledObjectData) override;
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 
+	void SetCollisionComponent(UPrimitiveComponent* const InCollisionComponent);
 	void SetInterpolatedComponent(USceneComponent* const InInterpolatedComponent);
-
-	void SetCollisionSize(const float Radius, const float Height);
 
 	float GetMinBrakingDistance() const;
 
@@ -95,6 +93,8 @@ private:
 
 	FVector CalcDeltaLocation(const float DeltaTime, const FVector& InGroundNormal) const;
 
+	bool ResolvePenetration();
+
 	void UpdateGround();
 
 	void ProcessWallImpact(const FHitResult& Hit);
@@ -103,9 +103,10 @@ private:
 
 	bool StepUp(const float DeltaTime, float& OutSpentTime);
 
-	void SweepCapsule(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
-	void SweepBottomSphere(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
-	void LineTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
+	void MoveWithCollision(const FVector& DeltaLocation, const FRotator& NewRotation, FHitResult* const OutHit = nullptr);
+
+	void Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation, const FQuat& Rotation) const;
+	void LineTraceGround(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const;
 
 	void AddInterpolatedComponentOffset(const FVector& DeltaLocation, const FRotator& DeltaRotation);
 	void UpdateTargetInterpolatedComponentOffset();
@@ -140,6 +141,11 @@ private:
 	float MaxStepUpHeight = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly)
+	UPrimitiveComponent* CollisionComponent = nullptr;
+	UPROPERTY(VisibleInstanceOnly)
+	USceneComponent* InterpolatedComponent = nullptr;
+
+	UPROPERTY(VisibleInstanceOnly)
 	FVector LastInputVector = FVector::ZeroVector;
 
 	UPROPERTY(VisibleInstanceOnly)
@@ -165,8 +171,10 @@ private:
 
 	bool bIsFirstPersonControlled = false;
 
-	USceneComponent* InterpolatedComponent = nullptr;
+	FCollisionShape CollisionShape = {};
+	FCollisionQueryParams CollisionQueryParams = {};
 
+	UPROPERTY(VisibleInstanceOnly)
 	FTransform InitialInterpolatedComponentTransform = FTransform::Identity;
 	UPROPERTY(VisibleInstanceOnly)
 	FVector TargetInterpolatedComponentLocation = FVector::ZeroVector;
@@ -184,6 +192,9 @@ public:
 	static const float MinTickTime;
 	static const uint32 MaxMoveIterationNum;
 
+	static const float CollisionPullBackDistance;
+	static const uint32 MaxResolvePenetrationIterationNum;
+
 	static const float IdealGroundDistance;
 	static const float MaxGroundDistance;
 
@@ -195,6 +206,8 @@ public:
 	static const float KineticToStaticGroundFriction;
 	static const float MinSlippingLateralSpeed;
 	static const float MinSlippingMagicValueScale;
+
+	static const float MinSpeedForLegsRotationScale;
 
 	static const float InterpolatedComponentSmoothingTime;
 	static const float InterpolatedComponentSnapDeltaLocation2;

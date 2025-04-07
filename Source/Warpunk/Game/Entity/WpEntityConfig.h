@@ -15,6 +15,8 @@ struct FWpMeshConfig final
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
+	bool bUseCapsuleCollision = false;
+	UPROPERTY(EditAnywhere)
 	FTransform Transform = FTransform::Identity;
 	UPROPERTY(EditAnywhere)
 	bool bUseSkeletalMesh = false;
@@ -28,9 +30,7 @@ struct FWpMeshConfig final
 	TObjectPtr<UMaterialInterface> Material = nullptr;
 
 	FTransform RelativeTransform = FTransform::Identity;
-	float CollisionRadius = 0.0f;
-	float CollisionHalfHeight = 0.0f;
-	float CollisionHeight = 0.0f;
+	FCollisionShape CollisionShape = {};
 };
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -212,5 +212,6 @@ private:
 	void CheckCorrectness();
 	void UpdateDerivedValues();
 
-	static float DefaultGravityScale;
+public:
+	static const float DefaultGravityScale;
 };

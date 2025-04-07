@@ -17,6 +17,7 @@ class UWpOrderReceiverComponent;
 class UWpProductionComponent;
 class UWpWeaponComponent;
 
+class UBoxComponent;
 class UCapsuleComponent;
 class UNavModifierComponent;
 
@@ -39,8 +40,8 @@ public:
 	virtual void OnPooledObjectVisibilityChanged(const bool bIsVisible) override;
 	virtual TArray<IWpPooledObjectInterface*> GetInnerPooledObjects() override;
 
-	UCapsuleComponent* GetCollisionComponent();
-	const UCapsuleComponent* GetCollisionComponent() const;
+	UPrimitiveComponent* GetCollisionComponent();
+	const UPrimitiveComponent* GetCollisionComponent() const;
 
 	USceneComponent* GetMeshBaseComponent();
 	const USceneComponent* GetMeshBaseComponent() const;
@@ -74,7 +75,9 @@ public:
 
 protected:
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UCapsuleComponent> CollisionComponent = nullptr;
+	TObjectPtr<UCapsuleComponent> CapsuleComponent = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UBoxComponent> BoxComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> MeshBaseComponent = nullptr;
 	UPROPERTY(VisibleAnywhere)
@@ -109,10 +112,14 @@ private:
 	EWpEntityType EntityType = EWpEntityType::Undefined;
 
 	UPROPERTY(VisibleInstanceOnly)
+	bool bUseCapsuleCollision = false;
+	UPROPERTY(VisibleInstanceOnly)
 	bool bUseSkeletalMesh = false;
 
 public:
-	static const FName CollisionComponentName;
+	static const FName RootComponentName;
+	static const FName CapsuleComponentName;
+	static const FName BoxComponentName;
 	static const FName MeshBaseComponentName;
 	static const FName StaticMeshComponentName;
 	static const FName SkeletalMeshComponentName;

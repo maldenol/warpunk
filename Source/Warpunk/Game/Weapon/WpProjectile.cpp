@@ -103,7 +103,7 @@ void AWpProjectile::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, con
 
 		CollisionComponent->SetSphereRadius(WeaponConfig.ProjectileRadius);
 
-		MeshComponent->SetRelativeTransform(WeaponConfig.ProjectileMeshRelativeTransform);
+		MeshComponent->SetRelativeTransform(WeaponConfig.ProjectileMeshRelativeTransform, false);
 		MeshComponent->SetStaticMesh(WeaponConfig.ProjectileMesh);
 
 		if (HasAuthority())

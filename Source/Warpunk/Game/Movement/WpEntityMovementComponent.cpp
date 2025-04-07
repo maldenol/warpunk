@@ -5,7 +5,6 @@
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -20,7 +19,10 @@
  */
 
 const float UWpEntityMovementComponent::MinTickTime = 1.0e-6f;
-const uint32 UWpEntityMovementComponent::MaxMoveIterationNum = 10;
+const uint32 UWpEntityMovementComponent::MaxMoveIterationNum = 8;
+
+const float UWpEntityMovementComponent::CollisionPullBackDistance = 1.0e-2f;
+const uint32 UWpEntityMovementComponent::MaxResolvePenetrationIterationNum = 4; // should be even
 
 const float UWpEntityMovementComponent::IdealGroundDistance = 1.0f;
 const float UWpEntityMovementComponent::MaxGroundDistance = IdealGroundDistance + 1.0f;
@@ -33,6 +35,8 @@ const float UWpEntityMovementComponent::EntityImpactLateralSpeedReduction = 0.1f
 const float UWpEntityMovementComponent::KineticToStaticGroundFriction = 0.8f;
 const float UWpEntityMovementComponent::MinSlippingLateralSpeed = 5.0f;
 const float UWpEntityMovementComponent::MinSlippingMagicValueScale = 0.4f;
+
+const float UWpEntityMovementComponent::MinSpeedForLegsRotationScale = 0.1f;
 
 const float UWpEntityMovementComponent::InterpolatedComponentSmoothingTime = 0.1f;
 const float UWpEntityMovementComponent::InterpolatedComponentSnapDeltaLocation2 = FMath::Square(1.0f);
@@ -83,14 +87,6 @@ void UWpEntityMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	FDoRepLifetimeParams DoRepLifetimeParams;
 	DoRepLifetimeParams.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UWpEntityMovementComponent, PredictionData, DoRepLifetimeParams);
-}
-
-void UWpEntityMovementComponent::SetUpdatedComponent(USceneComponent* const NewUpdatedComponent)
-{
-	ensureAlways(NewUpdatedComponent == NewUpdatedComponent->GetOwner()->GetRootComponent());
-	ensureAlways(NewUpdatedComponent->IsA<UCapsuleComponent>());
-
-	Super::SetUpdatedComponent(NewUpdatedComponent);
 }
 
 float UWpEntityMovementComponent::GetMaxSpeed() const
@@ -157,6 +153,8 @@ void UWpEntityMovementComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquir
 			MaxInclineAngleCos = MovementConfig.MaxInclineAngleCos;
 			MaxStepUpHeight = MovementConfig.MaxStepUpHeight;
 
+			CollisionQueryParams = FCollisionQueryParams{NAME_None, false, GetOwner()};
+
 			if (GetOwner()->HasAuthority())
 			{
 				MoveSpeed = FVector::ZeroVector;
@@ -197,16 +195,24 @@ void UWpEntityMovementComponent::OnPooledObjectVisibilityChanged(const bool bIsV
 	}
 }
 
+void UWpEntityMovementComponent::SetCollisionComponent(UPrimitiveComponent* const InCollisionComponent)
+{
+	CollisionComponent = InCollisionComponent;
+
+	CollisionShape = CollisionComponent->GetCollisionShape();
+
+	if (GetOwner()->HasAuthority())
+	{
+		FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
+		const FVector Extent = CollisionShape.GetExtent();
+		NavAgentProperties.AgentRadius = FMath::Max(Extent.X, Extent.Y);
+		NavAgentProperties.AgentHeight = Extent.Z;
+	}
+}
+
 void UWpEntityMovementComponent::SetInterpolatedComponent(USceneComponent* const InInterpolatedComponent)
 {
 	InterpolatedComponent = InInterpolatedComponent;
-}
-
-void UWpEntityMovementComponent::SetCollisionSize(const float Radius, const float Height)
-{
-	FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
-	NavAgentProperties.AgentRadius = Radius;
-	NavAgentProperties.AgentHeight = Height;
 }
 
 float UWpEntityMovementComponent::GetMinBrakingDistance() const
@@ -603,7 +609,9 @@ void UWpEntityMovementComponent::ApplyRotationAccelerationLegs(const float Delta
 	ensureAlways(bOnGround);
 
 	const FVector CurrentDirection = UpdatedComponent->GetForwardVector();
-	const FVector TargetDirection = MoveSpeed.GetSafeNormal2D();
+	const FVector TargetDirection = MoveSpeed.IsNearlyZero(MinSpeedForLegsRotationScale * MaxMoveSpeed)
+		                                ? CurrentDirection
+		                                : MoveSpeed.GetSafeNormal2D();
 	const float DeltaYaw = FMath::DegreesToRadians(FQuat::FindBetweenNormals(CurrentDirection, TargetDirection).Rotator().Yaw);
 
 	if (FMath::IsNearlyZero(RotationSpeed) && FMath::IsNearlyZero(DeltaYaw, FMath::DegreesToRadians(0.5f)))
@@ -725,6 +733,11 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 	{
 		++IterationIndex;
 
+		if (!ResolvePenetration())
+		{
+			continue;
+		}
+
 		UpdateGround();
 
 		const FVector DeltaLocation = CalcDeltaLocation(RemainingTime, GroundNormal);
@@ -734,7 +747,7 @@ void UWpEntityMovementComponent::Move(const float DeltaTime)
 		}
 
 		FHitResult Hit;
-		UpdatedComponent->MoveComponent(DeltaLocation, NewRotation, true, &Hit);
+		MoveWithCollision(DeltaLocation, NewRotation, &Hit);
 
 		const float SpentTime = Hit.Time * RemainingTime;
 		RemainingTime -= SpentTime;
@@ -789,14 +802,39 @@ FVector UWpEntityMovementComponent::CalcDeltaLocation(const float DeltaTime, con
 	return DeltaLocation;
 }
 
+bool UWpEntityMovementComponent::ResolvePenetration()
+{
+	FHitResult Hit;
+	FVector AdjustmentVector = FVector::ZeroVector;
+
+	const FQuat Rotation = CollisionComponent->GetComponentQuat();
+
+	for (uint32 IterationIndex = 0; IterationIndex < MaxResolvePenetrationIterationNum; ++IterationIndex)
+	{
+		const FVector Location = CollisionComponent->GetComponentLocation();
+		Sweep(Hit, Location, Location, Rotation);
+
+		if (!Hit.bBlockingHit || !Hit.bStartPenetrating)
+		{
+			return true;
+		}
+
+		AdjustmentVector += (Hit.PenetrationDepth + CollisionPullBackDistance) * Hit.ImpactNormal;
+		UpdatedComponent->MoveComponent(AdjustmentVector, UpdatedComponent->GetComponentQuat(), false);
+	}
+
+	return false;
+}
+
 void UWpEntityMovementComponent::UpdateGround()
 {
 	const bool bWasOnGround = bOnGround;
 
 	FHitResult Hit;
-	const FVector StartLocation = UpdatedComponent->GetComponentLocation();
+	const FVector StartLocation = CollisionComponent->GetComponentLocation();
 	const FVector EndLocation = StartLocation - (1.0f + MaxGroundDistance) * FVector::UpVector;
-	SweepBottomSphere(Hit, StartLocation, EndLocation);
+	const FQuat Rotation = CollisionComponent->GetComponentQuat();
+	Sweep(Hit, StartLocation, EndLocation, Rotation);
 
 	bool bShouldLineTrace = false;
 	bool bSetNormalWhenNotOnGround = false;
@@ -824,7 +862,7 @@ void UWpEntityMovementComponent::UpdateGround()
 	if (bShouldLineTrace)
 	{
 		FHitResult LineTraceHit;
-		LineTrace(LineTraceHit, StartLocation, EndLocation);
+		LineTraceGround(LineTraceHit, StartLocation, EndLocation);
 
 		if (LineTraceHit.bBlockingHit && (LineTraceHit.Distance < MaxGroundDistance))
 		{
@@ -855,10 +893,10 @@ void UWpEntityMovementComponent::UpdateGround()
 	if (Hit.bBlockingHit && bOnGround)
 	{
 		const FVector OnGroundLocation = Hit.Location + IdealGroundDistance * FVector::UpVector;
-		const FVector DeltaLocation = OnGroundLocation - UpdatedComponent->GetComponentLocation();
+		const FVector DeltaLocation = OnGroundLocation - CollisionComponent->GetComponentLocation();
 		if (!DeltaLocation.IsNearlyZero())
 		{
-			UpdatedComponent->MoveComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), true);
+			MoveWithCollision(DeltaLocation, UpdatedComponent->GetComponentRotation());
 		}
 	}
 }
@@ -917,7 +955,7 @@ bool UWpEntityMovementComponent::ProcessEntityImpact(const FHitResult& Hit)
 		}
 
 		const FVector EntityImpactReturnDeltaLocation = EntityImpactReturnDistance * Hit.Normal;
-		UpdatedComponent->MoveComponent(EntityImpactReturnDeltaLocation, UpdatedComponent->GetComponentRotation(), true);
+		MoveWithCollision(EntityImpactReturnDeltaLocation, UpdatedComponent->GetComponentRotation());
 
 		return true;
 	}
@@ -965,10 +1003,12 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime, float& OutSpentTi
 {
 	FHitResult Hit;
 
-	const FVector LocationBeforeStepUp = UpdatedComponent->GetComponentLocation();
+	const FQuat Rotation = CollisionComponent->GetComponentQuat();
+
+	const FVector LocationBeforeStepUp = CollisionComponent->GetComponentLocation();
 	const FVector StepUpDeltaLocation = MaxStepUpHeight * FVector::UpVector;
 	FVector LocationAfterStepUp = LocationBeforeStepUp + StepUpDeltaLocation;
-	SweepCapsule(Hit, LocationBeforeStepUp, LocationAfterStepUp);
+	Sweep(Hit, LocationBeforeStepUp, LocationAfterStepUp, Rotation);
 	if (Hit.bBlockingHit)
 	{
 		LocationAfterStepUp = Hit.Location;
@@ -977,7 +1017,7 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime, float& OutSpentTi
 	const FVector LocationBeforeStepForward = LocationAfterStepUp;
 	const FVector StepForwardDeltaLocation = CalcDeltaLocation(DeltaTime, FVector::UpVector);
 	FVector LocationAfterStepForward = LocationBeforeStepForward + StepForwardDeltaLocation;
-	SweepCapsule(Hit, LocationBeforeStepForward, LocationAfterStepForward);
+	Sweep(Hit, LocationBeforeStepForward, LocationAfterStepForward, Rotation);
 	if (Hit.bBlockingHit)
 	{
 		const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
@@ -992,7 +1032,7 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime, float& OutSpentTi
 	const FVector LocationBeforeStepDown = LocationAfterStepForward;
 	const FVector StepDownDeltaLocation = -(1.0f + MaxGroundDistance + MaxStepUpHeight) * FVector::UpVector;
 	FVector LocationAfterStepDown = LocationBeforeStepDown + StepDownDeltaLocation;
-	SweepCapsule(Hit, LocationBeforeStepDown, LocationAfterStepDown);
+	Sweep(Hit, LocationBeforeStepDown, LocationAfterStepDown, Rotation);
 	if (Hit.bBlockingHit)
 	{
 		const float InclineAngleCos = Hit.ImpactNormal.Dot(FVector::UpVector);
@@ -1012,10 +1052,9 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime, float& OutSpentTi
 
 	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 
-	const FRotator Rotation = UpdatedComponent->GetComponentRotation();
-	UpdatedComponent->MoveComponent(LocationAfterStepUp - UpdatedComponent->GetComponentLocation(), Rotation, true);
-	UpdatedComponent->MoveComponent(LocationAfterStepForward - UpdatedComponent->GetComponentLocation(), Rotation, true, &Hit);
-	UpdatedComponent->MoveComponent(LocationAfterStepDown - UpdatedComponent->GetComponentLocation(), Rotation, true);
+	MoveWithCollision(LocationAfterStepUp - CollisionComponent->GetComponentLocation(), UpdatedComponent->GetComponentRotation());
+	MoveWithCollision(LocationAfterStepForward - CollisionComponent->GetComponentLocation(), UpdatedComponent->GetComponentRotation(), &Hit);
+	MoveWithCollision(LocationAfterStepDown - CollisionComponent->GetComponentLocation(), UpdatedComponent->GetComponentRotation());
 
 	const FVector NewLocation = UpdatedComponent->GetComponentLocation();
 	const FVector DeltaLocation = NewLocation - OldLocation;
@@ -1025,49 +1064,55 @@ bool UWpEntityMovementComponent::StepUp(const float DeltaTime, float& OutSpentTi
 	return true;
 }
 
-void UWpEntityMovementComponent::SweepCapsule(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const
+void UWpEntityMovementComponent::MoveWithCollision(const FVector& DeltaLocation, const FRotator& NewRotation, FHitResult* const OutHit)
 {
-	const FQuat Rotation = UpdatedComponent->GetComponentQuat();
-	const FName CollisionProfile = Cast<UCapsuleComponent>(UpdatedComponent)->GetCollisionProfileName();
-	float Radius, HalfHeight;
-	Cast<UCapsuleComponent>(UpdatedComponent)->GetScaledCapsuleSize(Radius, HalfHeight);
-	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
-	const FCollisionQueryParams CollisionQueryParams{NAME_None, false, GetOwner()};
+	FHitResult Hit;
 
-	GetWorld()->SweepSingleByProfile(OutHit, StartLocation, EndLocation, Rotation, CollisionProfile, CollisionShape, CollisionQueryParams);
-}
+	const FVector PullBackCollisionVector = -CollisionPullBackDistance * DeltaLocation.GetSafeNormal();
 
-void UWpEntityMovementComponent::SweepBottomSphere(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const
-{
-	const FQuat Rotation = UpdatedComponent->GetComponentQuat();
-	const FName CollisionProfile = Cast<UCapsuleComponent>(UpdatedComponent)->GetCollisionProfileName();
-	float Radius, HalfHeight;
-	Cast<UCapsuleComponent>(UpdatedComponent)->GetScaledCapsuleSize(Radius, HalfHeight);
-	const FVector RelativeLocation = -(HalfHeight - Radius) * FVector::UpVector;
-	const FVector ActualStartLocation = StartLocation + RelativeLocation;
-	const FVector ActualEndLocation = EndLocation + RelativeLocation;
-	const FCollisionShape CollisionShape = FCollisionShape::MakeSphere(Radius);
-	const FCollisionQueryParams CollisionQueryParams{NAME_None, false, GetOwner()};
+	const FVector StartLocation = CollisionComponent->GetComponentLocation();
+	const FVector EndLocation = StartLocation + DeltaLocation - PullBackCollisionVector;
+	const FQuat Rotation =
+		(NewRotation.Quaternion() * UpdatedComponent->GetComponentQuat().Inverse())
+		* CollisionComponent->GetComponentQuat();
+	Sweep(Hit, StartLocation, EndLocation, Rotation);
 
-	GetWorld()->SweepSingleByProfile(OutHit, ActualStartLocation, ActualEndLocation, Rotation, CollisionProfile, CollisionShape, CollisionQueryParams);
-
-	if (OutHit.bBlockingHit)
+	FVector ActualDeltaLocation;
+	if (Hit.bBlockingHit)
 	{
-		OutHit.Location -= RelativeLocation;
+		Hit.Location += PullBackCollisionVector.GetClampedToMaxSize(Hit.Distance);
+		Hit.Distance = (Hit.Location - StartLocation).Size();
+		Hit.Time = DeltaLocation.IsNearlyZero() ? 0.0f : (Hit.Distance / DeltaLocation.Size());
+
+		ActualDeltaLocation = Hit.Location - StartLocation;
+	}
+	else
+	{
+		ActualDeltaLocation = DeltaLocation;
+	}
+
+	UpdatedComponent->MoveComponent(ActualDeltaLocation, NewRotation, false);
+
+	if (OutHit)
+	{
+		*OutHit = Hit;
 	}
 }
 
-void UWpEntityMovementComponent::LineTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const
+void UWpEntityMovementComponent::Sweep(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation, const FQuat& Rotation) const
 {
-	const FName CollisionProfile = Cast<UCapsuleComponent>(UpdatedComponent)->GetCollisionProfileName();
-	float Radius, HalfHeight;
-	Cast<UCapsuleComponent>(UpdatedComponent)->GetScaledCapsuleSize(Radius, HalfHeight);
-	const FVector RelativeLocation = -HalfHeight * FVector::UpVector;
+	GetWorld()->SweepSingleByProfile(OutHit, StartLocation, EndLocation, Rotation,
+	                                 AWpEntity::CollisionComponentCollisionProfileName, CollisionShape, CollisionQueryParams);
+}
+
+void UWpEntityMovementComponent::LineTraceGround(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation) const
+{
+	const FVector RelativeLocation = -CollisionShape.GetExtent().Z * FVector::UpVector;
 	const FVector ActualStartLocation = StartLocation + RelativeLocation;
 	const FVector ActualEndLocation = EndLocation + RelativeLocation;
-	const FCollisionQueryParams CollisionQueryParams{NAME_None, false, GetOwner()};
 
-	GetWorld()->LineTraceSingleByProfile(OutHit, ActualStartLocation, ActualEndLocation, CollisionProfile, CollisionQueryParams);
+	GetWorld()->LineTraceSingleByProfile(OutHit, ActualStartLocation, ActualEndLocation,
+	                                     AWpEntity::CollisionComponentCollisionProfileName, CollisionQueryParams);
 
 	if (OutHit.bBlockingHit)
 	{
@@ -1094,6 +1139,11 @@ void UWpEntityMovementComponent::AddInterpolatedComponentOffset(const FVector& D
 
 void UWpEntityMovementComponent::UpdateTargetInterpolatedComponentOffset()
 {
+	if (!bOnGround)
+	{
+		return;
+	}
+
 	if (MovementType == EWpEntityMovementType::Legs)
 	{
 		return;
@@ -1108,9 +1158,9 @@ void UWpEntityMovementComponent::UpdateTargetInterpolatedComponentOffset()
 			ActualGroundNormal
 		));
 	const FRotator LocalGroundNormalRotation = FQuat::FindBetweenNormals(FVector::UpVector, LocalGroundNormal).Rotator();
-	TargetInterpolatedComponentLocation = LocalGroundNormalRotation.RotateVector(InitialInterpolatedComponentTransform.GetLocation());
 	TargetInterpolatedComponentRotation = InitialInterpolatedComponentTransform.GetRotation().Rotator() + LocalGroundNormalRotation;
 	TargetInterpolatedComponentRotation.Normalize();
+	TargetInterpolatedComponentLocation = TargetInterpolatedComponentRotation.RotateVector(InitialInterpolatedComponentTransform.GetLocation());
 
 	DeltaInterpolatedComponentLocation += TargetInterpolatedComponentLocation - OldTargetInterpolatedComponentLocation;
 	DeltaInterpolatedComponentRotation += TargetInterpolatedComponentRotation - OldTargetInterpolatedComponentRotation;

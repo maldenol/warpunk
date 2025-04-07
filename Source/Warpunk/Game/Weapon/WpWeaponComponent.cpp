@@ -162,7 +162,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 		const float ScaleY = Range / MeshExtent.Y;
 		const float ScaleZ = HalfSizeZ / MeshExtent.Z;
 
-		SetRelativeLocation(FVector{0.0f, 0.0f, -HalfSizeZ});
+		SetRelativeLocation(FVector{0.0f, 0.0f, -HalfSizeZ}, false);
 		SetRelativeScale3D(FVector{ScaleX, ScaleY, ScaleZ});
 	}
 

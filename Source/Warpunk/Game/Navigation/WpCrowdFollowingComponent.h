@@ -17,5 +17,6 @@ public:
 	virtual void Reset() override;
 	virtual void Cleanup() override;
 
+	virtual void GetCrowdAgentCollisions(float& CylinderRadius, float& CylinderHalfHeight) const override;
 	virtual void ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, const bool bTraversingLink, const bool bIsNearEndOfPath) override;
 };

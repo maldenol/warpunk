@@ -105,4 +105,7 @@ private:
 
 	FRepairFinishedEvent RepairFinishedEvent = {};
 	FReclaimFinishedEvent ReclaimFinishedEvent = {};
+
+public:
+	static const float ProductionLocationDistance;
 };

@@ -5,6 +5,7 @@
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 
+#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 
 const float AWpLocalEntity::RememberIntelReleaseDelay = 0.5f;
@@ -19,8 +20,11 @@ AWpLocalEntity::AWpLocalEntity()
 
 	AutoPossessAI = EAutoPossessAI::Disabled;
 
-	CollisionComponent->SetNotifyRigidBodyCollision(false);
-	CollisionComponent->SetGenerateOverlapEvents(false);
+	CapsuleComponent->SetNotifyRigidBodyCollision(false);
+	CapsuleComponent->SetGenerateOverlapEvents(false);
+
+	BoxComponent->SetNotifyRigidBodyCollision(false);
+	BoxComponent->SetGenerateOverlapEvents(false);
 
 	StaticMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 	StaticMeshComponent->SetCanEverAffectNavigation(false);
@@ -33,7 +37,8 @@ void AWpLocalEntity::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AWpLocalEntity::OnBeginOverlap);
+	CapsuleComponent->OnComponentBeginOverlap.AddDynamic(this, &AWpLocalEntity::OnBeginOverlap);
+	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AWpLocalEntity::OnBeginOverlap);
 }
 
 void AWpLocalEntity::Tick(const float DeltaSeconds)
@@ -70,7 +75,7 @@ TArray<IWpPooledObjectInterface*> AWpLocalEntity::GetInnerPooledObjects()
 
 void AWpLocalEntity::RememberIntel()
 {
-	CollisionComponent->SetGenerateOverlapEvents(true);
+	GetCollisionComponent()->SetGenerateOverlapEvents(true);
 	SetActorEnableCollision(true);
 
 	const FVector SmallDelta = FVector::UpVector / 1000.0f;
@@ -96,7 +101,7 @@ void AWpLocalEntity::OnBeginOverlap(UPrimitiveComponent* const OverlappedCompone
 		{
 			if (OtherEntity->GetBelligerentComponent()->BelongsToSameTeam(LocalPlayerState->GetTeamId()))
 			{
-				CollisionComponent->SetGenerateOverlapEvents(false);
+				GetCollisionComponent()->SetGenerateOverlapEvents(false);
 				SetActorEnableCollision(false);
 
 				TimeUntilReleased = RememberIntelReleaseDelay;

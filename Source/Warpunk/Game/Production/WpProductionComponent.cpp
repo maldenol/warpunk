@@ -15,6 +15,8 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Net/UnrealNetwork.h"
 
+const float UWpProductionComponent::ProductionLocationDistance = 2.0f;
+
 UWpProductionComponent::UWpProductionComponent()
 {
 	bAutoActivate = false;
@@ -341,8 +343,9 @@ void UWpProductionComponent::Produce()
 
 	const bool bIsBuilding = EntityConfig.Type == EWpEntityType::Building;
 
-	const FVector SpawnLocation = EntityToProduceLocation + 1.0f * FVector::UpVector
-		+ EntityConfig.MeshConfig.CollisionHalfHeight * FVector::UpVector;
+	const FVector SpawnLocation = EntityToProduceLocation
+		+ EntityConfig.MeshConfig.CollisionShape.GetExtent().Z * FVector::UpVector
+		+ ProductionLocationDistance * FVector::UpVector;
 
 	TArray<AActor*> Actors;
 	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes =
@@ -350,8 +353,19 @@ void UWpProductionComponent::Produce()
 		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel1),
 		UEngineTypes::ConvertToObjectType(ECC_GameTraceChannel5),
 	};
-	UKismetSystemLibrary::CapsuleOverlapActors(GetWorld(), SpawnLocation, EntityConfig.MeshConfig.CollisionRadius, EntityConfig.MeshConfig.CollisionHalfHeight, ObjectTypes, AActor::StaticClass(), {}, Actors);
-	UKismetSystemLibrary::DrawDebugCapsule(GetWorld(), SpawnLocation, EntityConfig.MeshConfig.CollisionHalfHeight, EntityConfig.MeshConfig.CollisionRadius, FRotator::ZeroRotator, FColor::Red);
+	if (EntityConfig.MeshConfig.bUseCapsuleCollision)
+	{
+		const float Radius = EntityConfig.MeshConfig.CollisionShape.GetCapsuleRadius();
+		const float HalfHeight = EntityConfig.MeshConfig.CollisionShape.GetCapsuleHalfHeight();
+		UKismetSystemLibrary::CapsuleOverlapActors(GetWorld(), SpawnLocation, Radius, HalfHeight, ObjectTypes, AActor::StaticClass(), {}, Actors);
+		UKismetSystemLibrary::DrawDebugCapsule(GetWorld(), SpawnLocation, HalfHeight, Radius, FRotator::ZeroRotator, FColor::Red);
+	}
+	else
+	{
+		const FVector Extent = EntityConfig.MeshConfig.CollisionShape.GetExtent();
+		UKismetSystemLibrary::BoxOverlapActors(GetWorld(), SpawnLocation, Extent, ObjectTypes, AActor::StaticClass(), {}, Actors);
+		UKismetSystemLibrary::DrawDebugBox(GetWorld(), SpawnLocation, Extent, FColor::Red, FRotator::ZeroRotator);
+	}
 	const bool bHasSpaceToProduce = Actors.IsEmpty();
 
 	AWpEntity* Entity;

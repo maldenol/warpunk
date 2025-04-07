@@ -1,5 +1,6 @@
 #include "WpCrowdFollowingComponent.h"
 
+#include "Warpunk/Game/Entity/WpEntity.h"
 #include "Warpunk/Game/Movement/WpEntityMovementComponent.h"
 
 UWpCrowdFollowingComponent::UWpCrowdFollowingComponent()
@@ -29,6 +30,19 @@ void UWpCrowdFollowingComponent::Cleanup()
 	}
 
 	Super::Cleanup();
+}
+
+void UWpCrowdFollowingComponent::GetCrowdAgentCollisions(float& CylinderRadius, float& CylinderHalfHeight) const
+{
+	if (MovementComp)
+	{
+		if (const AWpEntity* const Entity = MovementComp->GetOwner<AWpEntity>())
+		{
+			const FVector Extent = Entity->GetCollisionComponent()->GetCollisionShape().GetExtent();
+			CylinderRadius = FMath::Max(Extent.X, Extent.Y);
+			CylinderHalfHeight = Extent.Z;
+		}
+	}
 }
 
 void UWpCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, const bool bTraversingLink, const bool bIsNearEndOfPath)

@@ -101,7 +101,7 @@ void AWpStrategicViewPawn::ClientUnPossessed_Implementation()
 
 void AWpStrategicViewPawn::ServerUpdateLocation_Implementation(const FVector& Location)
 {
-	SetActorLocation(Location, true);
+	SetActorLocation(Location, false);
 }
 
 void AWpStrategicViewPawn::OnMoveTriggered(const FInputActionValue& ActionValue)

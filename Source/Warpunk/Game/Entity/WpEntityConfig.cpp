@@ -2,7 +2,7 @@
 
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
-float FWpEntityConfig::DefaultGravityScale = 980.0f;
+const float FWpEntityConfig::DefaultGravityScale = 980.0f;
 
 void FWpEntityConfig::OnDataTableChanged(const UDataTable* const InDataTable, const FName InRowName)
 {
@@ -112,19 +112,48 @@ void FWpEntityConfig::CheckCorrectness()
 void FWpEntityConfig::UpdateDerivedValues()
 {
 	{
-		const FBoxSphereBounds MeshBounds = MeshConfig.bUseSkeletalMesh
-			                                    ? MeshConfig.SkeletalMesh->GetBounds()
-			                                    : MeshConfig.StaticMesh->GetBounds();
+		FBoxSphereBounds MeshBounds;
+		if (MeshConfig.bUseSkeletalMesh)
+		{
+			MeshConfig.SkeletalMesh->GetLinker()->Preload(MeshConfig.SkeletalMesh);
+			MeshBounds = MeshConfig.SkeletalMesh->GetBounds();
+		}
+		else
+		{
+			MeshConfig.StaticMesh->GetLinker()->Preload(MeshConfig.StaticMesh);
+			MeshBounds = MeshConfig.StaticMesh->GetBounds();
+		}
+		MeshBounds.Origin *= MeshConfig.Transform.GetScale3D();
+		MeshBounds.BoxExtent *= MeshConfig.Transform.GetScale3D();
+
+		if (MeshConfig.bUseCapsuleCollision)
+		{
+			const float Radius = FMath::Max(MeshBounds.BoxExtent.X, MeshBounds.BoxExtent.Y);
+			const float HalfHeight = MeshBounds.BoxExtent.Z;
+
+			if (Radius - HalfHeight > UE_KINDA_SMALL_NUMBER)
+			{
+				bIsCorrect = false;
+				return;
+			}
+
+			MeshConfig.CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
+		}
+		else
+		{
+			MeshConfig.CollisionShape = FCollisionShape::MakeBox(MeshBounds.BoxExtent);
+		}
 
 		MeshConfig.RelativeTransform = MeshConfig.Transform;
 
-		const FVector MeshOrigin = MeshBounds.Origin * MeshConfig.Transform.GetScale3D();
-		MeshConfig.RelativeTransform.AddToTranslation(-MeshOrigin);
+		if (!MeshConfig.Transform.GetLocation().IsNearlyZero())
+		{
+			bIsCorrect = false;
+			return;
+		}
 
-		const FVector MeshExtent = MeshBounds.BoxExtent * MeshConfig.Transform.GetScale3D();
-		MeshConfig.CollisionRadius = FMath::Max(MeshExtent.X, MeshExtent.Y);
-		MeshConfig.CollisionHalfHeight = FMath::Max(MeshExtent.Z, MeshConfig.CollisionRadius);
-		MeshConfig.CollisionHeight = 2.0f * MeshConfig.CollisionHalfHeight;
+		const FVector Offset = MeshConfig.Transform.GetRotation().RotateVector(-MeshBounds.Origin);
+		MeshConfig.RelativeTransform.SetTranslation(Offset);
 	}
 
 	if (Type == EWpEntityType::Unit)
@@ -184,16 +213,13 @@ void FWpEntityConfig::UpdateDerivedValues()
 			WeaponConfig.ProjectileSpeedMinRange2 = WeaponConfig.MinRange * DefaultGravityScale;
 			WeaponConfig.ProjectileSpeedMinRange4 = FMath::Square(WeaponConfig.ProjectileSpeedMinRange2);
 
-			const FBoxSphereBounds& MeshBounds = WeaponConfig.ProjectileMesh->GetBounds();
+			WeaponConfig.ProjectileMesh->GetLinker()->Preload(WeaponConfig.ProjectileMesh);
+			const FBoxSphereBounds MeshBounds = WeaponConfig.ProjectileMesh->GetBounds();
 			const float MeshExtentMax = MeshBounds.BoxExtent.GetMax();
 			const float MeshScale = WeaponConfig.ProjectileMeshToRadiusScale * WeaponConfig.ProjectileRadius / MeshExtentMax;
-			const FVector MeshOrigin = WeaponConfig.ProjectileMeshRotation.RotateVector(MeshBounds.Origin * MeshScale);
+			const FVector Offset = WeaponConfig.ProjectileMeshRotation.RotateVector(-MeshBounds.Origin * MeshScale);
 			WeaponConfig.ProjectileMeshRelativeTransform =
-				FTransform{
-					WeaponConfig.ProjectileMeshRotation,
-					-MeshOrigin,
-					FVector{MeshScale}
-				};
+				FTransform{WeaponConfig.ProjectileMeshRotation, Offset, FVector{MeshScale}};
 		}
 	}
 }

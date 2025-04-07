@@ -23,8 +23,8 @@ void AWpFogOfWarManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SceneCaptureComponent->SetRelativeLocation(FVector{0.0f, 0.0f, 1000.0f});
-	SceneCaptureComponent->SetRelativeRotation(FRotator::MakeFromEuler(FVector{0.0f, 270.0f, 0.0f}));
+	SceneCaptureComponent->SetRelativeLocation(FVector{0.0f, 0.0f, 1000.0f}, false);
+	SceneCaptureComponent->SetRelativeRotation(FRotator::MakeFromEuler(FVector{0.0f, 270.0f, 0.0f}), false);
 
 	SceneCaptureComponent->ProjectionType = ECameraProjectionMode::Type::Orthographic;
 	SceneCaptureComponent->OrthoWidth = 32768.0f;

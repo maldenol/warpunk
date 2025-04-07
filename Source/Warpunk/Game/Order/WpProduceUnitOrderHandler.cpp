@@ -5,8 +5,6 @@
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 
-#include "Components/CapsuleComponent.h"
-
 void FWpProduceUnitOrderHandler::Initialize(AWpEntity* const InEntity)
 {
 	FWpOrderHandler::Initialize(InEntity);
@@ -117,9 +115,8 @@ void FWpProduceUnitOrderHandler::SetOrder(const FWpOrder& InOrder)
 
 void FWpProduceUnitOrderHandler::BeginProduceUnit()
 {
-	const FVector UnitLocation =
-		GetEntity()->GetActorLocation()
-		+ GetEntity()->GetCollisionComponent()->GetScaledCapsuleHalfHeight() * FVector::UpVector;
+	const float CenterBottomDistance = GetEntity()->GetCollisionComponent()->GetCollisionShape().GetExtent().Z;
+	const FVector UnitLocation = GetEntity()->GetActorLocation() + CenterBottomDistance * FVector::UpVector;
 	ProductionComponent->StartProduce(UnitQueue[UnitQueueIndex], UnitLocation);
 }
 
