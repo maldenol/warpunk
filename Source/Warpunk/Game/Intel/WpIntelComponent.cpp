@@ -90,7 +90,7 @@ void UWpIntelComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, const
 		{
 			if (!GetStaticMesh())
 			{
-				const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
+				const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(GetWorld());
 				SetStaticMesh(FogOfWarManager->GetIntelMesh());
 				SetMaterial(0, FogOfWarManager->GetIntelMaterial());
 			}

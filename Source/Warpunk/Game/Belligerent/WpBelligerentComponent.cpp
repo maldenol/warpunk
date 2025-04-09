@@ -54,7 +54,7 @@ void UWpBelligerentComponent::OnPooledObjectAcquiredOrReleased(const bool bIsAcq
 	{
 		if (GetWorld()->GetNetMode() != NM_Client)
 		{
-			if (AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = AWpPooledActorVisibilityManager::Instance(TeamId))
+			if (AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = AWpPooledActorVisibilityManager::Instance(GetWorld(), TeamId))
 			{
 				PooledActorVisibilityManager->UpdateActorVisibility(GetOwner(), false);
 			}

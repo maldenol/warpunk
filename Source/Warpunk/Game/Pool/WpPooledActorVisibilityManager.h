@@ -53,17 +53,19 @@ private:
 	friend struct FWpPooledActorVisibilityInfoArray;
 
 public:
-	static AWpPooledActorVisibilityManager* Instance(const uint32 TeamId);
+	static AWpPooledActorVisibilityManager* Instance(const UWorld* const World, const uint32 TeamId);
 
 	static void InitializeActorVisibility(const uint32 TeamId, AActor* const Actor);
 	static void UpdateActorVisibility(const uint32 TeamId, AActor* const Actor, const bool bGainedSight);
 	static bool IsVisibleForTeam(const uint32 TeamId, const AActor* const Actor);
 
-	static void SetAuthorityTeamId(const uint32 InAuthorityTeamId);
-	static uint32 GetAuthorityTeamId();
+	static void SetAuthorityTeamId(const UWorld* const World, const uint32 AuthorityTeamId);
+	static uint32 GetAuthorityTeamId(const UWorld* const World);
 
 private:
-	static TMap<uint32, AWpPooledActorVisibilityManager*> Instances;
+	using FWpInstanceKey = TPair<const UWorld*, uint32>;
+	using FWpAuthorityTeamIdKey = const UWorld*;
 
-	static uint32 AuthorityTeamId;
+	static TMap<FWpInstanceKey, AWpPooledActorVisibilityManager*> Instances;
+	static TMap<FWpAuthorityTeamIdKey, uint32> AuthorityTeamIds;
 };

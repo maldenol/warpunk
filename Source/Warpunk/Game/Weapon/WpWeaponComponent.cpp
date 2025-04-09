@@ -151,7 +151,7 @@ void UWpWeaponComponent::OnPooledObjectAcquiredOrReleased(bool bIsAcquired, cons
 	}
 	else
 	{
-		const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(this);
+		const AWpFogOfWarManager* const FogOfWarManager = AWpFogOfWarManager::Instance(GetWorld());
 		SetStaticMesh(FogOfWarManager->GetIntelMesh());
 
 		const float Range = LongestRange;

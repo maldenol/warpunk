@@ -43,7 +43,7 @@ void AWpActorPool::Tick(const float DeltaSeconds)
 
 void AWpActorPool::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Instances.Remove(FWpActorPoolInstanceKey{GetWorld(), Class});
+	Instances.Remove(FWpInstanceKey{GetWorld(), Class});
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -57,7 +57,8 @@ void AWpActorPool::Reserve(const TSubclassOf<AActor>& InClass, const uint32 Numb
 
 	Class = InClass;
 
-	Instances.Add(FWpActorPoolInstanceKey{GetWorld(), Class}, this);
+	ensureAlways(!Instances.Contains(FWpInstanceKey{GetWorld(), Class}));
+	Instances.Add(FWpInstanceKey{GetWorld(), Class}, this);
 
 	AllActors.Reserve(Number);
 	FreeActors.Reserve(Number);
@@ -139,7 +140,7 @@ AWpActorPool* AWpActorPool::Instance(const UWorld* const World, const TSubclassO
 	ensureAlways(World);
 	ensureAlways(Class);
 
-	if (AWpActorPool** const Ptr = Instances.Find(FWpActorPoolInstanceKey{World, Class}))
+	if (AWpActorPool** const Ptr = Instances.Find(FWpInstanceKey{World, Class}))
 	{
 		return *Ptr;
 	}
@@ -157,4 +158,4 @@ void AWpActorPool::Release(const TSubclassOf<AActor>& Class, AActor* const Actor
 	Instance(Actor->GetWorld(), Class)->Release(Actor);
 }
 
-TMap<AWpActorPool::FWpActorPoolInstanceKey, AWpActorPool*> AWpActorPool::Instances = {};
+TMap<AWpActorPool::FWpInstanceKey, AWpActorPool*> AWpActorPool::Instances = {};

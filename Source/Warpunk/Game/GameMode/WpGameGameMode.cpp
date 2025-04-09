@@ -116,11 +116,11 @@ void AWpGameGameMode::SpawnPooledActorVisibilityManager(const AWpGamePlayerContr
 	const AWpGamePlayerState* const PlayerState = PlayerController->GetPlayerState<AWpGamePlayerState>();
 	const uint32 TeamId = PlayerState->GetTeamId();
 
-	if (!AWpPooledActorVisibilityManager::Instance(TeamId))
+	if (!AWpPooledActorVisibilityManager::Instance(GetWorld(), TeamId))
 	{
-		if (AWpPooledActorVisibilityManager::GetAuthorityTeamId() == 0)
+		if (AWpPooledActorVisibilityManager::GetAuthorityTeamId(GetWorld()) == 0)
 		{
-			AWpPooledActorVisibilityManager::SetAuthorityTeamId(TeamId);
+			AWpPooledActorVisibilityManager::SetAuthorityTeamId(GetWorld(), TeamId);
 		}
 
 		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = GetWorld()->SpawnActor<AWpPooledActorVisibilityManager>();

@@ -57,7 +57,7 @@ public:
 	static const float AdditionalActorSpawnDelay;
 
 private:
-	using FWpActorPoolInstanceKey = TPair<const UWorld*, TSubclassOf<AActor>>;
+	using FWpInstanceKey = TPair<const UWorld*, TSubclassOf<AActor>>;
 
-	static TMap<FWpActorPoolInstanceKey, AWpActorPool*> Instances;
+	static TMap<FWpInstanceKey, AWpActorPool*> Instances;
 };

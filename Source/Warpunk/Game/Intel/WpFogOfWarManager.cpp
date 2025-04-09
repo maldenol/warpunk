@@ -39,6 +39,13 @@ void AWpFogOfWarManager::BeginPlay()
 	SceneCaptureComponent->PostProcessSettings.AddBlendable(FogOfWarMaterial, 1.0f);
 }
 
+void AWpFogOfWarManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Instances.Remove(FWpInstanceKey{GetWorld()});
+
+	Super::EndPlay(EndPlayReason);
+}
+
 UStaticMesh* AWpFogOfWarManager::GetIntelMesh() const
 {
 	return IntelMesh;
@@ -49,7 +56,16 @@ UMaterialInterface* AWpFogOfWarManager::GetIntelMaterial() const
 	return IntelMaterial;
 }
 
-AWpFogOfWarManager* AWpFogOfWarManager::Instance(const UObject* const WorldContextObject)
+AWpFogOfWarManager* AWpFogOfWarManager::Instance(const UWorld* const World)
 {
-	return Cast<AWpFogOfWarManager>(UGameplayStatics::GetActorOfClass(WorldContextObject, StaticClass()));
+	if (AWpFogOfWarManager** const FogOfWarManager = Instances.Find(FWpInstanceKey{World}))
+	{
+		return *FogOfWarManager;
+	}
+
+	AWpFogOfWarManager* const FogOfWarManager = Cast<AWpFogOfWarManager>(UGameplayStatics::GetActorOfClass(World, StaticClass()));
+	Instances.Add(FWpInstanceKey{World}, FogOfWarManager);
+	return FogOfWarManager;
 }
+
+TMap<AWpFogOfWarManager::FWpInstanceKey, AWpFogOfWarManager*> AWpFogOfWarManager::Instances = {};

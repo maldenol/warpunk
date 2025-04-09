@@ -30,7 +30,7 @@ void AWpPooledActorVisibilityManager::BeginPlay()
 		return;
 	}
 
-	if (TeamId == GetAuthorityTeamId())
+	if (TeamId == GetAuthorityTeamId(GetWorld()))
 	{
 		SetActorTickEnabled(true);
 	}
@@ -59,7 +59,7 @@ void AWpPooledActorVisibilityManager::Tick(const float DeltaSeconds)
 
 	if (HasAuthority())
 	{
-		ensureAlways(TeamId == GetAuthorityTeamId());
+		ensureAlways(TeamId == GetAuthorityTeamId(GetWorld()));
 	}
 
 	for (TSet<uint64>::TIterator Iter = ShouldBeHiddenActorGuids.CreateIterator(); Iter; ++Iter)
@@ -95,7 +95,8 @@ void AWpPooledActorVisibilityManager::Tick(const float DeltaSeconds)
 
 void AWpPooledActorVisibilityManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Instances.Remove(TeamId);
+	Instances.Remove(FWpInstanceKey{GetWorld(), TeamId});
+	AuthorityTeamIds.Remove(FWpAuthorityTeamIdKey{GetWorld()});
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -127,8 +128,8 @@ void AWpPooledActorVisibilityManager::SetTeamId(const uint32 InTeamId)
 
 	TeamId = InTeamId;
 
-	ensureAlways(!Instances.Contains(TeamId));
-	Instances.Add(TeamId, this);
+	ensureAlways(!Instances.Contains(FWpInstanceKey{GetWorld(), TeamId}));
+	Instances.Add(FWpInstanceKey{GetWorld(), TeamId}, this);
 }
 
 uint32 AWpPooledActorVisibilityManager::GetTeamId() const
@@ -229,7 +230,7 @@ void AWpPooledActorVisibilityManager::NetUpdateActorVisibility(AActor* const Act
 
 void AWpPooledActorVisibilityManager::SetPooledActorVisibility(const uint64 Guid, const bool bIsVisible)
 {
-	if (HasAuthority() && TeamId != AuthorityTeamId)
+	if (HasAuthority() && TeamId != GetAuthorityTeamId(GetWorld()))
 	{
 		return;
 	}
@@ -280,9 +281,9 @@ AActor* AWpPooledActorVisibilityManager::GetActorByGuid(const uint64 Guid) const
 	return Cast<AActor>(Object);
 }
 
-AWpPooledActorVisibilityManager* AWpPooledActorVisibilityManager::Instance(const uint32 TeamId)
+AWpPooledActorVisibilityManager* AWpPooledActorVisibilityManager::Instance(const UWorld* const World, const uint32 TeamId)
 {
-	if (AWpPooledActorVisibilityManager** const Ptr = Instances.Find(TeamId))
+	if (AWpPooledActorVisibilityManager** const Ptr = Instances.Find(FWpInstanceKey{World, TeamId}))
 	{
 		return *Ptr;
 	}
@@ -292,7 +293,7 @@ AWpPooledActorVisibilityManager* AWpPooledActorVisibilityManager::Instance(const
 
 void AWpPooledActorVisibilityManager::InitializeActorVisibility(const uint32 TeamId, AActor* const Actor)
 {
-	for (const TPair<uint32, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
+	for (const TPair<FWpInstanceKey, AWpPooledActorVisibilityManager*>& TeamPooledActorVisibilityManager : Instances)
 	{
 		AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = TeamPooledActorVisibilityManager.Value;
 		const bool bIsVisible = PooledActorVisibilityManager->GetTeamId() == TeamId;
@@ -302,12 +303,12 @@ void AWpPooledActorVisibilityManager::InitializeActorVisibility(const uint32 Tea
 
 void AWpPooledActorVisibilityManager::UpdateActorVisibility(const uint32 TeamId, AActor* const Actor, const bool bGainedSight)
 {
-	Instance(TeamId)->UpdateActorVisibility(Actor, bGainedSight);
+	Instance(Actor->GetWorld(), TeamId)->UpdateActorVisibility(Actor, bGainedSight);
 }
 
 bool AWpPooledActorVisibilityManager::IsVisibleForTeam(const uint32 TeamId, const AActor* const Actor)
 {
-	if (const AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = Instance(TeamId))
+	if (const AWpPooledActorVisibilityManager* const PooledActorVisibilityManager = Instance(Actor->GetWorld(), TeamId))
 	{
 		return PooledActorVisibilityManager->IsVisibleForTeam(Actor);
 	}
@@ -315,16 +316,22 @@ bool AWpPooledActorVisibilityManager::IsVisibleForTeam(const uint32 TeamId, cons
 	return false;
 }
 
-void AWpPooledActorVisibilityManager::SetAuthorityTeamId(const uint32 InAuthorityTeamId)
+void AWpPooledActorVisibilityManager::SetAuthorityTeamId(const UWorld* const World, const uint32 AuthorityTeamId)
 {
-	AuthorityTeamId = InAuthorityTeamId;
+	ensureAlways(AuthorityTeamId != 0);
+	ensureAlways(!AuthorityTeamIds.Contains(FWpAuthorityTeamIdKey{World}));
+	AuthorityTeamIds.Add(FWpAuthorityTeamIdKey{World}, AuthorityTeamId);
 }
 
-uint32 AWpPooledActorVisibilityManager::GetAuthorityTeamId()
+uint32 AWpPooledActorVisibilityManager::GetAuthorityTeamId(const UWorld* const World)
 {
-	return AuthorityTeamId;
+	if (uint32* const AuthorityTeamId = AuthorityTeamIds.Find(FWpAuthorityTeamIdKey{World}))
+	{
+		return *AuthorityTeamId;
+	}
+
+	return 0;
 }
 
-TMap<uint32, AWpPooledActorVisibilityManager*> AWpPooledActorVisibilityManager::Instances = {};
-
-uint32 AWpPooledActorVisibilityManager::AuthorityTeamId = 0;
+TMap<AWpPooledActorVisibilityManager::FWpInstanceKey, AWpPooledActorVisibilityManager*> AWpPooledActorVisibilityManager::Instances = {};
+TMap<AWpPooledActorVisibilityManager::FWpAuthorityTeamIdKey, uint32> AWpPooledActorVisibilityManager::AuthorityTeamIds = {};
