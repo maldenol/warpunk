@@ -17,6 +17,8 @@
 
 const float UWpProductionComponent::ProductionLocationDistance = 2.0f;
 
+const float UWpProductionComponent::UpdateCurrentTargetEntityCooldown = 0.25f;
+
 UWpProductionComponent::UWpProductionComponent()
 {
 	bAutoActivate = false;
@@ -441,7 +443,7 @@ void UWpProductionComponent::Repair(const float DeltaTime)
 		return;
 	}
 
-	if (AIController && AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle)
+	if (AIController && (AIController->GetMoveStatus() != EPathFollowingStatus::Type::Idle))
 	{
 		return;
 	}

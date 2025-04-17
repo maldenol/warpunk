@@ -17,9 +17,9 @@ struct FWpPooledActorVisibilityInfo final : public FFastArraySerializerItem
 	void PostReplicatedAdd(const FWpPooledActorVisibilityInfoArray& InArraySerializer);
 	void PostReplicatedChange(const FWpPooledActorVisibilityInfoArray& InArraySerializer);
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	uint64 Guid = 0;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	bool bIsVisible = false;
 };
 
@@ -33,9 +33,10 @@ struct FWpPooledActorVisibilityInfoArray final : public FFastArraySerializer
 	void SetVisibilityInfo(const uint64 Guid, const bool bIsVisible);
 	void OnItemChanged(const FWpPooledActorVisibilityInfo& PooledActorVisibilityInfo) const;
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	TArray<FWpPooledActorVisibilityInfo> Items = {};
 
+	UPROPERTY(VisibleInstanceOnly)
 	AWpPooledActorVisibilityManager* PooledActorVisibilityManager = nullptr;
 };
 

@@ -8,6 +8,8 @@
 #include "Warpunk/Game/Weapon/WpPooledWeaponData.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
 
+const float FWpWeapon::UpdateCurrentTargetEntityCooldown = 0.25f;
+
 void FWpWeapon::OnPooledObjectAcquiredOrReleased(const bool bIsAcquired, const FWpPooledObjectData& PooledObjectData)
 {
 	ensureAlways(OwnerEntity->HasAuthority());
@@ -62,7 +64,7 @@ bool FWpWeapon::MaybeFire(const FVector& Location)
 	ensureAlways(OwnerEntity->HasAuthority());
 
 	const float CurrentTime = OwnerEntity->GetWorld()->GetTimeSeconds();
-	if (CurrentTime >= LastFireTime + Cooldown && CanReach(Location))
+	if ((CurrentTime >= LastFireTime + Cooldown) && CanReach(Location))
 	{
 		LastFireTime = CurrentTime;
 

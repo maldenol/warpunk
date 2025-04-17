@@ -14,20 +14,21 @@ struct FWpOrder;
 
 class AAIController;
 
+UENUM(NotBlueprintable, NotBlueprintType)
+enum class EWpProductionState : uint8
+{
+	Idle,
+	InitiatingProduction,
+	ProducingBuilding,
+	ProducingUnit,
+	Repairing,
+	Reclaiming,
+};
+
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
 class UWpProductionComponent final : public UActorComponent, public IWpPooledObjectInterface
 {
 	GENERATED_BODY()
-
-	enum class EWpProductionState : uint8
-	{
-		Idle,
-		InitiatingProduction,
-		ProducingBuilding,
-		ProducingUnit,
-		Repairing,
-		Reclaiming,
-	};
 
 public:
 	DECLARE_EVENT_OneParam(FWpProduction, FRepairFinishedEvent, AWpEntity*);
@@ -92,20 +93,28 @@ private:
 	UPROPERTY(VisibleInstanceOnly)
 	AAIController* AIController = nullptr;
 
+	UPROPERTY(VisibleInstanceOnly)
 	EWpProductionState ProductionState = EWpProductionState::Idle;
+	UPROPERTY(VisibleInstanceOnly)
 	uint32 EntityToProduceConfigId = 0;
+	UPROPERTY(VisibleInstanceOnly)
 	FVector EntityToProduceLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleInstanceOnly)
 	bool bInfiniteProductionEnabled = false;
+	UPROPERTY(VisibleInstanceOnly)
 	TArray<FWpOrder> ProxyOrderQueue = {};
+	UPROPERTY(VisibleInstanceOnly)
 	AWpEntity* CurrentTargetEntity = nullptr;
+	UPROPERTY(VisibleInstanceOnly)
 	AWpEntity* PriorityTargetEntity = nullptr;
 
 	float LastUpdateCurrentTargetEntityTime = 0.0f;
-	const float UpdateCurrentTargetEntityCooldown = 0.25f;
 
 	FRepairFinishedEvent RepairFinishedEvent = {};
 	FReclaimFinishedEvent ReclaimFinishedEvent = {};
 
 public:
 	static const float ProductionLocationDistance;
+
+	static const float UpdateCurrentTargetEntityCooldown;
 };

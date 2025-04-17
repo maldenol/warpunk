@@ -230,7 +230,7 @@ void AWpPooledActorVisibilityManager::NetUpdateActorVisibility(AActor* const Act
 
 void AWpPooledActorVisibilityManager::SetPooledActorVisibility(const uint64 Guid, const bool bIsVisible)
 {
-	if (HasAuthority() && TeamId != GetAuthorityTeamId(GetWorld()))
+	if (HasAuthority() && (TeamId != GetAuthorityTeamId(GetWorld())))
 	{
 		return;
 	}

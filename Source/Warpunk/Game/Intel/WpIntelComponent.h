@@ -44,10 +44,11 @@ private:
 	void SetMeshIsVisibile(const bool bInMeshIsVisible);
 	void UpdateMeshVisibilityBasedOnTeam();
 
+	UPROPERTY(VisibleInstanceOnly)
 	TSet<AWpEntity*> VisibleEntities = {};
 
 	bool bCanCheckTeam = false;
-	UPROPERTY(ReplicatedUsing=OnRep_bMeshIsVisible)
+	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing=OnRep_bMeshIsVisible)
 	bool bMeshIsVisible = false;
 
 	FDelegateHandle OnPlayerStateReplicatedDelegateHandle = {};

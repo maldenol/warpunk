@@ -63,7 +63,7 @@ private:
 
 	FWpOrderHandlerWrapper CurrentOrderHandler = {};
 	TQueue<FWpOrder> OrderQueue = {};
-	UPROPERTY(Replicated)
+	UPROPERTY(VisibleInstanceOnly, Replicated)
 	TArray<FWpConfigIdNumber> UnitToProduceConfigIdNumbers = {};
 
 	UPROPERTY(VisibleInstanceOnly)

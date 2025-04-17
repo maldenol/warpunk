@@ -62,5 +62,7 @@ private:
 	AWpEntity* PriorityTargetEntity = nullptr;
 
 	float LastUpdateCurrentTargetEntityTime = 0.0f;
-	const float UpdateCurrentTargetEntityCooldown = 0.25f;
+
+public:
+	static const float UpdateCurrentTargetEntityCooldown;
 };

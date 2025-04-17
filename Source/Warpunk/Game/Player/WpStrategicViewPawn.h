@@ -55,6 +55,7 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UFloatingPawnMovement> MovementComponent = nullptr;
 
+	UPROPERTY(VisibleAnywhere)
 	const AActor* OwningPlayerController = nullptr;
 
 	bool bHasNotifiedObjectLoaded = false;

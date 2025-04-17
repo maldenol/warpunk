@@ -28,9 +28,12 @@ private:
 	void SpawnActors(const uint32 Number);
 	void BeginSpawnAdditionalActors();
 
+	UPROPERTY(VisibleAnywhere)
 	TSubclassOf<AActor> Class = nullptr;
 
+	UPROPERTY(VisibleAnywhere)
 	TSet<AActor*> AllActors = {};
+	UPROPERTY(VisibleAnywhere)
 	TSet<AActor*> FreeActors = {};
 
 	uint32 AdditionalActorSpawnNum = 0;

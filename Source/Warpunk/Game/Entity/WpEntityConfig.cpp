@@ -33,6 +33,7 @@ void FWpEntityConfig::CheckCorrectness()
 
 	{
 		bIsCorrect &= MeshConfig.Transform.GetScale3D().GetMin() > 0.0;
+
 		if (MeshConfig.bUseSkeletalMesh)
 		{
 			bIsCorrect &= MeshConfig.SkeletalMesh != nullptr;
@@ -48,11 +49,13 @@ void FWpEntityConfig::CheckCorrectness()
 	if (Type == EWpEntityType::Unit)
 	{
 		bIsCorrect &= MovementConfig.Type != EWpEntityMovementType::Undefined;
+
 		bIsCorrect &= MovementConfig.MaxMoveSpeed > 0.0f;
 		bIsCorrect &= MovementConfig.MaxMoveAccelerationTime > 0.0f;
 		bIsCorrect &= (MovementConfig.MaxMoveInclineAngleDeg > 0.0f) && (MovementConfig.MaxMoveInclineAngleDeg < 90.0f);
 		bIsCorrect &= MovementConfig.MaxMoveBrakingTime > 0.0f;
 		bIsCorrect &= MovementConfig.MaxMoveInertiaTime > 0.0f;
+
 		bIsCorrect &= MovementConfig.MaxRotationSpeedDeg > 0.0f;
 		if ((MovementConfig.Type == EWpEntityMovementType::Legs) || (MovementConfig.Type == EWpEntityMovementType::Tracks))
 		{
@@ -65,6 +68,7 @@ void FWpEntityConfig::CheckCorrectness()
 			bIsCorrect &= MovementConfig.MaxWheelEdgeRotationTime > 0.0f;
 			bIsCorrect &= MovementConfig.MaxWheelCenterRotationTime > 0.0f;
 		}
+
 		bIsCorrect &= MovementConfig.Mass > 0.0f;
 		bIsCorrect &= (MovementConfig.MaxInclineAngleDeg > 0.0f) && (MovementConfig.MaxInclineAngleDeg < 90.0f);
 		bIsCorrect &= MovementConfig.MaxStepUpHeight > 0.0f;
@@ -95,11 +99,14 @@ void FWpEntityConfig::CheckCorrectness()
 	for (const FWpWeaponConfig& WeaponConfig : WeaponConfigs)
 	{
 		bIsCorrect &= WeaponConfig.Type != EWpWeaponType::Undefined;
+
 		bIsCorrect &= WeaponConfig.Range > 0.0f;
 		bIsCorrect &= WeaponConfig.MinRange >= 0.0f;
 		bIsCorrect &= WeaponConfig.Damage > 0.0f;
 		bIsCorrect &= WeaponConfig.FireRate > 0.0f;
+
 		bIsCorrect &= !WeaponConfig.FireLocation.IsNearlyZero();
+
 		if (WeaponConfig.Type == EWpWeaponType::Projectile)
 		{
 			bIsCorrect &= WeaponConfig.ProjectileRadius > 0.0f;
@@ -191,13 +198,17 @@ void FWpEntityConfig::UpdateDerivedValues()
 
 		MovementConfig.MaxMoveBrakingDeceleration = MovementConfig.MaxMoveSpeed / MovementConfig.MaxMoveBrakingTime;
 		MovementConfig.MaxMoveInertiaDeceleration = MovementConfig.MaxMoveSpeed / MovementConfig.MaxMoveInertiaTime;
+
 		MovementConfig.MaxGroundStaticFriction = DefaultGravityScale * FMath::Tan(FMath::DegreesToRadians(MovementConfig.MaxInclineAngleDeg));
+
 		MovementConfig.MaxRotationSpeed = FMath::DegreesToRadians(MovementConfig.MaxRotationSpeedDeg);
 		MovementConfig.MaxRotationAcceleration = MovementConfig.MaxRotationSpeed / MovementConfig.MaxRotationAccelerationTime;
 		MovementConfig.MaxRotationBrakingDeceleration = MovementConfig.MaxRotationSpeed / MovementConfig.MaxRotationBrakingTime;
+
 		MovementConfig.MaxWheelRotationAngle = FMath::Asin(1.0f / MovementConfig.MinTurningRadius);
 		MovementConfig.MaxWheelEdgeRotationSpeed = MovementConfig.MaxWheelRotationAngle / MovementConfig.MaxWheelEdgeRotationTime;
 		MovementConfig.MaxWheelCenterRotationSpeed = MovementConfig.MaxWheelRotationAngle / MovementConfig.MaxWheelCenterRotationTime;
+
 		MovementConfig.MaxInclineAngleCos = FMath::Cos(FMath::DegreesToRadians(MovementConfig.MaxInclineAngleDeg));
 	}
 

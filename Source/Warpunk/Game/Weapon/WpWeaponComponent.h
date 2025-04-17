@@ -47,8 +47,10 @@ private:
 
 	TStaticArray<FWpWeaponWrapper, WP_ENTITY_MAX_WEAPON> Weapons = {};
 
+	UPROPERTY(VisibleInstanceOnly)
 	bool bManualControlOnly = false;
 
+	UPROPERTY(VisibleInstanceOnly)
 	TSet<AWpEntity*> EntitiesInReach = {};
 
 public:

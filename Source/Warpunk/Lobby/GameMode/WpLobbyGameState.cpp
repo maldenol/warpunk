@@ -15,7 +15,7 @@ void AWpLobbyGameState::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (HasAuthority() && TimeUntilGameStart > 0.0f)
+	if (HasAuthority() && (TimeUntilGameStart > 0.0f))
 	{
 		SetTimeUntilGameStart(TimeUntilGameStart - DeltaSeconds);
 	}

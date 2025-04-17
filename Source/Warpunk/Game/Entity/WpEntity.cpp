@@ -151,8 +151,6 @@ bool AWpEntity::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, A
 
 void AWpEntity::PostNetReceiveLocationAndRotation()
 {
-	ensureAlways(EntityType != EWpEntityType::Unit);
-
 	const FRepMovement& LocalRepMovement = GetReplicatedMovement();
 	const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, this);
 	const FRotator& NewRotation = LocalRepMovement.Rotation;

@@ -31,9 +31,9 @@ struct FWpConfigIdNumber final
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	uint32 ConfigId = 0;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	uint32 Number = 0;
 
 	bool operator==(const FWpConfigIdNumber& Other) const;
@@ -48,19 +48,19 @@ struct FWpOrder final
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	EWpOrderType Type = EWpOrderType::Undefined;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	FVector TargetLocation = FVector::ZeroVector;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	float Radius = 0.0f;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	AWpEntity* TargetEntity = nullptr;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	uint32 BuildingToProduceConfigId = 0;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	TArray<FWpConfigIdNumber> UnitToProduceConfigIdNumbers = {};
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	bool bOverride = false;
 };
 

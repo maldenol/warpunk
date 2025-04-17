@@ -17,9 +17,9 @@ struct FWpNetOrder
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	AWpEntity* Entity = nullptr;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	FWpOrder Order = {};
 };
 

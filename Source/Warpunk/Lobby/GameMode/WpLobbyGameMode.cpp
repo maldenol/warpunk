@@ -10,7 +10,7 @@
 const float AWpLobbyGameMode::TimeUntilGameStart = 3.0f;
 #else
 const float AWpLobbyGameMode::TimeUntilGameStart = 10.0f;
-#endif
+#endif // UE_EDITOR
 
 AWpLobbyGameMode::AWpLobbyGameMode()
 {

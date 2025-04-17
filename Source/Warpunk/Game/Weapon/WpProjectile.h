@@ -45,8 +45,9 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWpProjectileMovementComponent> MovementComponent = nullptr;
 
-	UPROPERTY(ReplicatedUsing=OnRep_ProjectileConfig)
+	UPROPERTY(VisibleInstanceOnly, ReplicatedUsing=OnRep_ProjectileConfig)
 	FWpProjectileConfig ProjectileConfig = {};
+	UPROPERTY(VisibleInstanceOnly)
 	float Damage = 0.0f;
 	FWpProjectileWeapon* Weapon = nullptr;
 

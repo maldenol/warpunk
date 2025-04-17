@@ -26,7 +26,7 @@ void FWpAttackOrderHandler::Initialize(AWpEntity* const InEntity)
 	{
 		if (const FWpWeapon* const Weapon = WeaponComponent->GetWeapon(Index))
 		{
-			if (!ShortestRangeWeapon || Weapon->GetRange() < ShortestRangeWeapon->GetRange())
+			if (!ShortestRangeWeapon || (Weapon->GetRange() < ShortestRangeWeapon->GetRange()))
 			{
 				ShortestRangeWeapon = Weapon;
 			}

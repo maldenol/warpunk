@@ -42,12 +42,16 @@ private:
 
 	TMap<AActor*, uint32> ObserverNumberPerActor = {};
 
-	UPROPERTY(Replicated)
+	UPROPERTY(VisibleInstanceOnly, Replicated)
 	FWpPooledActorVisibilityInfoArray PooledActorVisibilityInfos = {};
 
+	UPROPERTY(VisibleInstanceOnly)
 	TSet<uint64> ShouldBeHiddenActorGuids = {};
+	UPROPERTY(VisibleInstanceOnly)
 	TSet<uint64> AlreadyHiddenActorGuids = {};
+	UPROPERTY(VisibleInstanceOnly)
 	TSet<uint64> ShouldBeVisibleActorGuids = {};
+	UPROPERTY(VisibleInstanceOnly)
 	TSet<uint64> AlreadyVisibleActorGuids = {};
 
 	friend struct FWpPooledActorVisibilityInfoArray;
