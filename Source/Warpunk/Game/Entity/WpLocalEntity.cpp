@@ -26,11 +26,8 @@ AWpLocalEntity::AWpLocalEntity()
 	BoxComponent->SetNotifyRigidBodyCollision(false);
 	BoxComponent->SetGenerateOverlapEvents(false);
 
-	StaticMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
-	StaticMeshComponent->SetCanEverAffectNavigation(false);
-
-	SkeletalMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
-	SkeletalMeshComponent->SetCanEverAffectNavigation(false);
+	MeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
+	MeshComponent->SetCanEverAffectNavigation(false);
 }
 
 void AWpLocalEntity::BeginPlay()

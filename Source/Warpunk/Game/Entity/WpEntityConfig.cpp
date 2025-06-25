@@ -34,16 +34,7 @@ void FWpEntityConfig::CheckCorrectness()
 	{
 		bIsCorrect &= MeshConfig.Transform.GetScale3D().GetMin() > 0.0;
 
-		if (MeshConfig.bUseSkeletalMesh)
-		{
-			bIsCorrect &= MeshConfig.SkeletalMesh != nullptr;
-			bIsCorrect &= MeshConfig.AnimInstanceClass != nullptr;
-		}
-		else
-		{
-			bIsCorrect &= MeshConfig.StaticMesh != nullptr;
-		}
-		bIsCorrect &= MeshConfig.Material != nullptr;
+		bIsCorrect &= MeshConfig.SkeletalMesh != nullptr;
 	}
 
 	if (Type == EWpEntityType::Unit)
@@ -79,8 +70,9 @@ void FWpEntityConfig::CheckCorrectness()
 		bIsCorrect &= EnduranceConfig.MaxEndurance > 0.0f;
 	}
 
+	if (const FWpOrderReceiverConfig* const OrderReceiverConfigPtr = OrderReceiverConfig.GetPtrOrNull())
 	{
-		bIsCorrect &= !OrderReceiverConfig->SupportedOrders.IsEmpty();
+		bIsCorrect &= !OrderReceiverConfigPtr->SupportedOrders.IsEmpty();
 	}
 
 	if (const FWpIntelConfig* const IntelConfigPtr = IntelConfig.GetPtrOrNull())
@@ -119,17 +111,8 @@ void FWpEntityConfig::CheckCorrectness()
 void FWpEntityConfig::UpdateDerivedValues()
 {
 	{
-		FBoxSphereBounds MeshBounds;
-		if (MeshConfig.bUseSkeletalMesh)
-		{
-			MeshConfig.SkeletalMesh->GetLinker()->Preload(MeshConfig.SkeletalMesh);
-			MeshBounds = MeshConfig.SkeletalMesh->GetBounds();
-		}
-		else
-		{
-			MeshConfig.StaticMesh->GetLinker()->Preload(MeshConfig.StaticMesh);
-			MeshBounds = MeshConfig.StaticMesh->GetBounds();
-		}
+		MeshConfig.SkeletalMesh->GetLinker()->Preload(MeshConfig.SkeletalMesh);
+		FBoxSphereBounds MeshBounds = MeshConfig.SkeletalMesh->GetBounds();
 		MeshBounds.Origin *= MeshConfig.Transform.GetScale3D();
 		MeshBounds.BoxExtent *= MeshConfig.Transform.GetScale3D();
 

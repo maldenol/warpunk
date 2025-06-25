@@ -20,15 +20,7 @@ struct FWpMeshConfig final
 	FTransform Transform = FTransform::Identity;
 
 	UPROPERTY(EditAnywhere)
-	bool bUseSkeletalMesh = false;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "!bUseSkeletalMesh", EditConditionHides))
-	TObjectPtr<UStaticMesh> StaticMesh = nullptr;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "bUseSkeletalMesh", EditConditionHides))
 	TObjectPtr<USkeletalMesh> SkeletalMesh = nullptr;
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "bUseSkeletalMesh", EditConditionHides))
-	TSubclassOf<UAnimInstance> AnimInstanceClass = nullptr;
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UMaterialInterface> Material = nullptr;
 
 	FTransform RelativeTransform = FTransform::Identity;
 	FCollisionShape CollisionShape = {};
