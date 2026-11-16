@@ -34,31 +34,42 @@ void UWpCrowdFollowingComponent::Cleanup()
 
 void UWpCrowdFollowingComponent::GetCrowdAgentCollisions(float& CylinderRadius, float& CylinderHalfHeight) const
 {
-	if (MovementComp)
+	CylinderRadius = 0.0;
+	CylinderHalfHeight = 0.0;
+
+	if (!NavMovementInterface.IsValid())
 	{
-		if (const AWpEntity* const Entity = MovementComp->GetOwner<AWpEntity>())
-		{
-			const FVector Extent = Entity->GetCollisionComponent()->GetCollisionShape().GetExtent();
-			CylinderRadius = FMath::Max(Extent.X, Extent.Y);
-			CylinderHalfHeight = Extent.Z;
-		}
+		return;
+	}
+
+	const UWpEntityMovementComponent* const EntityMovementComponent = Cast<UWpEntityMovementComponent>(NavMovementInterface.GetObject());
+	if (const AWpEntity* const Entity = EntityMovementComponent->GetOwner<AWpEntity>())
+	{
+		const FVector Extent = Entity->GetCollisionComponent()->GetCollisionShape().GetExtent();
+		CylinderRadius = FMath::Max(Extent.X, Extent.Y);
+		CylinderHalfHeight = Extent.Z;
 	}
 }
 
 void UWpCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, const bool bTraversingLink, const bool bIsNearEndOfPath)
 {
-	const UWpEntityMovementComponent* const EntityMovementComponent = Cast<UWpEntityMovementComponent>(MovementComp);
-	if (IsCrowdSimulationEnabled() && (Status == EPathFollowingStatus::Moving) && EntityMovementComponent)
+	if (!NavMovementInterface.IsValid())
+	{
+		return;
+	}
+
+	const UWpEntityMovementComponent* const EntityMovementComponent = Cast<UWpEntityMovementComponent>(NavMovementInterface.GetObject());
+	if (IsCrowdSimulationEnabled() && (GetStatus() == EPathFollowingStatus::Moving) && EntityMovementComponent)
 	{
 		UpdateCachedDirections(NewVelocity, DestPathCorner, bTraversingLink);
 
-		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
+		const FVector CurrentLocation = EntityMovementComponent->GetActorFeetLocation();
 		const FVector EndLocation = Path->GetEndLocation();
 		const float DistanceSqrd = FVector::DistSquared(CurrentLocation, EndLocation);
 		const float BrakingDistanceSqrd = FMath::Square(EntityMovementComponent->GetMinBrakingDistance());
 		const bool bShouldDecelerate = DistanceSqrd < BrakingDistanceSqrd;
 		const FVector MoveInput = NewVelocity * (bShouldDecelerate ? 0.0 : 1.0);
 
-		MovementComp->RequestPathMove(MoveInput);
+		NavMovementInterface->RequestPathMove(MoveInput);
 	}
 }

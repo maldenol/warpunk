@@ -17,7 +17,7 @@ AWpStrategicViewPawn::AWpStrategicViewPawn()
 
 	bReplicates = true;
 	Super::SetReplicateMovement(true);
-	NetUpdateFrequency = 60.0f;
+	SetNetUpdateFrequency(60.0f);
 
 	AutoPossessAI = EAutoPossessAI::Disabled;
 

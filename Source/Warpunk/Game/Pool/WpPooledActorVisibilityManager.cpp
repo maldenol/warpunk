@@ -6,7 +6,7 @@
 
 #include "EngineUtils.h"
 #include "Engine/PackageMapClient.h"
-#include "Misc/NetworkGUID.h"
+#include "Misc/NetworkGuid.h"
 #include "Net/UnrealNetwork.h"
 
 AWpPooledActorVisibilityManager::AWpPooledActorVisibilityManager()
@@ -264,7 +264,7 @@ uint64 AWpPooledActorVisibilityManager::GetActorGuid(AActor* const Actor) const
 		return Actor->GetUniqueID();
 	}
 
-	const FNetworkGUID NetworkGUID = GetWorld()->GetNetDriver()->GuidCache->GetOrAssignNetGUID(Actor);
+	const FNetworkGUID NetworkGUID = GetWorld()->GetNetDriver()->GetNetGuidCache()->GetOrAssignNetGUID(Actor);
 	return NetworkGUID.ObjectId;
 }
 
@@ -277,7 +277,7 @@ AActor* AWpPooledActorVisibilityManager::GetActorByGuid(const uint64 Guid) const
 
 	FNetworkGUID NetworkGUID;
 	NetworkGUID.ObjectId = Guid;
-	UObject* const Object = GetWorld()->GetNetDriver()->GuidCache->GetObjectFromNetGUID(NetworkGUID, true);
+	UObject* const Object = GetWorld()->GetNetDriver()->GetNetGuidCache()->GetObjectFromNetGUID(NetworkGUID, true);
 	return Cast<AActor>(Object);
 }
 

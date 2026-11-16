@@ -30,7 +30,7 @@ AWpProjectile::AWpProjectile()
 	Super::SetReplicateMovement(false);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
-	NetUpdateFrequency = 60.0f;
+	SetNetUpdateFrequency(60.0f);
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(CollisionComponentName);
 	CollisionComponent->SetIsReplicated(false);

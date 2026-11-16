@@ -48,7 +48,7 @@ AWpEntity::AWpEntity()
 	Super::SetReplicateMovement(false);
 	bAlwaysRelevant = true;
 	SetNetDormancy(DORM_DormantPartial);
-	NetUpdateFrequency = 60.0f;
+	SetNetUpdateFrequency(60.0f);
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AWpEntityAIController::StaticClass();

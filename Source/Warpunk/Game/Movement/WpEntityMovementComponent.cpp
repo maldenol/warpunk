@@ -53,7 +53,7 @@ UWpEntityMovementComponent::UWpEntityMovementComponent()
 
 	bAutoUpdateTickRegistration = false;
 
-	bUpdateNavAgentWithOwnersCollision = false;
+	NavMovementProperties.bUpdateNavAgentWithOwnersCollision = false;
 
 	FNavAgentProperties& NavAgentProperties = GetNavAgentPropertiesRef();
 	NavAgentProperties.bCanCrouch = false;
@@ -412,7 +412,10 @@ void UWpEntityMovementComponent::UpdateMoveAcceleration(const float DeltaTime, c
 
 	const bool bIsBrakingToZeroMoveSpeed = !MoveSpeed.IsNearlyZero()
 		&& (
-			(MovementType != EWpEntityMovementType::Legs) && FMath::IsNearlyZero(InputVector.X)
+			(
+				(MovementType != EWpEntityMovementType::Legs)
+				&& FMath::IsNearlyZero(InputVector.X)
+			)
 			|| InputVector.IsNearlyZero()
 		);
 	if (bIsBrakingToZeroMoveSpeed)
@@ -440,8 +443,12 @@ void UWpEntityMovementComponent::ApplyInputMoveAcceleration1D(const float Input)
 		return;
 	}
 
-	const bool bShouldAccelerate = CurrentSpeed.IsNearlyZero()
-		|| (DesiredSpeed.Dot(CurrentSpeed) > 0.0) && (DesiredSpeed.SizeSquared2D() > CurrentSpeed.SizeSquared2D());
+	const bool bShouldAccelerate =
+		CurrentSpeed.IsNearlyZero()
+		|| (
+			(DesiredSpeed.Dot(CurrentSpeed) > 0.0)
+			&& (DesiredSpeed.SizeSquared2D() > CurrentSpeed.SizeSquared2D())
+		);
 	if (bShouldAccelerate)
 	{
 		const float AccelerationScale = MoveAccelerationCoefficient1 + MoveAccelerationCoefficient2 * MoveSpeed.Size2D();
@@ -653,10 +660,12 @@ void UWpEntityMovementComponent::ApplyRotationAccelerationTracks(const float Del
 
 	const float FrictionScale = bIsSlipping ? KineticToStaticGroundFriction : 1.0f;
 
-	const bool bShouldAccelerate = FMath::IsNearlyZero(RotationSpeed)
-		||
-		(FMath::Sign(DesiredRotationSpeed) == FMath::Sign(RotationSpeed))
-		&& (FMath::Abs(DesiredRotationSpeed) > FMath::Abs(RotationSpeed));
+	const bool bShouldAccelerate =
+		FMath::IsNearlyZero(RotationSpeed)
+		|| (
+			(FMath::Sign(DesiredRotationSpeed) == FMath::Sign(RotationSpeed))
+			&& (FMath::Abs(DesiredRotationSpeed) > FMath::Abs(RotationSpeed))
+		);
 	if (bShouldAccelerate)
 	{
 		const float AccelerationScale = MaxRotationAcceleration * FrictionScale;
