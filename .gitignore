@@ -77,3 +77,9 @@ DerivedDataCache/*
 
 # Unreal Editor Temp
 enc_temp_folder/*
+
+# Visual Studio Code
+.ignore
+.vscode/
+Makefile
+Warpunk.code-workspace
