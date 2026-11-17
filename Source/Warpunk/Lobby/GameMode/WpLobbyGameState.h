@@ -56,7 +56,7 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_General)
 	bool bTeamsAllowed = false;
 	UPROPERTY(ReplicatedUsing=OnRep_General)
-	uint32 MaxPlayerNumber = 10;
+	uint32 MaxPlayerNumber = 4;
 	UPROPERTY(ReplicatedUsing=OnRep_General)
 	uint32 MaxSpectatorNumber = 5;
 

@@ -9,7 +9,9 @@
 
 #include "WpOrderSenderComponent.generated.h"
 
+class AWpCommandMarker;
 class AWpLocalEntity;
+class UWpSelectionMarqueeWidget;
 enum class EWpEntityState : uint8;
 
 USTRUCT(NotBlueprintable, NotBlueprintType)
@@ -83,6 +85,12 @@ private:
 	void SetOrderStartLocation();
 	void SendOrders(const EWpOrderType OrderType);
 
+	void EnsureOrderVisuals();
+	void UpdateSelectionMarquee();
+	void UpdateOrderPreview();
+	void ShowOrderMarker(const FVector& Location, const float Radius, const EWpOrderType OrderType);
+	static bool ShouldShowOrderMarker(const EWpOrderType OrderType);
+
 	void UpdateBuildingPlan();
 
 	void PopulateUnitToProduceConfigIdNumbersPerProducer();
@@ -98,6 +106,8 @@ private:
 	EWpOrderSenderState OrderSenderState = EWpOrderSenderState::DefaultOrder;
 
 	FVector SelectEntitiesStartLocation = FVector::ZeroVector;
+	FVector2D SelectEntitiesStartScreen = FVector2D::ZeroVector;
+	bool bSelectingEntities = false;
 	TMap<FWpSelectedEntityCategory, TArray<AWpEntity*>> SelectedEntitiesPerCategory = {};
 
 	TSet<AWpEntity*> SelectedEntities = {};
@@ -113,6 +123,11 @@ private:
 	TMap<const AWpEntity*, TMap<uint32, uint32>> UnitToProduceConfigIdNumbersPerProducer = {};
 
 	FAvailableOrdersChangedEvent AvailableOrdersChangedEvent = {};
+
+	UPROPERTY()
+	TObjectPtr<UWpSelectionMarqueeWidget> SelectionMarquee = nullptr;
+	UPROPERTY()
+	TObjectPtr<AWpCommandMarker> OrderPreview = nullptr;
 
 public:
 	static const FName OverrideInputKeyName;

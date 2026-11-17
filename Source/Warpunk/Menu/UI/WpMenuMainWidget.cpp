@@ -16,8 +16,21 @@ void UWpMenuMainEntryWidget::SetMenuState(const EWpMenuState InMenuState)
 	Button->OnPressed.AddDynamic(this, &UWpMenuMainEntryWidget::OnPressed);
 
 	FString MenuStateName;
-	const FString MenuStateFullName = UEnum::GetValueAsString(MenuState);
-	MenuStateFullName.Split(TEXT("::"), nullptr, &MenuStateName);
+	switch (MenuState)
+	{
+	case EWpMenuState::Singleplayer:
+		MenuStateName = TEXT("Single Player");
+		break;
+	case EWpMenuState::Multiplayer:
+		MenuStateName = TEXT("Multiplayer");
+		break;
+	case EWpMenuState::Exit:
+		MenuStateName = TEXT("Exit");
+		break;
+	default:
+		MenuStateName = TEXT("Menu");
+		break;
+	}
 	Text->SetText(FText::FromString(MenuStateName));
 }
 

@@ -39,11 +39,11 @@ void UWpLobbyHUDWidget::OnReadyPressed()
 {
 	AWpLobbyPlayerController* const PlayerController = GetOwningPlayer<AWpLobbyPlayerController>();
 	const AWpLobbyPlayerState* const PlayerState = PlayerController->GetPlayerState<AWpLobbyPlayerState>();
-	const bool bNewIsReady = !PlayerState->IsReady();
+	bLocalReady = !PlayerState->IsReady();
+	SetElementsVisibility(bLocalReady);
+	RefreshReadyLabel();
 
-	SetElementsVisibility(bNewIsReady);
-
-	PlayerController->ServerSetReady(bNewIsReady);
+	PlayerController->ServerSetReady(bLocalReady);
 }
 
 void UWpLobbyHUDWidget::OnBackPressed()
@@ -64,19 +64,27 @@ void UWpLobbyHUDWidget::OnPlayerStateReplicated()
 void UWpLobbyHUDWidget::OnPlayerSettingsUpdated()
 {
 	const AWpLobbyPlayerState* const PlayerState = GetOwningPlayer()->GetPlayerState<AWpLobbyPlayerState>();
-	SetElementsVisibility(PlayerState->IsReady());
+	bLocalReady = PlayerState->IsReady();
+	SetElementsVisibility(bLocalReady);
+	RefreshReadyLabel();
 }
 
-void UWpLobbyHUDWidget::OnTimeUntilGameStartUpdated(const float TimeUntilGameStart)
+void UWpLobbyHUDWidget::OnTimeUntilGameStartUpdated(const float InTimeUntilGameStart)
 {
-	FString ReadyButtonTitle;
-	if (TimeUntilGameStart < 0.0f)
+	TimeUntilGameStart = InTimeUntilGameStart;
+	RefreshReadyLabel();
+}
+
+void UWpLobbyHUDWidget::RefreshReadyLabel()
+{
+	FString ReadyButtonTitle = TEXT("Ready");
+	if (TimeUntilGameStart >= 0.0f)
 	{
-		ReadyButtonTitle = TEXT("Ready");
+		ReadyButtonTitle = FString::Printf(TEXT("Launch in %d"), FMath::CeilToInt(TimeUntilGameStart));
 	}
-	else
+	else if (bLocalReady)
 	{
-		ReadyButtonTitle = FString::FromInt(TimeUntilGameStart);
+		ReadyButtonTitle = TEXT("Cancel");
 	}
 
 	ReadyButtonText->SetText(FText::FromString(ReadyButtonTitle));

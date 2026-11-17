@@ -1,13 +1,17 @@
 #include "WpGameUnitProductionTableWidget.h"
 
+#include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Order/WpOrder.h"
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
+#include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 
 const FName UWpGameUnitProductionTableEntryWidget::CancelUnitInputKeyName = TEXT("LeftShift");
 
@@ -40,8 +44,18 @@ void UWpGameUnitProductionTableEntryWidget::SetUnitConfigId(const uint32 InUnitC
 
 	Button->OnPressed.AddDynamic(this, &UWpGameUnitProductionTableEntryWidget::OnPressed);
 
-	Name->SetText(FText::FromString(FString::FromInt(UnitConfigId)));
+	const FWpEntityConfig EntityConfig = GetWorld()->GetGameInstance<UWpGameInstance>()->GetEntityConfig(UnitConfigId);
+	const FString DisplayName = EntityConfig.Name.IsEmpty() ? FString::FromInt(UnitConfigId) : EntityConfig.Name;
+	Name->SetAutoWrapText(true);
+	Name->SetJustification(ETextJustify::Center);
+	Name->SetText(FText::FromString(DisplayName));
 	Number->SetText(FText{});
+
+	const FString TexturePath = FString::Printf(TEXT("/Game/Models/Entities/%s/T_%s.T_%s"), *DisplayName, *DisplayName, *DisplayName);
+	if (UTexture2D* const PortraitTexture = LoadObject<UTexture2D>(nullptr, *TexturePath))
+	{
+		Portrait->SetBrushFromTexture(PortraitTexture, false);
+	}
 }
 
 void UWpGameUnitProductionTableEntryWidget::OnPressed()

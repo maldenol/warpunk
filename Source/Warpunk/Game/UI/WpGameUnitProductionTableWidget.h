@@ -10,6 +10,7 @@ enum class EWpOrderType : uint8;
 
 class UButton;
 class UHorizontalBox;
+class UImage;
 class UTextBlock;
 
 UCLASS(MinimalAPI, Abstract, Blueprintable, NotBlueprintType)
@@ -30,6 +31,8 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button = nullptr;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Portrait = nullptr;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Name = nullptr;
 	UPROPERTY(meta = (BindWidget))

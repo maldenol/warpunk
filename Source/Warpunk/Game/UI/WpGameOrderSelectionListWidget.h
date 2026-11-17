@@ -9,6 +9,7 @@
 #include "WpGameOrderSelectionListWidget.generated.h"
 
 class UButton;
+class UImage;
 class UTextBlock;
 class UVerticalBox;
 
@@ -28,6 +29,8 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button = nullptr;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Icon = nullptr;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text = nullptr;
 

@@ -33,6 +33,7 @@ private:
 	void OnTimeUntilGameStartUpdated(const float TimeUntilGameStart);
 
 	void SetElementsVisibility(const bool bIsReady);
+	void RefreshReadyLabel();
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWpLobbyOptionsWidget> LobbyOptionsWidget = nullptr;
@@ -44,4 +45,7 @@ private:
 	TObjectPtr<UTextBlock> ReadyButtonText = nullptr;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> BackButton = nullptr;
+
+	bool bLocalReady = false;
+	float TimeUntilGameStart = -1.0f;
 };

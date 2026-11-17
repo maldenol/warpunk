@@ -7,10 +7,13 @@
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerState.h"
+#include "Warpunk/Game/Order/WpCommandMarker.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
+#include "Warpunk/Game/UI/WpSelectionMarqueeWidget.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 const FName UWpOrderSenderComponent::OverrideInputKeyName = TEXT("LeftShift");
@@ -44,6 +47,9 @@ void UWpOrderSenderComponent::TickComponent(const float DeltaTime, const ELevelT
 	{
 		UpdateBuildingPlan();
 	}
+
+	UpdateSelectionMarquee();
+	UpdateOrderPreview();
 }
 
 void UWpOrderSenderComponent::SelectOrderType(const EWpOrderType OrderType)
@@ -180,6 +186,11 @@ void UWpOrderSenderComponent::OnLMBStarted()
 	{
 	case EWpOrderSenderState::DefaultOrder:
 		SetSelectEntitiesStartLocation();
+		bSelectingEntities = !SelectEntitiesStartLocation.IsNearlyZero();
+		if (bSelectingEntities)
+		{
+			SelectEntitiesStartScreen = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+		}
 		break;
 	case EWpOrderSenderState::SelectedOrder:
 	case EWpOrderSenderState::ProduceBuildingOrder:
@@ -210,6 +221,7 @@ void UWpOrderSenderComponent::OnLMBCompleted()
 	switch (OrderSenderState)
 	{
 	case EWpOrderSenderState::DefaultOrder:
+		bSelectingEntities = false;
 		SelectEntitiesStartLocation = FVector::ZeroVector;
 		break;
 	case EWpOrderSenderState::SelectedOrder:
@@ -340,8 +352,6 @@ void UWpOrderSenderComponent::SelectEntities()
 	FVector BoxExtent = (BoxLocation - SelectEntitiesStartLocation).GetAbs();
 	static constexpr float BoxExtentZ = 10000.0f;
 	BoxExtent.Z = BoxExtentZ;
-
-	DrawDebugBox(GetWorld(), BoxLocation, BoxExtent, FColor::Yellow);
 
 	TArray<AActor*> SelectedActors;
 	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes =
@@ -519,8 +529,6 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 	else if (Order.Type == EWpOrderType::Patrol)
 	{
 		Order.TargetLocation = OrderStartLocation;
-
-		DrawDebugCircle(GetWorld(), Order.TargetLocation, Order.Radius, 64, FColor::Green, false, 3.0f, 0, 0, FVector{0.0, 1.0, 0.0}, FVector{1.0, 0.0, 0.0});
 	}
 
 	if (AWpEntity* const TargetEntity = Cast<AWpEntity>(Hit.GetActor()))
@@ -555,6 +563,17 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 		NetOrders.Add(NetOrder);
 	}
 	ServerSendOrders(NetOrders, bOverride);
+
+	if (ShouldShowOrderMarker(Order.Type))
+	{
+		const FVector MarkerLocation = (Order.Type == EWpOrderType::Patrol) ? Order.TargetLocation : FVector{Hit.Location};
+		const float MarkerRadius = (Order.Radius > 0.0f) ? Order.Radius : 120.0f;
+		ShowOrderMarker(MarkerLocation, MarkerRadius, Order.Type);
+	}
+	if (OrderPreview)
+	{
+		OrderPreview->HidePreview();
+	}
 
 	OrderStartLocation = FVector::ZeroVector;
 }
@@ -606,8 +625,111 @@ FHitResult UWpOrderSenderComponent::LineTraceUnderCursor() const
 {
 	FHitResult Hit;
 	GetPlayerController()->GetHitResultUnderCursor(ECC_Camera, false, Hit);
-	DrawDebugPoint(GetWorld(), Hit.Location, 10, FColor::Red);
 	return Hit;
+}
+
+void UWpOrderSenderComponent::EnsureOrderVisuals()
+{
+	if (!SelectionMarquee)
+	{
+		const TSubclassOf<UWpSelectionMarqueeWidget> MarqueeClass = LoadClass<UWpSelectionMarqueeWidget>(nullptr, TEXT("/Game/Blueprints/Game/UI/W_SelectionMarquee.W_SelectionMarquee_C"));
+		ensureAlways(MarqueeClass);
+		SelectionMarquee = CreateWidget<UWpSelectionMarqueeWidget>(GetPlayerController(), MarqueeClass);
+		SelectionMarquee->AddToViewport(20);
+	}
+
+	if (!OrderPreview)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		OrderPreview = GetWorld()->SpawnActor<AWpCommandMarker>(AWpCommandMarker::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, Params);
+		if (OrderPreview)
+		{
+			OrderPreview->HidePreview();
+		}
+	}
+}
+
+void UWpOrderSenderComponent::UpdateSelectionMarquee()
+{
+	EnsureOrderVisuals();
+	if (!bSelectingEntities)
+	{
+		SelectionMarquee->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	const FVector2D Cursor = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	SelectionMarquee->SetScreenRect(SelectEntitiesStartScreen, Cursor);
+}
+
+void UWpOrderSenderComponent::UpdateOrderPreview()
+{
+	if (!OrderPreview)
+	{
+		EnsureOrderVisuals();
+	}
+
+	if ((OrderSenderState == EWpOrderSenderState::ProduceBuildingOrder) || OrderStartLocation.IsNearlyZero() || SelectedEntities.IsEmpty())
+	{
+		if (OrderPreview)
+		{
+			OrderPreview->HidePreview();
+		}
+		return;
+	}
+
+	const FHitResult Hit = LineTraceUnderCursor();
+	if (!Hit.bBlockingHit)
+	{
+		OrderPreview->HidePreview();
+		return;
+	}
+
+	EWpOrderType OrderType = SelectedOrderType;
+	if (OrderType == EWpOrderType::Undefined)
+	{
+		OrderType = SelectedEntitiesDefaultOrders.Get(GetBelligerentId(), Hit.GetActor());
+	}
+
+	float Radius = FVector::Dist2D(Hit.Location, OrderStartLocation);
+	if (Radius < 100.0f)
+	{
+		Radius = 0.0f;
+	}
+
+	const bool bPatrol = OrderType == EWpOrderType::Patrol;
+	const FVector Center = bPatrol ? OrderStartLocation : FVector{Hit.Location};
+	const float ShownRadius = (Radius > 0.0f) ? Radius : 120.0f;
+	OrderPreview->Preview(Center, ShownRadius, AWpCommandMarker::ColorForOrder(OrderType));
+}
+
+void UWpOrderSenderComponent::ShowOrderMarker(const FVector& Location, const float Radius, const EWpOrderType OrderType)
+{
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AWpCommandMarker* const Marker = GetWorld()->SpawnActor<AWpCommandMarker>(AWpCommandMarker::StaticClass(), Location, FRotator::ZeroRotator, Params);
+	if (Marker)
+	{
+		Marker->Play(Location, Radius, AWpCommandMarker::ColorForOrder(OrderType));
+	}
+}
+
+bool UWpOrderSenderComponent::ShouldShowOrderMarker(const EWpOrderType OrderType)
+{
+	switch (OrderType)
+	{
+	case EWpOrderType::Undefined:
+	case EWpOrderType::Stop:
+	case EWpOrderType::ProduceUnit:
+	case EWpOrderType::ProductionProxy:
+	case EWpOrderType::InfiniteUnitProductionOff:
+	case EWpOrderType::InfiniteUnitProductionOn:
+	case EWpOrderType::SelfDestruct:
+		return false;
+	default:
+		return true;
+	}
 }
 
 APlayerController* UWpOrderSenderComponent::GetPlayerController() const

@@ -10,6 +10,8 @@
 
 #include "WpOrderReceiverComponent.generated.h"
 
+class UMaterialInstanceDynamic;
+class UStaticMeshComponent;
 class UWidgetComponent;
 
 UCLASS(MinimalAPI, NotBlueprintable, NotBlueprintType)
@@ -53,6 +55,7 @@ private:
 	void ExecuteOrder(const EWpOrderType OrderType, const FWpOrder& Order);
 
 	void CreateSelectionWidgetComponentIfNull();
+	void UpdateSelectionRing();
 
 	UPROPERTY(VisibleInstanceOnly)
 	FWpDefaultOrders DefaultOrders = {};
@@ -68,6 +71,10 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly)
 	UWidgetComponent* SelectionWidgetComponent = nullptr;
+	UPROPERTY(VisibleInstanceOnly)
+	TObjectPtr<UStaticMeshComponent> SelectionRing = nullptr;
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> SelectionRingMaterial = nullptr;
 
 	FOrderReceivedEvent OrderReceivedEvent = {};
 

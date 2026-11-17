@@ -5,8 +5,11 @@
 #include "Warpunk/Game/Entity/WpEntityConfig.h"
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
+#include "Warpunk/Game/Order/WpCommandMarker.h"
 
+#include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 
 const FName UWpOrderReceiverComponent::SelectionWidgetComponentName = TEXT("SelectionWidget");
@@ -304,9 +307,19 @@ void UWpOrderReceiverComponent::Select(const bool bSelected)
 	if (bSelected)
 	{
 		ensureAlways(IsActive());
+		UpdateSelectionRing();
 	}
 
-	SelectionWidgetComponent->SetVisibility(bSelected);
+	if (SelectionRing)
+	{
+		SelectionRing->SetVisibility(bSelected);
+		SelectionRing->SetHiddenInGame(!bSelected);
+	}
+
+	if (SelectionWidgetComponent)
+	{
+		SelectionWidgetComponent->SetVisibility(false);
+	}
 }
 
 void UWpOrderReceiverComponent::SetUnitToProduceConfigIdNumbers(const TArray<FWpConfigIdNumber>& InUnitToProduceConfigIdNumbers)
@@ -404,4 +417,53 @@ void UWpOrderReceiverComponent::CreateSelectionWidgetComponentIfNull()
 	SelectionWidgetComponent->SetWidgetClass(SelectionWidgetClass);
 
 	SelectionWidgetComponent->SetVisibility(false);
+
+	if (SelectionRing)
+	{
+		return;
+	}
+
+	UStaticMesh* const Plane = AWpCommandMarker::MarkerMesh();
+	UMaterialInterface* const MaterialInterface = AWpCommandMarker::MarkerMaterial();
+	if (!Plane || !MaterialInterface)
+	{
+		return;
+	}
+
+	SelectionRing = NewObject<UStaticMeshComponent>(GetOwner(), UStaticMeshComponent::StaticClass(), TEXT("SelectionRing"));
+	SelectionRing->RegisterComponent();
+	SelectionRing->AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules{EAttachmentRule::KeepRelative, false});
+	SelectionRing->SetMobility(EComponentMobility::Movable);
+	SelectionRing->SetStaticMesh(Plane);
+	SelectionRing->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SelectionRing->SetCastShadow(false);
+	SelectionRing->SetCanEverAffectNavigation(false);
+	SelectionRing->SetGenerateOverlapEvents(false);
+	SelectionRing->SetVisibility(false);
+	SelectionRing->SetHiddenInGame(true);
+
+	SelectionRingMaterial = UMaterialInstanceDynamic::Create(MaterialInterface, SelectionRing);
+	SelectionRingMaterial->SetTextureParameterValue(TEXT("Texture"), AWpCommandMarker::RingTexture());
+	SelectionRing->SetMaterial(0, SelectionRingMaterial);
+}
+
+void UWpOrderReceiverComponent::UpdateSelectionRing()
+{
+	if (!SelectionRing)
+	{
+		return;
+	}
+
+	const AWpEntity* const Entity = GetOwner<AWpEntity>();
+	const FVector Extent = Entity->GetCollisionComponent()->GetCollisionShape().GetExtent();
+	const float Diameter = FMath::Max(FMath::Max(Extent.X, Extent.Y) * 2.0f * 1.45f, 160.0f);
+	SelectionRing->SetRelativeScale3D(FVector{Diameter / 100.0f, Diameter / 100.0f, 1.0f});
+	SelectionRing->SetRelativeLocation(FVector{0.0f, 0.0f, -Extent.Z + 12.0f});
+
+	const FLinearColor Color{1.0f, 0.86f, 0.22f, 1.0f};
+	if (SelectionRingMaterial)
+	{
+		SelectionRingMaterial->SetVectorParameterValue(TEXT("Color"), Color * 0.35f);
+		SelectionRingMaterial->SetScalarParameterValue(TEXT("Opacity"), 0.35f);
+	}
 }
