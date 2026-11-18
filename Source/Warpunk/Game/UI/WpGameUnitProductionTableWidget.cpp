@@ -6,6 +6,8 @@
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
+#include "Warpunk/Global/Audio/WpAudio.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
@@ -43,6 +45,7 @@ void UWpGameUnitProductionTableEntryWidget::SetUnitConfigId(const uint32 InUnitC
 	UnitConfigId = InUnitConfigId;
 
 	Button->OnPressed.AddDynamic(this, &UWpGameUnitProductionTableEntryWidget::OnPressed);
+	UWpAudioSubsystem::ArmButton(this, Button);
 
 	const FWpEntityConfig EntityConfig = GetWorld()->GetGameInstance<UWpGameInstance>()->GetEntityConfig(UnitConfigId);
 	const FString DisplayName = EntityConfig.Name.IsEmpty() ? FString::FromInt(UnitConfigId) : EntityConfig.Name;

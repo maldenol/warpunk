@@ -11,6 +11,7 @@
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/UI/WpSelectionMarqueeWidget.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -221,6 +222,10 @@ void UWpOrderSenderComponent::OnLMBCompleted()
 	switch (OrderSenderState)
 	{
 	case EWpOrderSenderState::DefaultOrder:
+		if (bSelectionSoundPending)
+		{
+			UWpAudioSubsystem::PlayUi(this, SelectedEntities.IsEmpty() ? EWpUiSound::Deselect : EWpUiSound::Select);
+		}
 		bSelectingEntities = false;
 		SelectEntitiesStartLocation = FVector::ZeroVector;
 		break;
@@ -237,6 +242,7 @@ void UWpOrderSenderComponent::OnLMBCompleted()
 
 	OrderSenderState = EWpOrderSenderState::DefaultOrder;
 	SelectedOrderType = EWpOrderType::Undefined;
+	bSelectionSoundPending = false;
 }
 
 void UWpOrderSenderComponent::OnRMBStarted()
@@ -332,6 +338,27 @@ void UWpOrderSenderComponent::SetSelectEntitiesStartLocation()
 void UWpOrderSenderComponent::SelectEntities()
 {
 	const TSet<AWpEntity*> PreviouslySelectedEntities = SelectedEntities;
+	const auto NoteSelection = [this, &PreviouslySelectedEntities]()
+	{
+		bool bSameSelection = SelectedEntities.Num() == PreviouslySelectedEntities.Num();
+		if (bSameSelection)
+		{
+			for (AWpEntity* const Entity : SelectedEntities)
+			{
+				if (!PreviouslySelectedEntities.Contains(Entity))
+				{
+					bSameSelection = false;
+					break;
+				}
+			}
+		}
+
+		if (!bSameSelection)
+		{
+			bSelectionSoundPending = true;
+		}
+	};
+
 	for (AWpEntity* const SelectedEntity : PreviouslySelectedEntities)
 	{
 		SelectEntity(SelectedEntity, false);
@@ -339,12 +366,14 @@ void UWpOrderSenderComponent::SelectEntities()
 
 	if (SelectEntitiesStartLocation.IsNearlyZero())
 	{
+		NoteSelection();
 		return;
 	}
 
 	const FHitResult Hit = LineTraceUnderCursor();
 	if (!Hit.bBlockingHit)
 	{
+		NoteSelection();
 		return;
 	}
 
@@ -409,6 +438,7 @@ void UWpOrderSenderComponent::SelectEntities()
 	}
 
 	UpdateAvailableOrderTypes();
+	NoteSelection();
 }
 
 const TArray<AWpEntity*>* UWpOrderSenderComponent::GetSelectedEntitiesWithDefaultOrders(FWpDefaultOrders* const OutDefaultOrders) const
@@ -547,6 +577,39 @@ void UWpOrderSenderComponent::SendOrders(const EWpOrderType OrderType)
 		bOverride = true;
 	}
 	Order.bOverride = bOverride;
+
+	switch (Order.Type)
+	{
+	case EWpOrderType::Move:
+	case EWpOrderType::Patrol:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Move, Order.TargetLocation);
+		break;
+	case EWpOrderType::Attack:
+	case EWpOrderType::Strike:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Attack, Order.TargetLocation);
+		break;
+	case EWpOrderType::Stop:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Stop, Order.TargetLocation);
+		break;
+	case EWpOrderType::Assist:
+	case EWpOrderType::Repair:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Assist, Order.TargetLocation);
+		break;
+	case EWpOrderType::Reclaim:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Reclaim, Order.TargetLocation);
+		break;
+	case EWpOrderType::ProduceBuilding:
+	case EWpOrderType::ProduceUnit:
+	case EWpOrderType::InfiniteUnitProductionOff:
+	case EWpOrderType::InfiniteUnitProductionOn:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Production, Order.TargetLocation);
+		break;
+	case EWpOrderType::SelfDestruct:
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::SelfDestruct, Order.TargetLocation);
+		break;
+	default:
+		break;
+	}
 
 	TArray<FWpNetOrder> NetOrders;
 	NetOrders.Reserve(SelectedEntities.Num());

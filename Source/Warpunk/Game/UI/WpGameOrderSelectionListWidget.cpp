@@ -4,6 +4,8 @@
 #include "Warpunk/Game/Order/WpOrderSenderComponent.h"
 #include "Warpunk/Game/Player/WpGamePlayerController.h"
 
+#include "Warpunk/Global/Audio/WpAudio.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
@@ -83,6 +85,7 @@ void UWpGameOrderSelectionListEntryWidget::SetOrderType(const EWpOrderType InOrd
 	OrderType = InOrderType;
 
 	Button->OnPressed.AddDynamic(this, &UWpGameOrderSelectionListEntryWidget::OnPressed);
+	UWpAudioSubsystem::ArmButton(this, Button);
 
 	Text->SetText(FText::FromString(OrderLabel(OrderType)));
 	ApplyOrderButtonColor(Button, AWpCommandMarker::ColorForOrder(OrderType));

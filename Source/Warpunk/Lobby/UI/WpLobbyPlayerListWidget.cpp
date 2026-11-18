@@ -1,5 +1,6 @@
 #include "WpLobbyPlayerListWidget.h"
 
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Lobby/GameMode/WpLobbyGameState.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerController.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"
@@ -63,6 +64,11 @@ void UWpLobbyPlayerListEntryWidget::NativeConstruct()
 	BelligerentUp->OnPressed.AddDynamic(this, &UWpLobbyPlayerListEntryWidget::OnBelligerentUp);
 	TeamDown->OnPressed.AddDynamic(this, &UWpLobbyPlayerListEntryWidget::OnTeamDown);
 	TeamUp->OnPressed.AddDynamic(this, &UWpLobbyPlayerListEntryWidget::OnTeamUp);
+	UWpAudioSubsystem::ArmButton(this, BelligerentDown);
+	UWpAudioSubsystem::ArmButton(this, BelligerentUp);
+	UWpAudioSubsystem::ArmButton(this, TeamDown);
+	UWpAudioSubsystem::ArmButton(this, TeamUp);
+	UWpAudioSubsystem::ArmButton(this, KickButton);
 	ColorList->OnSelectionChanged.AddDynamic(this, &UWpLobbyPlayerListEntryWidget::OnColorSelected);
 	EnsureColorOptions();
 
@@ -181,10 +187,12 @@ void UWpLobbyPlayerListEntryWidget::EnsureColorOptions()
 void UWpLobbyPlayerListEntryWidget::OnColorSelected(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
 	static_cast<void>(SelectionType);
-	if (bApplyingColor || SelectedItem.IsEmpty() || !PlayerState)
+	if (bApplyingColor || (SelectionType == ESelectInfo::Direct) || SelectedItem.IsEmpty() || !PlayerState)
 	{
 		return;
 	}
+
+	UWpAudioSubsystem::PlayUi(this, EWpUiSound::Press);
 
 	FColor Color = FColor{62, 224, 197};
 	if (SelectedItem == TEXT("Red"))

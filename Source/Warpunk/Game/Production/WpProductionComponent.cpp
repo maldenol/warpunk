@@ -8,6 +8,7 @@
 #include "Warpunk/Game/Intel/WpIntelComponent.h"
 #include "Warpunk/Game/Order/WpOrderReceiverComponent.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "AIController.h"
@@ -166,6 +167,8 @@ void UWpProductionComponent::StartProduce(const uint32 EntityConfigId, const FVe
 	ProductionState = EWpProductionState::InitiatingProduction;
 	EntityToProduceConfigId = EntityConfigId;
 	EntityToProduceLocation = Location;
+
+	GetOwner<AWpEntity>()->PlayReplicatedSfx(EWpSfx::Production, GetOwner()->GetActorLocation());
 }
 
 void UWpProductionComponent::StartRepair(AWpEntity* const Entity)
@@ -177,6 +180,11 @@ void UWpProductionComponent::StartRepair(AWpEntity* const Entity)
 
 	ProductionState = EWpProductionState::Repairing;
 	SetCurrentTargetEntity(Entity);
+
+	if (Entity)
+	{
+		GetOwner<AWpEntity>()->PlayReplicatedSfx(EWpSfx::Assist, Entity->GetActorLocation());
+	}
 }
 
 void UWpProductionComponent::StartReclaim(AWpEntity* const Entity)
@@ -188,6 +196,11 @@ void UWpProductionComponent::StartReclaim(AWpEntity* const Entity)
 
 	ProductionState = EWpProductionState::Reclaiming;
 	SetCurrentTargetEntity(Entity);
+
+	if (Entity)
+	{
+		GetOwner<AWpEntity>()->PlayReplicatedSfx(EWpSfx::Reclaim, Entity->GetActorLocation());
+	}
 }
 
 void UWpProductionComponent::Stop()

@@ -1,5 +1,6 @@
 #include "WpMenuLANWidget.h"
 
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Menu/UI/WpMenuHUD.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -17,6 +18,9 @@ void UWpMenuLANWidget::NativeConstruct()
 	BackButton->OnPressed.AddDynamic(this, &UWpMenuLANWidget::OnBackPressed);
 	ConnectButton->OnPressed.AddDynamic(this, &UWpMenuLANWidget::OnConnectPressed);
 	HostButton->OnPressed.AddDynamic(this, &UWpMenuLANWidget::OnHostPressed);
+	UWpAudioSubsystem::ArmButton(this, BackButton);
+	UWpAudioSubsystem::ArmButton(this, ConnectButton);
+	UWpAudioSubsystem::ArmButton(this, HostButton);
 }
 
 void UWpMenuLANWidget::OnBackPressed()

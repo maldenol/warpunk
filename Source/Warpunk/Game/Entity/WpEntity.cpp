@@ -14,6 +14,7 @@
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Production/WpProductionComponent.h"
 #include "Warpunk/Game/Weapon/WpWeaponComponent.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
@@ -353,6 +354,22 @@ uint32 AWpEntity::GetEntityConfigId() const
 EWpEntityType AWpEntity::GetEntityType() const
 {
 	return EntityType;
+}
+
+void AWpEntity::PlayReplicatedSfx(const EWpSfx Sfx, const FVector& Location)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	FlushNetDormancy();
+	MulticastPlaySfx(Sfx, Location);
+}
+
+void AWpEntity::MulticastPlaySfx_Implementation(const EWpSfx Sfx, const FVector Location)
+{
+	UWpAudioSubsystem::PlaySfx(this, Sfx, Location);
 }
 
 void AWpEntity::OnRep_EntityConfigId()

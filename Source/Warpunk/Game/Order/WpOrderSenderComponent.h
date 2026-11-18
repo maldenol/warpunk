@@ -108,6 +108,7 @@ private:
 	FVector SelectEntitiesStartLocation = FVector::ZeroVector;
 	FVector2D SelectEntitiesStartScreen = FVector2D::ZeroVector;
 	bool bSelectingEntities = false;
+	bool bSelectionSoundPending = false;
 	TMap<FWpSelectedEntityCategory, TArray<AWpEntity*>> SelectedEntitiesPerCategory = {};
 
 	TSet<AWpEntity*> SelectedEntities = {};

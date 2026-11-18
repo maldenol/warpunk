@@ -7,6 +7,7 @@ public class Warpunk : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "EnhancedInput", "InputCore", "NavigationSystem", "NetCore", "OnlineSubsystemUtils", "SlateCore", "UMG" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AudioExtensions" });
 
 		if (Target.bBuildEditor)
 		{

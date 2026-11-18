@@ -83,6 +83,13 @@ private:
 	FEntityStateChangedEvent EntityStateChangedEvent = {};
 	FCurrentEnduranceChangedEvent CurrentEnduranceChangedEvent = {};
 
+	EWpEntityState ObservedEntityState = EWpEntityState::NotProduced;
+	float ObservedEndurance = 0.0f;
+	uint32 EntityStateRevision = 0;
+	uint32 EnduranceStateRevision = 0;
+	bool bHasObservedEntityState = false;
+	bool bHasObservedEndurance = false;
+
 public:
 	static const FName EnduranceWidgetComponentName;
 };

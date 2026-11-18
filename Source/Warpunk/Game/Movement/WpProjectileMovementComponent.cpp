@@ -2,6 +2,7 @@
 
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 
 #include "GameFramework/GameStateBase.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -59,6 +60,11 @@ void UWpProjectileMovementComponent::OnPooledObjectAcquiredOrReleased(const bool
 		ensureAlways(!PooledProjectileData.InitialVelocity.IsNearlyZero());
 
 		Velocity = PooledProjectileData.InitialVelocity;
+
+		if (GetNetMode() != NM_DedicatedServer)
+		{
+			UWpAudioSubsystem::PlaySfx(this, EWpSfx::Projectile, UpdatedComponent->GetComponentLocation());
+		}
 	}
 
 	SetActive(bIsAcquired);
@@ -86,14 +92,26 @@ void UWpProjectileMovementComponent::OnRep_PredictionData()
 {
 	ensureAlways(!GetOwner()->HasAuthority());
 
+	const bool bWasActive = IsActive();
+	const FVector PreviousLocation = UpdatedComponent->GetComponentLocation();
+
 	SetActive(PredictionData.bIsAcquired);
 
 	if (!PredictionData.bIsAcquired)
 	{
+		if (bWasActive)
+		{
+			UWpAudioSubsystem::PlaySfx(this, EWpSfx::Impact, PreviousLocation);
+		}
 		return;
 	}
 
 	UpdatedComponent->SetWorldLocationAndRotation(PredictionData.UpdatedComponentLocation, PredictionData.UpdatedComponentRotation, false);
+
+	if (!bWasActive)
+	{
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Projectile, UpdatedComponent->GetComponentLocation());
+	}
 
 	Velocity = PredictionData.Velocity;
 

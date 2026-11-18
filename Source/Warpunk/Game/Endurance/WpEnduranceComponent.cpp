@@ -5,6 +5,7 @@
 #include "Warpunk/Game/Entity/WpPooledEntityData.h"
 #include "Warpunk/Game/Pool/WpActorPool.h"
 #include "Warpunk/Game/UI/WpGameEntityEnduranceWidget.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 
 #include "Components/WidgetComponent.h"
@@ -227,11 +228,51 @@ void UWpEnduranceComponent::OnTakeAnyDamage(AActor* const DamagedActor, const fl
 
 void UWpEnduranceComponent::OnRep_EntityState()
 {
+	const EWpEntityState Previous = ObservedEntityState;
+	const bool bHadObservation = bHasObservedEntityState;
+	ObservedEntityState = EntityState;
+	bHasObservedEntityState = true;
+	++EntityStateRevision;
+
+	if (bHadObservation && (Previous != EntityState))
+	{
+		const FVector Location = GetOwner()->GetActorLocation();
+		if ((EntityState == EWpEntityState::Operational) && (Previous == EWpEntityState::NotProduced))
+		{
+			UWpAudioSubsystem::PlaySfx(this, EWpSfx::ProductionComplete, Location);
+		}
+		else if ((EntityState == EWpEntityState::Wreck) && (Previous != EWpEntityState::Wreck))
+		{
+			const EWpSfx Sound = (GetOwner<AWpEntity>()->GetEntityType() == EWpEntityType::Building) ? EWpSfx::DestructionBuilding : EWpSfx::Destruction;
+			UWpAudioSubsystem::PlaySfx(this, Sound, Location);
+		}
+	}
+
 	EntityStateChangedEvent.Broadcast(GetOwner<AWpEntity>(), EntityState);
 }
 
 void UWpEnduranceComponent::OnRep_CurrentEndurance()
 {
+	const float Previous = ObservedEndurance;
+	const bool bHadObservation = bHasObservedEndurance;
+	const bool bStateChanged = EnduranceStateRevision != EntityStateRevision;
+	EnduranceStateRevision = EntityStateRevision;
+	ObservedEndurance = CurrentEndurance;
+	bHasObservedEndurance = true;
+
+	if (bHadObservation && !bStateChanged && (MaxEndurance > 1.0f))
+	{
+		const FVector Location = GetOwner()->GetActorLocation();
+		if ((CurrentEndurance + 1.0f < Previous) && (CurrentEndurance > 1.0f))
+		{
+			UWpAudioSubsystem::PlaySfx(this, EWpSfx::Damage, Location);
+		}
+		else if ((EntityState == EWpEntityState::Operational) && (Previous + 1.0f < MaxEndurance) && (CurrentEndurance + 1.0f >= MaxEndurance))
+		{
+			UWpAudioSubsystem::PlaySfx(this, EWpSfx::ProductionComplete, Location);
+		}
+	}
+
 	CurrentEnduranceChangedEvent.Broadcast(CurrentEndurance, MaxEndurance);
 }
 

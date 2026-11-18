@@ -1,5 +1,7 @@
 #include "WpMenuMainWidget.h"
 
+#include "Warpunk/Global/Audio/WpAudio.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -14,6 +16,7 @@ void UWpMenuMainEntryWidget::SetMenuState(const EWpMenuState InMenuState)
 	MenuState = InMenuState;
 
 	Button->OnPressed.AddDynamic(this, &UWpMenuMainEntryWidget::OnPressed);
+	UWpAudioSubsystem::ArmButton(this, Button);
 
 	FString MenuStateName;
 	switch (MenuState)

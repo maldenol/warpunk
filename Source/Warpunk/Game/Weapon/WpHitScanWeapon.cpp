@@ -20,6 +20,12 @@ void FWpHitScanWeapon::Fire(const FVector& Location)
 
 	const FHitResult Hit = HitScan(Location);
 	UGameplayStatics::ApplyPointDamage(Hit.GetActor(), GetDamage(), Hit.ImpactNormal, Hit, nullptr, nullptr, nullptr);
+
+	GetOwnerEntity()->PlayReplicatedSfx(EWpSfx::HitScan, GetOwnerEntity()->GetActorLocation());
+	if (Hit.bBlockingHit)
+	{
+		GetOwnerEntity()->PlayReplicatedSfx(EWpSfx::Impact, Hit.ImpactPoint);
+	}
 }
 
 FHitResult FWpHitScanWeapon::HitScan(const FVector& Location) const

@@ -3,6 +3,7 @@
 #include "Warpunk/Lobby/GameMode/WpLobbyGameState.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerController.h"
 #include "Warpunk/Lobby/Player/WpLobbyPlayerState.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Lobby/UI/WpLobbyOptionsWidget.h"
 #include "Warpunk/Lobby/UI/WpLobbyPlayerListWidget.h"
 
@@ -19,6 +20,8 @@ void UWpLobbyHUDWidget::NativeConstruct()
 
 	ReadyButton->OnPressed.AddDynamic(this, &UWpLobbyHUDWidget::OnReadyPressed);
 	BackButton->OnPressed.AddDynamic(this, &UWpLobbyHUDWidget::OnBackPressed);
+	UWpAudioSubsystem::ArmButton(this, ReadyButton);
+	UWpAudioSubsystem::ArmButton(this, BackButton);
 
 	if (AWpLobbyPlayerState* const PlayerState = GetOwningPlayer()->GetPlayerState<AWpLobbyPlayerState>())
 	{

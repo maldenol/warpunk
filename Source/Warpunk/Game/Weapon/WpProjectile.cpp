@@ -8,6 +8,7 @@
 #include "Warpunk/Game/Pool/WpPooledActorVisibilityManager.h"
 #include "Warpunk/Game/Weapon/WpPooledProjectileData.h"
 #include "Warpunk/Game/Weapon/WpProjectileWeapon.h"
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Global/GameInstance/WpGameInstance.h"
 #include "Warpunk/Global/LoadingScreen/WpLoadingScreen.h"
 
@@ -150,6 +151,11 @@ void AWpProjectile::OnComponentHit(UPrimitiveComponent* const HitComponent, AAct
 
 			Weapon->OnProjectileHit(Entity);
 		}
+	}
+
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		UWpAudioSubsystem::PlaySfx(this, EWpSfx::Impact, Hit.ImpactPoint);
 	}
 
 	AWpActorPool::Release<AWpProjectile>(this);

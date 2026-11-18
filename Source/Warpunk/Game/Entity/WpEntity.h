@@ -4,6 +4,7 @@
 
 #include "Warpunk/Game/Entity/WpEntityType.h"
 #include "Warpunk/Game/Pool/WpPooledObjectInterface.h"
+#include "Warpunk/Global/Audio/WpAudioTypes.h"
 
 #include "GameFramework/Pawn.h"
 
@@ -73,6 +74,8 @@ public:
 	uint32 GetEntityConfigId() const;
 	EWpEntityType GetEntityType() const;
 
+	void PlayReplicatedSfx(const EWpSfx Sfx, const FVector& Location);
+
 protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UCapsuleComponent> CapsuleComponent = nullptr;
@@ -100,6 +103,9 @@ protected:
 	TObjectPtr<UWpWeaponComponent> WeaponComponent = nullptr;
 
 private:
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlaySfx(const EWpSfx Sfx, const FVector Location);
+
 	UFUNCTION()
 	void OnRep_EntityConfigId();
 

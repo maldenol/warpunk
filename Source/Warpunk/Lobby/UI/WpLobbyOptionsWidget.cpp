@@ -1,5 +1,6 @@
 #include "WpLobbyOptionsWidget.h"
 
+#include "Warpunk/Global/Audio/WpAudio.h"
 #include "Warpunk/Lobby/GameMode/WpLobbyGameState.h"
 
 #include "Components/Button.h"
@@ -21,6 +22,11 @@ void UWpLobbyOptionsWidget::NativeConstruct()
 	PlayersUp->OnPressed.AddDynamic(this, &UWpLobbyOptionsWidget::OnPlayersUp);
 	SpectatorsDown->OnPressed.AddDynamic(this, &UWpLobbyOptionsWidget::OnSpectatorsDown);
 	SpectatorsUp->OnPressed.AddDynamic(this, &UWpLobbyOptionsWidget::OnSpectatorsUp);
+	UWpAudioSubsystem::ArmButton(this, PlayersDown);
+	UWpAudioSubsystem::ArmButton(this, PlayersUp);
+	UWpAudioSubsystem::ArmButton(this, SpectatorsDown);
+	UWpAudioSubsystem::ArmButton(this, SpectatorsUp);
+	UWpAudioSubsystem::ArmCheckBox(this, AllowTeams);
 	MaxPlayerNumber->SetIsReadOnly(true);
 	MaxSpectatorNumber->SetIsReadOnly(true);
 
